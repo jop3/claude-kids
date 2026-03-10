@@ -4,8 +4,9 @@ services:
     ports:
       - "3456:3456"
     volumes:
-      # Mount your .claude config read-only so Claude Code is authenticated
+      # Mount .claude config dir and config file read-only for auth
       - ~/.claude:/root/.claude:ro
+      - ~/.claude.json:/root/.claude.json:ro
       # Workspace where Claude writes files (persists between restarts)
       - claudekids-workspace:/workspace
     restart: unless-stopped
