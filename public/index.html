@@ -6,278 +6,94 @@
   <title>ClaudeKids 🚀</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     :root {
-      --bg: #0f0e17;
-      --surface: #1a1933;
-      --surface2: #252347;
-      --bubble-bot: #2d2b55;
-      --bubble-user: #e94560;
-      --accent: #ffd166;
-      --green: #06d6a0;
-      --purple: #7b5ea7;
-      --text: #fffffe;
-      --text-dim: #a7a9be;
+      --bg: #0f0e17; --surface: #1a1933; --surface2: #252347;
+      --bubble-bot: #2d2b55; --bubble-user: #e94560;
+      --accent: #ffd166; --green: #06d6a0; --purple: #7b5ea7;
+      --text: #fffffe; --text-dim: #a7a9be;
     }
+    body { font-family:'Nunito',system-ui,sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
-    body {
-      font-family: 'Nunito', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #e94560 0%, #533483 60%, #0f3460 100%);
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    header .logo { font-size: 28px; }
-    header h1 { font-size: 22px; font-weight: 900; }
-    header .tagline {
-      font-size: 12px; opacity: 0.8;
-      background: rgba(255,255,255,0.15);
-      padding: 3px 10px; border-radius: 20px;
-    }
-    .hstatus {
-      margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px;
-    }
-    .status-dot {
-      width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex-shrink: 0;
-    }
-    .status-dot.busy { background: var(--accent); animation: pulse 0.8s infinite; }
+    /* Header */
+    header { background:linear-gradient(135deg,#e94560 0%,#533483 60%,#0f3460 100%); padding:10px 20px; display:flex; align-items:center; gap:10px; flex-shrink:0; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+    header .logo { font-size:28px; }
+    header h1 { font-size:22px; font-weight:900; }
+    header .tagline { font-size:12px; opacity:.8; background:rgba(255,255,255,.15); padding:3px 10px; border-radius:20px; }
+    .hstatus { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:13px; }
+    .status-dot { width:9px; height:9px; border-radius:50%; background:var(--green); flex-shrink:0; }
+    .status-dot.busy { background:var(--accent); animation:pulse .8s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* ── Layout ── */
-    .layout { display: flex; flex: 1; min-height: 0; }
+    /* Layout */
+    .layout { display:flex; flex:1; min-height:0; }
 
-    /* ── Left panel ── */
-    .left-panel {
-      width: 380px;
-      min-width: 280px;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface);
-      border-right: 3px solid rgba(255,255,255,0.05);
-      overflow: hidden;
-    }
+    /* Left panel */
+    .left-panel { width:400px; min-width:280px; display:flex; flex-direction:column; background:var(--surface); border-right:3px solid rgba(255,255,255,.05); overflow:hidden; }
+    .messages { flex:1; overflow-y:auto; padding:14px 12px; display:flex; flex-direction:column; gap:12px; min-height:0; }
+    .messages::-webkit-scrollbar { width:4px; }
+    .messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:2px; }
 
-    /* Chat area */
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 0;
-    }
-    .messages::-webkit-scrollbar { width: 4px; }
-    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-
-    .bubble-row { display: flex; align-items: flex-end; gap: 7px; }
-    .bubble-row.user { flex-direction: row-reverse; }
-
-    .avatar {
-      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 18px;
-    }
-    .avatar.bot  { background: linear-gradient(135deg,#533483,#0f3460); box-shadow: 0 0 12px rgba(83,52,131,.7); }
-    .avatar.kid  { background: linear-gradient(135deg,#e94560,#c23152); box-shadow: 0 0 12px rgba(233,69,96,.5); }
-
-    .bubble {
-      max-width: 80%; padding: 10px 14px; border-radius: 16px;
-      line-height: 1.5; font-size: 14px; word-break: break-word;
-    }
-    .bubble.bot  { background: var(--bubble-bot); border-bottom-left-radius: 4px; }
-    .bubble.user { background: var(--bubble-user); border-bottom-right-radius: 4px; }
-    .bubble-row.action { padding-left: 41px; }
-    .bubble.action { background: transparent; color: var(--text-dim); font-size: 12px; font-style: italic; padding: 1px 4px; }
-
-    .bubble.typing { background: var(--bubble-bot); padding: 12px 16px; }
-    .dots { display: flex; gap: 5px; align-items: center; }
-    .dots span {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim);
-      animation: bounce 1.2s infinite;
-    }
-    .dots span:nth-child(2) { animation-delay: .2s; }
-    .dots span:nth-child(3) { animation-delay: .4s; }
+    .bubble-row { display:flex; align-items:flex-end; gap:7px; }
+    .bubble-row.user { flex-direction:row-reverse; }
+    .avatar { width:34px; height:34px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .avatar.bot { background:linear-gradient(135deg,#533483,#0f3460); box-shadow:0 0 12px rgba(83,52,131,.7); }
+    .avatar.kid { background:linear-gradient(135deg,#e94560,#c23152); box-shadow:0 0 12px rgba(233,69,96,.5); }
+    .bubble { max-width:80%; padding:10px 14px; border-radius:16px; line-height:1.5; font-size:14px; word-break:break-word; }
+    .bubble.bot { background:var(--bubble-bot); border-bottom-left-radius:4px; }
+    .bubble.user { background:var(--bubble-user); border-bottom-right-radius:4px; }
+    .bubble-row.action { padding-left:41px; }
+    .bubble.action { background:transparent; color:var(--text-dim); font-size:12px; font-style:italic; padding:1px 4px; }
+    .bubble.typing { background:var(--bubble-bot); padding:12px 16px; }
+    .dots { display:flex; gap:5px; align-items:center; }
+    .dots span { width:7px; height:7px; border-radius:50%; background:var(--text-dim); animation:bounce 1.2s infinite; }
+    .dots span:nth-child(2) { animation-delay:.2s; }
+    .dots span:nth-child(3) { animation-delay:.4s; }
     @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 
-    /* ── Control panel ── */
-    .control-panel {
-      flex-shrink: 0;
-      background: var(--surface);
-      border-top: 2px solid rgba(255,255,255,0.06);
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 60vh;
-      overflow-y: auto;
-    }
-    .control-panel::-webkit-scrollbar { width: 4px; }
-    .control-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    /* Control panel */
+    .control-panel { flex-shrink:0; background:var(--surface); border-top:2px solid rgba(255,255,255,.06); padding:10px 12px; display:flex; flex-direction:column; gap:10px; max-height:62vh; overflow-y:auto; }
+    .control-panel::-webkit-scrollbar { width:4px; }
+    .control-panel::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:2px; }
+    .section-label { font-size:10px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); padding:0 2px; }
+    .chip-row { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { padding:6px 12px; border-radius:20px; border:2px solid rgba(255,255,255,.1); background:var(--surface2); color:var(--text); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .chip:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.3); }
+    .chip.active { background:var(--accent); color:#1a1933; border-color:var(--accent); box-shadow:0 0 14px rgba(255,209,102,.4); }
+    .action-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+    .action-btn { padding:10px 6px; border-radius:14px; border:2px solid rgba(255,255,255,.1); background:var(--surface2); color:var(--text); font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; text-align:center; transition:all .15s; line-height:1.3; }
+    .action-btn .btn-icon { font-size:20px; display:block; margin-bottom:3px; }
+    .action-btn:hover { border-color:var(--purple); background:rgba(123,94,167,.25); transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.3); }
+    .action-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+    .modify-section { display:none; }
+    .modify-section.visible { display:flex; flex-direction:column; gap:8px; }
+    .text-toggle { text-align:center; font-size:12px; color:var(--text-dim); cursor:pointer; text-decoration:underline; padding:2px; }
+    .text-toggle:hover { color:var(--text); }
+    .text-input-row { display:none; gap:6px; align-items:center; }
+    .text-input-row.visible { display:flex; }
+    .text-input-row input { flex:1; padding:9px 14px; border:2px solid rgba(255,255,255,.1); border-radius:22px; background:var(--bg); color:var(--text); font-family:inherit; font-size:14px; outline:none; transition:border-color .2s; }
+    .text-input-row input:focus { border-color:var(--bubble-user); }
+    .text-input-row input::placeholder { color:var(--text-dim); }
+    .text-input-row button { width:38px; height:38px; border-radius:50%; background:var(--bubble-user); color:white; border:none; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+    .text-input-row button:hover { transform:scale(1.1); }
+    .text-input-row button:disabled { opacity:.4; cursor:not-allowed; transform:none; }
 
-    /* Section label */
-    .section-label {
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      padding: 0 2px;
-    }
+    /* Preview panel */
+    .preview-panel { flex:1; display:flex; flex-direction:column; background:#111; }
+    .preview-toolbar { padding:8px 14px; background:var(--surface); border-bottom:2px solid rgba(255,255,255,.06); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .preview-toolbar select { flex:1; padding:6px 10px; background:var(--bg); color:var(--text); border:2px solid rgba(255,255,255,.1); border-radius:10px; font-family:inherit; font-size:14px; outline:none; }
+    .tbtn { padding:6px 12px; background:rgba(255,255,255,.08); color:var(--text); border:none; border-radius:10px; font-family:inherit; font-size:13px; cursor:pointer; transition:background .2s; white-space:nowrap; }
+    .tbtn:hover { background:rgba(255,255,255,.16); }
+    .preview-frame { flex:1; position:relative; overflow:hidden; }
+    .preview-frame iframe { width:100%; height:100%; border:none; }
 
-    /* Chip row */
-    .chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
+    /* Pixel playground canvas */
+    #playground { width:100%; height:100%; display:block; image-rendering:pixelated; background:#1a0a2e; }
 
-    .chip {
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 2px solid rgba(255,255,255,0.1);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all .15s;
-      white-space: nowrap;
-    }
-    .chip:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .chip.active {
-      background: var(--accent);
-      color: #1a1933;
-      border-color: var(--accent);
-      box-shadow: 0 0 14px rgba(255,209,102,0.4);
-    }
-    .chip.theme.active { background: var(--accent); color: #1a1933; border-color: var(--accent); }
-
-    /* Big action buttons */
-    .action-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px;
-    }
-
-    .action-btn {
-      padding: 10px 8px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,0.1);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: all .15s;
-      line-height: 1.3;
-    }
-    .action-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 3px; }
-    .action-btn:hover {
-      border-color: var(--purple);
-      background: rgba(123,94,167,0.25);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-    }
-    .action-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-
-    /* Modify chips — only shown after creation */
-    .modify-section { display: none; }
-    .modify-section.visible { display: flex; flex-direction: column; gap: 8px; }
-
-    /* Text input fallback */
-    .text-toggle {
-      text-align: center;
-      font-size: 12px;
-      color: var(--text-dim);
-      cursor: pointer;
-      text-decoration: underline;
-      padding: 2px;
-    }
-    .text-toggle:hover { color: var(--text); }
-
-    .text-input-row {
-      display: none;
-      gap: 6px;
-      align-items: center;
-    }
-    .text-input-row.visible { display: flex; }
-    .text-input-row input {
-      flex: 1; padding: 9px 14px;
-      border: 2px solid rgba(255,255,255,0.1); border-radius: 22px;
-      background: var(--bg); color: var(--text);
-      font-family: inherit; font-size: 14px; outline: none;
-      transition: border-color .2s;
-    }
-    .text-input-row input:focus { border-color: var(--bubble-user); }
-    .text-input-row input::placeholder { color: var(--text-dim); }
-    .text-input-row button {
-      width: 38px; height: 38px; border-radius: 50%;
-      background: var(--bubble-user); color: white; border: none;
-      font-size: 17px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: transform .15s;
-    }
-    .text-input-row button:hover { transform: scale(1.1); }
-    .text-input-row button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-
-    /* ── Preview panel ── */
-    .preview-panel { flex: 1; display: flex; flex-direction: column; background: #111; }
-
-    .preview-toolbar {
-      padding: 8px 14px; background: var(--surface);
-      border-bottom: 2px solid rgba(255,255,255,0.06);
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
-    .preview-toolbar select {
-      flex: 1; padding: 6px 10px;
-      background: var(--bg); color: var(--text);
-      border: 2px solid rgba(255,255,255,0.1); border-radius: 10px;
-      font-family: inherit; font-size: 14px; outline: none;
-    }
-    .tbtn {
-      padding: 6px 12px; background: rgba(255,255,255,0.08); color: var(--text);
-      border: none; border-radius: 10px; font-family: inherit; font-size: 13px;
-      cursor: pointer; transition: background .2s; white-space: nowrap;
-    }
-    .tbtn:hover { background: rgba(255,255,255,0.16); }
-
-    .preview-frame { flex: 1; position: relative; }
-    .preview-frame iframe { width: 100%; height: 100%; border: none; }
-
-    /* Welcome */
-    .welcome {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100%; padding: 40px; text-align: center;
-      background: radial-gradient(ellipse at center, #1a1040 0%, var(--bg) 70%);
-    }
-    .welcome .big-emoji { font-size: 80px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
-    .welcome h2 { font-size: 30px; font-weight: 900; margin-bottom: 10px; }
-    .welcome p { font-size: 16px; color: var(--text-dim); line-height: 1.7; }
-
-    .layout.fullscreen .left-panel { display: none; }
-
-    @media (max-width: 700px) {
-      .layout { flex-direction: column; }
-      .left-panel { width: 100%; height: 50%; border-right: none; border-bottom: 2px solid rgba(255,255,255,0.06); }
+    .layout.fullscreen .left-panel { display:none; }
+    @media (max-width:700px) {
+      .layout { flex-direction:column; }
+      .left-panel { width:100%; height:50%; border-right:none; border-bottom:2px solid rgba(255,255,255,.06); }
     }
   </style>
 </head>
@@ -294,16 +110,11 @@
 </header>
 
 <div class="layout" id="layout">
-
-  <!-- Left panel: chat + controls -->
   <div class="left-panel">
-
     <div class="messages" id="messages"></div>
-
     <div class="control-panel" id="controlPanel">
 
-      <!-- Theme selector -->
-      <div class="section-label">🎨 Tema</div>
+      <div class="section-label">🎨 Välj tema</div>
       <div class="chip-row" id="themeChips">
         <button class="chip theme active" data-theme="rymden">🚀 Rymden</button>
         <button class="chip theme" data-theme="prinsessa">👸 Prinsessa</button>
@@ -313,9 +124,18 @@
         <button class="chip theme" data-theme="djungeln">🌿 Djungeln</button>
         <button class="chip theme" data-theme="sport">⚽ Sport</button>
         <button class="chip theme" data-theme="saga">🏰 Saga</button>
+        <button class="chip theme" data-theme="vilda_vastern">🤠 Vilda Västern</button>
+        <button class="chip theme" data-theme="super_hjältar">🦸 Superhjältar</button>
+        <button class="chip theme" data-theme="framtiden">🤖 Framtiden</button>
+        <button class="chip theme" data-theme="pirater">☠️ Pirater</button>
+        <button class="chip theme" data-theme="magi">🧙 Magi</button>
+        <button class="chip theme" data-theme="mat">🍕 Mat</button>
+        <button class="chip theme" data-theme="musik">🎸 Musik</button>
+        <button class="chip theme" data-theme="djur">🐾 Djur</button>
+        <button class="chip theme" data-theme="godis">🍭 Godisland</button>
+        <button class="chip theme" data-theme="polar">🐧 Polaren</button>
       </div>
 
-      <!-- Create actions -->
       <div class="section-label">✨ Skapa något nytt</div>
       <div class="action-grid" id="createGrid">
         <button class="action-btn" onclick="createAction('spel')"><span class="btn-icon">🎮</span>Spel</button>
@@ -324,36 +144,39 @@
         <button class="action-btn" onclick="createAction('musik')"><span class="btn-icon">🎵</span>Musik</button>
         <button class="action-btn" onclick="createAction('quiz')"><span class="btn-icon">🧠</span>Quiz</button>
         <button class="action-btn" onclick="createAction('berättelse')"><span class="btn-icon">📖</span>Berättelse</button>
+        <button class="action-btn" onclick="createAction('klicker')"><span class="btn-icon">👆</span>Klickspel</button>
+        <button class="action-btn" onclick="createAction('konst')"><span class="btn-icon">🖼️</span>Konst</button>
+        <button class="action-btn" onclick="createAction('överraskning')"><span class="btn-icon">🎲</span>Överraska!</button>
       </div>
 
-      <!-- Modify section (shown after creation) -->
       <div class="modify-section" id="modifySection">
         <div class="section-label">⚡ Ändra det du skapade</div>
-        <div class="chip-row" id="modifyChips">
-          <button class="chip" onclick="modifyAction(this)">🚀 Gör det snabbare</button>
-          <button class="chip" onclick="modifyAction(this)">😊 Lägg till fler figurer</button>
+        <div class="chip-row">
+          <button class="chip" onclick="modifyAction(this)">🚀 Snabbare</button>
+          <button class="chip" onclick="modifyAction(this)">😊 Fler figurer</button>
           <button class="chip" onclick="modifyAction(this)">🏆 Lägg till poäng</button>
           <button class="chip" onclick="modifyAction(this)">🎵 Lägg till ljud</button>
-          <button class="chip" onclick="modifyAction(this)">🌈 Byt till regnbågsfärger</button>
-          <button class="chip" onclick="modifyAction(this)">💥 Gör det svårare</button>
-          <button class="chip" onclick="modifyAction(this)">🐌 Gör det lättare</button>
-          <button class="chip" onclick="modifyAction(this)">🎉 Lägg till konfetti</button>
-          <button class="chip" onclick="modifyAction(this)">🌟 Gör det större</button>
+          <button class="chip" onclick="modifyAction(this)">🌈 Regnbågsfärger</button>
+          <button class="chip" onclick="modifyAction(this)">💥 Svårare</button>
+          <button class="chip" onclick="modifyAction(this)">🐌 Lättare</button>
+          <button class="chip" onclick="modifyAction(this)">🎉 Konfetti-explosion</button>
+          <button class="chip" onclick="modifyAction(this)">🌟 Gör det ENORMT</button>
+          <button class="chip" onclick="modifyAction(this)">🔥 Lägg till eld</button>
+          <button class="chip" onclick="modifyAction(this)">❄️ Lägg till snö</button>
+          <button class="chip" onclick="modifyAction(this)">👻 Gör det läskigt</button>
+          <button class="chip" onclick="modifyAction(this)">🦄 Gör det magiskt</button>
           <button class="chip" onclick="modifyAction(this)">🎲 Överraska mig!</button>
         </div>
       </div>
 
-      <!-- Optional text input -->
-      <span class="text-toggle" id="textToggle" onclick="toggleTextInput()">✏️ Skriv din egen idé...</span>
+      <span class="text-toggle" onclick="toggleTextInput()">✏️ Skriv din egen idé...</span>
       <div class="text-input-row" id="textInputRow">
         <input type="text" id="textInput" placeholder="Beskriv vad du vill..." autocomplete="off">
         <button id="textSendBtn">🚀</button>
       </div>
-
     </div>
   </div>
 
-  <!-- Preview panel -->
   <div class="preview-panel">
     <div class="preview-toolbar" id="toolbar" style="display:none">
       <span style="font-size:16px">🎨</span>
@@ -362,46 +185,598 @@
       <button class="tbtn" onclick="toggleFullscreen()">⛶ Fullskärm</button>
     </div>
     <div class="preview-frame" id="previewFrame">
-      <div class="welcome" id="welcomeState">
-        <div class="big-emoji">🚀</div>
-        <h2>Vad vill du skapa?</h2>
-        <p>Välj ett tema och klicka på<br>något du vill göra!</p>
-      </div>
+      <canvas id="playground"></canvas>
     </div>
   </div>
-
 </div>
 
 <script>
-const messagesEl   = document.getElementById('messages');
-const toolbar      = document.getElementById('toolbar');
-const fileSelect   = document.getElementById('fileSelect');
-const welcomeState = document.getElementById('welcomeState');
-const previewFrame = document.getElementById('previewFrame');
-const layoutEl     = document.getElementById('layout');
-const statusDot    = document.getElementById('statusDot');
-const statusText   = document.getElementById('statusText');
+// ─────────────────────────────────────────────
+// PIXEL PLAYGROUND ENGINE
+// Canvas 2D, state machine, speech bubbles
+// No external assets — everything drawn in code
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('playground');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const S = 3; // pixel scale (each "pixel" = 3x3 real pixels)
+
+// Theme → scene config
+const THEMES = {
+  rymden:       { bg:['#0a0015','#160030','#1a0040'], ground:'#2a0060', groundLine:'#4400aa', stars:true,  charColor:'#00eeff', charBody:'#003366', accent:'#ffd700', label:'Rymden 🚀' },
+  prinsessa:    { bg:['#2d0030','#4a0050','#6b0060'], ground:'#8b4513', groundLine:'#daa520', stars:false, charColor:'#ffb3d9', charBody:'#cc0066', accent:'#ffd700', label:'Prinsessland 👸' },
+  dinosaurier:  { bg:['#0d2b00','#1a4400','#235c00'], ground:'#3d2b1f', groundLine:'#5d4037', stars:false, charColor:'#a5d6a7', charBody:'#2e7d32', accent:'#ff7043', label:'Urtiden 🦕' },
+  havet:        { bg:['#001433','#002060','#003080'], ground:'#003366', groundLine:'#0055aa', stars:false, charColor:'#80deea', charBody:'#006064', accent:'#ffee58', label:'Djupa havet 🌊' },
+  halloween:    { bg:['#0d0014','#1a0028','#260040'], ground:'#1a1a00', groundLine:'#333300', stars:true,  charColor:'#ff6600', charBody:'#330033', accent:'#00ff00', label:'Halloween 🎃' },
+  djungeln:     { bg:['#021400','#042800','#063c00'], ground:'#1b5e20', groundLine:'#2e7d32', stars:false, charColor:'#c8e6c9', charBody:'#1b5e20', accent:'#ffcc02', label:'Djungeln 🌿' },
+  sport:        { bg:['#003300','#004400','#005500'], ground:'#2e7d32', groundLine:'#ffffff', stars:false, charColor:'#ffeb3b', charBody:'#1565c0', accent:'#f44336', label:'Sportplanen ⚽' },
+  saga:         { bg:['#1a0a00','#2d1500','#401f00'], ground:'#4e342e', groundLine:'#795548', stars:true,  charColor:'#ffe082', charBody:'#6d4c41', accent:'#e91e63', label:'Sagoland 🏰' },
+  vilda_vastern:{ bg:['#3d1c00','#5c2d00','#7a3f00'], ground:'#8d6e63', groundLine:'#a1887f', stars:true,  charColor:'#ffcc80', charBody:'#6d4c41', accent:'#ff7043', label:'Vilda Västern 🤠' },
+  super_hjältar:{ bg:['#0a002a','#12004a','#1a0060'], ground:'#1a237e', groundLine:'#3949ab', stars:true,  charColor:'#ff1744', charBody:'#0d47a1', accent:'#ffd600', label:'Superhjältar 🦸' },
+  framtiden:    { bg:['#001122','#002233','#003344'], ground:'#0a1628', groundLine:'#00e5ff', stars:true,  charColor:'#00e5ff', charBody:'#006064', accent:'#e040fb', label:'Framtiden 🤖' },
+  pirater:      { bg:['#001a33','#002a4d','#003a66'], ground:'#1a3a1a', groundLine:'#2a5c2a', stars:true,  charColor:'#f5deb3', charBody:'#4e342e', accent:'#ff6f00', label:'Piraternas hav ☠️' },
+  magi:         { bg:['#1a0033','#2a0055','#3a0077'], ground:'#2d1b69', groundLine:'#7c4dff', stars:true,  charColor:'#e040fb', charBody:'#4a148c', accent:'#40c4ff', label:'Trollkarlens rike 🧙' },
+  mat:          { bg:['#3e0000','#5c0000','#7a0000'], ground:'#bf360c', groundLine:'#ff5722', stars:false, charColor:'#fff9c4', charBody:'#e65100', accent:'#aed581', label:'Matens värld 🍕' },
+  musik:        { bg:['#0d003d','#1a0060','#26007a'], ground:'#1a0040', groundLine:'#aa00ff', stars:true,  charColor:'#ea80fc', charBody:'#6a1b9a', accent:'#ffff00', label:'Musikvärlden 🎸' },
+  djur:         { bg:['#0a1f00','#152e00','#204200'], ground:'#33691e', groundLine:'#558b2f', stars:false, charColor:'#ffe0b2', charBody:'#bf360c', accent:'#f9a825', label:'Djurens rike 🐾' },
+  godis:        { bg:['#2d002d','#4a0042','#660055'], ground:'#880e4f', groundLine:'#e91e63', stars:false, charColor:'#fff9c4', charBody:'#e91e63', accent:'#69f0ae', label:'Godislandet 🍭' },
+  polar:        { bg:['#001f3d','#002b55','#003366'], ground:'#e3f2fd', groundLine:'#bbdefb', stars:true,  charColor:'#e1f5fe', charBody:'#01579b', accent:'#ff6f00', label:'Polarisen 🐧' },
+};
+
+let theme = THEMES.rymden;
+let state = 'idle'; // idle | thinking | writing | jumping | celebrating
+let speechText = '';
+let speechTimer = 0;
+
+// Character position
+let charX = 80, charY = 0;
+let charVY = 0, onGround = true;
+let charDir = 1; // 1=right, -1=left
+let charWalk = 0;
+let charBlink = 0;
+let frameCount = 0;
+
+// Platforms (for jumping)
+const platforms = [
+  { x: 0.55, y: 0.58, w: 0.12 },
+  { x: 0.72, y: 0.42, w: 0.10 },
+  { x: 0.35, y: 0.48, w: 0.08 },
+];
+
+// Stars / particles
+let stars = [];
+let particles = [];
+
+function initStars() {
+  stars = [];
+  for (let i = 0; i < 60; i++) {
+    stars.push({ x: Math.random(), y: Math.random() * 0.7, s: Math.random() > 0.8 ? 2 : 1, t: Math.random() * 100 });
+  }
+}
+initStars();
+
+function spawnParticles(x, y, color, count = 8) {
+  for (let i = 0; i < count; i++) {
+    const a = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    particles.push({ x, y, vx: Math.cos(a) * (2 + Math.random() * 3), vy: Math.sin(a) * (2 + Math.random() * 3) - 2, life: 40, color });
+  }
+}
+
+// ── Drawing helpers ──
+function px(n) { return Math.round(n) * S; }
+
+function drawRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(px(x), px(y), px(w), px(h));
+}
+
+function drawSpeechBubble(cx, cy, text) {
+  ctx.font = `bold ${S * 5}px Nunito, sans-serif`;
+  const tw = ctx.measureText(text).width;
+  const bw = tw + S * 8, bh = S * 10;
+  const bx = Math.max(4, Math.min(canvas.width - bw - 4, cx - bw / 2));
+  const by = cy - bh - S * 6;
+
+  // Bubble
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, S * 3);
+  ctx.fill();
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Tail
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(cx - S * 2, by + bh);
+  ctx.lineTo(cx + S * 2, by + bh);
+  ctx.lineTo(cx, by + bh + S * 4);
+  ctx.fill();
+
+  // Text
+  ctx.fillStyle = '#222';
+  ctx.fillText(text, bx + S * 4, by + bh - S * 2.5);
+}
+
+// ── Draw themed character (pixel art) ──
+function drawCharacter(x, y, dir, walkFrame, blinkFrame, st) {
+  const W = canvas.width, H = canvas.height;
+  const gY = groundY();
+  const cx = x, cy = gY - 20 - (onGround ? 0 : -charVY * 0.5);
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx, gY - 2, 10, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const bc = theme.charBody;
+  const fc = theme.charColor;
+  const ac = theme.accent;
+
+  // Walk bob
+  const bob = onGround ? Math.sin(walkFrame * 0.3) * 2 : 0;
+
+  // Body (12x14 px grid drawn as rects)
+  const bx = cx - 6, by = cy - 20 + bob;
+
+  if (st === 'thinking') {
+    // Scratch head animation
+    const scratchOff = Math.sin(frameCount * 0.3) * 1;
+    drawPixelBody(bx, by, bc, fc, ac, dir);
+    // Question mark bubble
+    if (Math.floor(frameCount / 20) % 2 === 0) {
+      ctx.font = `bold ${S * 6}px sans-serif`;
+      ctx.fillStyle = ac;
+      ctx.fillText('?', cx + dir * 8, by - 4);
+    }
+  } else if (st === 'writing') {
+    drawPixelBody(bx, by, bc, fc, ac, dir);
+    // Typing hands effect
+    const typeFrame = Math.floor(frameCount / 8) % 3;
+    ctx.fillStyle = fc;
+    for (let i = 0; i < typeFrame + 1; i++) {
+      ctx.fillRect(cx + dir * (6 + i * 3), by + 10, 2, 2);
+    }
+  } else if (st === 'celebrating') {
+    drawPixelBody(bx, by - Math.abs(Math.sin(frameCount * 0.2)) * 4, bc, fc, ac, dir);
+    // Stars around
+    for (let i = 0; i < 3; i++) {
+      const sa = frameCount * 0.05 + i * 2.1;
+      const sx = cx + Math.cos(sa) * 18;
+      const sy = by + 6 + Math.sin(sa) * 10;
+      ctx.font = '10px sans-serif';
+      ctx.fillText('⭐', sx - 5, sy);
+    }
+  } else {
+    // Idle / walking
+    drawPixelBody(bx, by, bc, fc, ac, dir, walkFrame, blinkFrame);
+  }
+}
+
+function drawPixelBody(bx, by, bc, fc, ac, dir, walk = 0, blink = 0) {
+  // Head
+  ctx.fillStyle = fc;
+  ctx.fillRect(bx + 2, by, 8, 8);
+  // Eyes
+  if (Math.floor(blink / 60) % 5 !== 0) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(bx + (dir > 0 ? 6 : 3), by + 3, 2, 2);
+  }
+  // Smile
+  ctx.fillStyle = '#000';
+  ctx.fillRect(bx + 4, by + 6, 4, 1);
+  // Body
+  ctx.fillStyle = bc;
+  ctx.fillRect(bx + 2, by + 8, 8, 7);
+  // Accent stripe
+  ctx.fillStyle = ac;
+  ctx.fillRect(bx + 3, by + 9, 6, 2);
+  // Arms (animated when walking)
+  const armSwing = Math.sin(walk * 0.3) * 2;
+  ctx.fillStyle = fc;
+  ctx.fillRect(bx + (dir > 0 ? 0 : 10), by + 8 + armSwing, 2, 5);
+  ctx.fillRect(bx + (dir > 0 ? 10 : 0), by + 8 - armSwing, 2, 5);
+  // Legs
+  const legL = Math.sin(walk * 0.3) * 3;
+  ctx.fillStyle = bc;
+  ctx.fillRect(bx + 2, by + 15, 3, 4 + (legL > 0 ? 1 : 0));
+  ctx.fillRect(bx + 7, by + 15, 3, 4 + (legL < 0 ? 1 : 0));
+  // Feet
+  ctx.fillStyle = '#000';
+  ctx.fillRect(bx + 1 + (legL > 0 ? 1 : 0), by + 18, 4, 2);
+  ctx.fillRect(bx + 7 - (legL < 0 ? 1 : 0), by + 18, 4, 2);
+}
+
+function groundY() {
+  return Math.floor(canvas.height / S * 0.78) * S;
+}
+
+function platY(p) {
+  return Math.floor(canvas.height / S * p.y) * S;
+}
+function platX(p) { return Math.floor(canvas.width / S * p.x) * S; }
+function platW(p) { return Math.floor(canvas.width / S * p.w) * S; }
+
+// ── Draw scene background ──
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  const t = theme;
+
+  // Sky gradient (3 bands)
+  const bh = H / 3;
+  [t.bg[0], t.bg[1], t.bg[2]].forEach((c, i) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(0, i * bh, W, bh + 1);
+  });
+
+  // Stars
+  if (t.stars) {
+    stars.forEach(s => {
+      const blink = Math.sin(frameCount * 0.02 + s.t) * 0.5 + 0.5;
+      ctx.fillStyle = `rgba(255,255,255,${0.4 + blink * 0.6})`;
+      ctx.fillRect(Math.floor(s.x * W), Math.floor(s.y * H), s.s * S, s.s * S);
+    });
+  }
+
+  // Ground
+  const gY = groundY();
+  ctx.fillStyle = t.ground;
+  ctx.fillRect(0, gY, W, H - gY);
+  ctx.fillStyle = t.groundLine;
+  ctx.fillRect(0, gY, W, S * 2);
+
+  // Ground details (little bumps)
+  ctx.fillStyle = t.groundLine;
+  for (let gx = 0; gx < W; gx += S * 8) {
+    const h = (Math.sin(gx * 0.05) * 0.5 + 0.5) * S * 2;
+    ctx.fillRect(gx, gY - h, S * 4, h);
+  }
+
+  // Platforms
+  platforms.forEach(p => {
+    const px2 = platX(p), py = platY(p), pw = platW(p);
+    ctx.fillStyle = t.ground;
+    ctx.fillRect(px2, py, pw, S * 3);
+    ctx.fillStyle = t.groundLine;
+    ctx.fillRect(px2, py, pw, S * 1);
+    // Platform support posts
+    ctx.fillStyle = t.groundLine;
+    ctx.fillRect(px2 + S * 2, py + S * 3, S * 2, gY - py - S * 3);
+    ctx.fillRect(px2 + pw - S * 4, py + S * 3, S * 2, gY - py - S * 3);
+  });
+
+  // Theme-specific decorations
+  drawThemeDecos(W, H, gY, t);
+}
+
+function drawThemeDecos(W, H, gY, t) {
+  const f = frameCount;
+
+  if (t === THEMES.rymden || t === THEMES.super_hjältar || t === THEMES.framtiden || t === THEMES.musik || t === THEMES.pirater || t === THEMES.magi || t === THEMES.halloween || t === THEMES.saga || t === THEMES.vilda_vastern || t === THEMES.polar) {
+    // Moon / planet
+    ctx.fillStyle = t.accent + 'aa';
+    ctx.beginPath();
+    ctx.arc(W * 0.85, H * 0.18, S * 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = t.accent + '44';
+    ctx.beginPath();
+    ctx.arc(W * 0.85 + S * 3, H * 0.18 - S * 3, S * 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (t === THEMES.havet || t === THEMES.pirater) {
+    // Waves
+    ctx.strokeStyle = '#0099cc';
+    ctx.lineWidth = S * 2;
+    for (let wx = 0; wx < W; wx += S * 20) {
+      const wy = gY - S * 4 + Math.sin((wx + f * 2) * 0.03) * S * 3;
+      ctx.beginPath();
+      ctx.arc(wx + S * 10, wy, S * 10, Math.PI, 0);
+      ctx.stroke();
+    }
+  }
+
+  if (t === THEMES.djungeln || t === THEMES.djur) {
+    // Trees
+    [0.15, 0.45, 0.75].forEach(tx => {
+      const x = W * tx;
+      ctx.fillStyle = '#4e342e';
+      ctx.fillRect(x - S * 2, gY - S * 20, S * 4, S * 20);
+      ctx.fillStyle = '#2e7d32';
+      ctx.beginPath();
+      ctx.arc(x, gY - S * 20, S * 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#388e3c';
+      ctx.beginPath();
+      ctx.arc(x + S * 4, gY - S * 16, S * 7, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  if (t === THEMES.prinsessa || t === THEMES.saga || t === THEMES.magi) {
+    // Castle towers
+    [0.1, 0.82].forEach(tx => {
+      const x = W * tx;
+      ctx.fillStyle = '#78909c';
+      ctx.fillRect(x, gY - S * 25, S * 14, S * 25);
+      // Battlements
+      for (let b = 0; b < 3; b++) {
+        ctx.fillRect(x + b * S * 5, gY - S * 28, S * 4, S * 5);
+      }
+      ctx.fillStyle = '#546e7a';
+      ctx.fillRect(x + S * 3, gY - S * 18, S * 8, S * 12);
+    });
+    // Flags
+    if (t === THEMES.prinsessa) {
+      ctx.fillStyle = '#e91e63';
+      ctx.beginPath();
+      ctx.moveTo(W * 0.1 + S * 7, gY - S * 28);
+      ctx.lineTo(W * 0.1 + S * 7 + S * 6, gY - S * 24);
+      ctx.lineTo(W * 0.1 + S * 7, gY - S * 20);
+      ctx.fill();
+    }
+  }
+
+  if (t === THEMES.halloween) {
+    // Pumpkins
+    [0.2, 0.6, 0.8].forEach(px2 => {
+      const x = W * px2, y = gY - S * 5;
+      ctx.fillStyle = '#ff6600';
+      ctx.beginPath(); ctx.arc(x, y, S * 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(x - S * 1.5, y - S * 1, S * 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + S * 1.5, y - S * 1, S * 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - S * 2, y + S * 1, S * 4, S * 1.5);
+      // Glow flicker
+      if (Math.floor(f / 15) % 3 !== 0) {
+        ctx.fillStyle = 'rgba(255,150,0,0.15)';
+        ctx.beginPath(); ctx.arc(x, y, S * 10, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+  }
+
+  if (t === THEMES.sport) {
+    // Goal posts
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = S * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.05, gY - S * 18);
+    ctx.lineTo(W * 0.05, gY);
+    ctx.moveTo(W * 0.2, gY - S * 18);
+    ctx.lineTo(W * 0.2, gY);
+    ctx.moveTo(W * 0.05, gY - S * 18);
+    ctx.lineTo(W * 0.2, gY - S * 18);
+    ctx.stroke();
+    // Ball bounce
+    const ballY = gY - S * 6 - Math.abs(Math.sin(f * 0.06)) * S * 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(W * 0.5, ballY, S * 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  if (t === THEMES.godis) {
+    // Candy canes and lollipops
+    [0.15, 0.35, 0.65, 0.85].forEach((cx2, i) => {
+      const x = W * cx2;
+      if (i % 2 === 0) {
+        // Lollipop
+        ctx.fillStyle = i === 0 ? '#ff4081' : '#7c4dff';
+        ctx.beginPath(); ctx.arc(x, gY - S * 14, S * 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff9c4'; ctx.fillRect(x - S * 1, gY - S * 9, S * 2, S * 9);
+      } else {
+        // Candy cane stripes
+        ctx.fillStyle = '#fff'; ctx.fillRect(x - S * 2, gY - S * 14, S * 4, S * 14);
+        ctx.fillStyle = '#f44336';
+        for (let s = 0; s < 4; s++) { ctx.fillRect(x - S * 2, gY - S * (4 + s * 3), S * 4, S * 1.5); }
+      }
+    });
+  }
+
+  if (t === THEMES.polar) {
+    // Icebergs
+    ctx.fillStyle = '#e3f2fd';
+    const icePts = [[0.05, 0.3], [0.25, 0.2], [0.7, 0.25], [0.9, 0.15]];
+    icePts.forEach(([px2, ph]) => {
+      const x = W * px2, iH = H * ph;
+      ctx.beginPath();
+      ctx.moveTo(x, gY);
+      ctx.lineTo(x + W * 0.12, gY);
+      ctx.lineTo(x + W * 0.1, gY - iH);
+      ctx.lineTo(x + W * 0.06, gY - iH - S * 4);
+      ctx.lineTo(x + W * 0.02, gY - iH);
+      ctx.fill();
+    });
+    // Penguins (simple)
+    [0.4, 0.6].forEach(px2 => {
+      const x = W * px2, y = gY - S * 9;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(x, y, S * 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y + S * 1, S * 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff8f00';
+      ctx.beginPath(); ctx.arc(x, y - S * 2, S * 1.5, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  // Theme label (top-left)
+  ctx.font = `bold ${S * 4}px Nunito,sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText(t.label, S * 4, S * 8);
+}
+
+// ── Physics & AI ──
+let autoMoveTimer = 0;
+let autoTarget = 200;
+let jumpCooldown = 0;
+
+function updateCharacter() {
+  const W = canvas.width;
+  const gY = groundY();
+  frameCount++;
+  charWalk++;
+  charBlink++;
+
+  // Gravity
+  if (!onGround) {
+    charVY += 0.5;
+    charY += charVY;
+    if (charY >= gY - 20) { charY = gY - 20; charVY = 0; onGround = true; }
+  } else {
+    charY = gY - 20;
+  }
+
+  // Platform collision
+  platforms.forEach(p => {
+    const px2 = platX(p), py = platY(p), pw = platW(p);
+    if (charX > px2 && charX < px2 + pw && charVY >= 0 && charY > py - 22 && charY < py + 5) {
+      charY = py - 20; charVY = 0; onGround = true;
+    }
+  });
+
+  // Jump cooldown
+  if (jumpCooldown > 0) jumpCooldown--;
+
+  // State-based movement
+  if (state === 'idle') {
+    // Wander around
+    autoMoveTimer--;
+    if (autoMoveTimer <= 0) {
+      autoTarget = 60 + Math.random() * (W - 120);
+      autoMoveTimer = 80 + Math.random() * 120;
+    }
+    const dx = autoTarget - charX;
+    if (Math.abs(dx) > 4) {
+      charDir = dx > 0 ? 1 : -1;
+      charX += charDir * 1.2;
+    }
+    // Random jump
+    if (onGround && Math.random() < 0.005) {
+      charVY = -8; onGround = false;
+    }
+  } else if (state === 'thinking') {
+    // Pace back and forth
+    const paceAmp = 40;
+    const center = W / 2;
+    const target = center + Math.sin(frameCount * 0.02) * paceAmp;
+    const dx = target - charX;
+    if (Math.abs(dx) > 2) { charDir = dx > 0 ? 1 : -1; charX += charDir * 0.8; }
+  } else if (state === 'writing') {
+    // Walk toward center then stop and "type"
+    const center = W * 0.4;
+    const dx = center - charX;
+    if (Math.abs(dx) > 6) { charDir = dx > 0 ? 1 : -1; charX += charDir * 1.5; }
+  } else if (state === 'jumping') {
+    // Excited running and jumping
+    charX += charDir * 2.5;
+    if (charX > W - 40) { charDir = -1; if (onGround) { charVY = -9; onGround = false; } }
+    if (charX < 40) { charDir = 1; if (onGround) { charVY = -9; onGround = false; } }
+    if (onGround && Math.random() < 0.02) { charVY = -10; onGround = false; }
+  } else if (state === 'celebrating') {
+    // Jump in place with particles
+    if (onGround && jumpCooldown <= 0) { charVY = -10; onGround = false; jumpCooldown = 30; spawnParticles(charX, charY, theme.accent, 6); }
+    charX += Math.sin(frameCount * 0.05) * 1;
+  }
+
+  // Clamp to screen
+  charX = Math.max(20, Math.min(W - 20, charX));
+}
+
+// ── Particle update ──
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life--;
+    ctx.globalAlpha = p.life / 40;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ── Main loop ──
+let lastResize = 0;
+function resize() {
+  canvas.width  = previewFrame.clientWidth;
+  canvas.height = previewFrame.clientHeight;
+  ctx.imageSmoothingEnabled = false;
+  charX = canvas.width * 0.35;
+}
+
+function loop() {
+  if (canvas.width === 0) { requestAnimationFrame(loop); return; }
+  updateCharacter();
+  drawScene();
+  updateParticles();
+  drawCharacter(charX, charY, charDir, charWalk, charBlink, state);
+
+  // Speech bubble
+  if (speechText && speechTimer > 0) {
+    speechTimer--;
+    drawSpeechBubble(charX, charY - 20, speechText);
+    if (speechTimer <= 0) speechText = '';
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function say(text, duration = 140) {
+  speechText = text;
+  speechTimer = duration;
+}
+
+// ── State API ──
+function playgroundSetState(s, msg = '') {
+  state = s;
+  if (msg) say(msg);
+}
+
+// Idle speech lines (random)
+const idleQuotes = [
+  'Vad ska vi bygga? 🤔', 'Välj ett tema!', 'Klicka på något! 🎮',
+  'Jag är redo! 💪', 'Låt oss skapa! 🚀', 'Vad kul det ska bli!',
+  'Tryck på en knapp! 👇', 'Jag väntar... 😄',
+];
+setInterval(() => {
+  if (state === 'idle' && !speechText) {
+    say(idleQuotes[Math.floor(Math.random() * idleQuotes.length)], 120);
+  }
+}, 4000);
+
+// ─────────────────────────────────────────────
+// APP STATE
+// ─────────────────────────────────────────────
+const messagesEl    = document.getElementById('messages');
+const toolbar       = document.getElementById('toolbar');
+const fileSelect    = document.getElementById('fileSelect');
+const previewFrame  = document.getElementById('previewFrame');
+const layoutEl      = document.getElementById('layout');
+const statusDot     = document.getElementById('statusDot');
+const statusText    = document.getElementById('statusText');
 const modifySection = document.getElementById('modifySection');
-const createGrid   = document.getElementById('createGrid');
-const textInput    = document.getElementById('textInput');
-const textSendBtn  = document.getElementById('textSendBtn');
-const textInputRow = document.getElementById('textInputRow');
+const textInput     = document.getElementById('textInput');
+const textSendBtn   = document.getElementById('textSendBtn');
+const textInputRow  = document.getElementById('textInputRow');
 
 let sessionId   = null;
 let streaming   = false;
 let currentFile = null;
 let activeTheme = 'rymden';
 
-// ── Theme selection ──
-document.getElementById('themeChips').addEventListener('click', (e) => {
+// Theme selection
+document.getElementById('themeChips').addEventListener('click', e => {
   const btn = e.target.closest('.chip.theme');
   if (!btn || streaming) return;
   document.querySelectorAll('.chip.theme').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   activeTheme = btn.dataset.theme;
+  theme = THEMES[activeTheme] || THEMES.rymden;
+  say('Nytt tema! 🎨', 80);
 });
 
-// ── Status ──
 function setStatus(busy, text) {
   statusDot.className = 'status-dot' + (busy ? ' busy' : '');
   statusText.textContent = text;
@@ -409,7 +784,7 @@ function setStatus(busy, text) {
   textSendBtn.disabled = busy;
 }
 
-// ── Bubbles ──
+// Bubbles
 function addBubble(role, text) {
   const row = document.createElement('div');
   row.className = `bubble-row ${role}`;
@@ -425,7 +800,6 @@ function addBubble(role, text) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
   return bub;
 }
-
 function addAction(text) {
   document.querySelector('.bubble-row.action')?.remove();
   const row = document.createElement('div');
@@ -437,7 +811,6 @@ function addAction(text) {
   messagesEl.appendChild(row);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
-
 function showTyping() {
   const row = document.createElement('div');
   row.className = 'bubble-row bot'; row.id = 'typingRow';
@@ -452,24 +825,24 @@ function showTyping() {
 }
 function hideTyping() { document.getElementById('typingRow')?.remove(); }
 
-// ── Preview ──
+// Preview
 function showPreview(filename) {
   currentFile = filename;
-  welcomeState.style.display = 'none';
   toolbar.style.display = 'flex';
+  // Hide playground, show iframe
+  canvas.style.display = 'none';
   previewFrame.querySelector('iframe')?.remove();
   const iframe = document.createElement('iframe');
   iframe.sandbox = 'allow-scripts allow-same-origin';
   iframe.src = `/preview/${filename}?t=${Date.now()}`;
   previewFrame.appendChild(iframe);
   updateFileSelect(filename);
-  // Show modify panel
   modifySection.classList.add('visible');
 }
-
-function reloadPreview() { if (currentFile) showPreview(currentFile); }
+function reloadPreview() {
+  if (currentFile) showPreview(currentFile);
+}
 function toggleFullscreen() { layoutEl.classList.toggle('fullscreen'); }
-
 async function updateFileSelect(active) {
   try {
     const files = await fetch('/api/files').then(r => r.json());
@@ -483,54 +856,56 @@ async function updateFileSelect(active) {
     if (files.length) toolbar.style.display = 'flex';
   } catch {}
 }
-
 function loadSelectedFile() { showPreview(fileSelect.value); }
-
-// ── Text toggle ──
 function toggleTextInput() {
   textInputRow.classList.toggle('visible');
   if (textInputRow.classList.contains('visible')) textInput.focus();
 }
 
-// ── Build prompts ──
-function themeLabel() {
-  const map = {
-    rymden: 'rymd och planeter', prinsessa: 'prinsessor och slott',
-    dinosaurier: 'dinosaurier', havet: 'havet och fiskar',
-    halloween: 'halloween och spöken', djungeln: 'djungeln och djur',
-    sport: 'sport och bollsporter', saga: 'sagor och riddare',
-  };
-  return map[activeTheme] || activeTheme;
-}
+// Prompt builders
+const themeDescriptions = {
+  rymden:'rymd, planeter och raketer', prinsessa:'prinsessor, slott och magi',
+  dinosaurier:'dinosaurier och urtiden', havet:'havet, fiskar och undervattensvärlden',
+  halloween:'halloween, spöken och pumpor', djungeln:'djungeln och vilda djur',
+  sport:'sport, bollsporter och tävling', saga:'sagor, riddare och drakar',
+  vilda_vastern:'cowboys och vilda västern', super_hjältar:'superhjältar och superkrafter',
+  framtiden:'framtiden, robotar och rymdskepp', pirater:'pirater och skattjakt på havet',
+  magi:'trollkarlar, magi och trollformler', mat:'mat, pizzor och godis',
+  musik:'musik, instrument och konserter', djur:'söta och roliga djur',
+  godis:'godisland med karameller och läckerheter', polar:'polarisen, pingviner och isbjörnar',
+};
+function themeLabel() { return themeDescriptions[activeTheme] || activeTheme; }
 
 function buildCreatePrompt(type) {
   const prompts = {
-    spel: `Skapa ett roligt spel med tema "${themeLabel()}". Gör det enkelt att spela direkt i webbläsaren.`,
-    animation: `Skapa en häftig animation med tema "${themeLabel()}". Det ska röra sig och vara färgglatt!`,
-    ritprogram: `Skapa ett ritprogram med tema "${themeLabel()}". Man ska kunna rita med musen i olika färger.`,
-    musik: `Skapa ett musikaliskt instrument eller trummaskin med tema "${themeLabel()}". Man ska kunna göra musik!`,
-    quiz: `Skapa ett roligt quiz med tema "${themeLabel()}". Ställ 5 frågor med knappar att svara på.`,
-    berättelse: `Skapa en interaktiv berättelse med tema "${themeLabel()}". Läsaren ska kunna klicka sig vidare i historien.`,
+    spel:        `Skapa ett roligt och färgglatt spel med tema "${themeLabel()}". Gör det enkelt men fartfyllt att spela i webbläsaren!`,
+    animation:   `Skapa en häftig och färgstark animation med tema "${themeLabel()}". Det ska röra sig och hända massor av saker!`,
+    ritprogram:  `Skapa ett kreativt ritprogram med tema "${themeLabel()}". Man ska kunna rita med musen i många färger med snygga verktyg.`,
+    musik:       `Skapa ett roligt musikinstrument eller en trummaskin med tema "${themeLabel()}". Man ska kunna göra cool musik!`,
+    quiz:        `Skapa ett kul och utmanande quiz med tema "${themeLabel()}". Ställ 5 roliga frågor med 3 svarsalternativ och ge poäng!`,
+    berättelse:  `Skapa en interaktiv berättelse med tema "${themeLabel()}". Läsaren ska kunna göra val som ändrar historien!`,
+    klicker:     `Skapa ett roligt klickspel med tema "${themeLabel()}". Man klickar så snabbt man kan för att samla poäng!`,
+    konst:       `Skapa ett interaktivt konstverk med tema "${themeLabel()}". Något som ser häftigt och färgglatt ut och reagerar när man klickar!`,
+    överraskning:`Skapa något helt oväntat och superroligt med tema "${themeLabel()}". Förvåna mig totalt!`,
   };
-  return prompts[type] || `Skapa något kul med tema "${themeLabel()}".`;
+  return prompts[type] || `Skapa något kul med tema "${themeLabel()}"!`;
 }
-
 function buildModifyPrompt(action) {
   const clean = action.replace(/^[\p{Emoji_Presentation}\s]+/u, '').trim();
-  return `${clean} i det jag skapade. Uppdatera filen direkt.`;
+  return `${clean} i det jag skapade. Uppdatera HTML-filen direkt.`;
 }
 
-// ── Send ──
+// Send
 async function sendMessage(userDisplayText, prompt) {
   if (streaming) return;
   streaming = true;
   setStatus(true, 'Jobbar...');
+  playgroundSetState('thinking', 'Tänker... 🤔');
 
   addBubble('user', userDisplayText);
   showTyping();
 
-  let botBubble = null;
-  let botText   = '';
+  let botBubble = null, botText = '';
 
   try {
     const res = await fetch('/api/chat', {
@@ -540,8 +915,8 @@ async function sendMessage(userDisplayText, prompt) {
     });
 
     const reader = res.body.getReader();
-    const dec    = new TextDecoder();
-    let buf      = '';
+    const dec = new TextDecoder();
+    let buf = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -557,6 +932,7 @@ async function sendMessage(userDisplayText, prompt) {
   } catch (err) {
     hideTyping();
     addBubble('bot', '😬 Oj! Något gick fel. Försök igen!');
+    playgroundSetState('idle');
     console.error(err);
   }
 
@@ -572,38 +948,44 @@ async function sendMessage(userDisplayText, prompt) {
       botText += ev.text;
       botBubble.textContent = botText;
       messagesEl.scrollTop = messagesEl.scrollHeight;
+      playgroundSetState('writing', 'Bygger! 🔨');
     } else if (ev.type === 'action') {
       setStatus(true, ev.text);
       addAction('⚙️ ' + ev.text);
+      if (ev.text.includes('Skapar')) playgroundSetState('writing', 'Skriver kod! 💻');
+      else if (ev.text.includes('Ändrar')) playgroundSetState('writing', 'Ändrar! ✏️');
     } else if (ev.type === 'file') {
       document.querySelector('.bubble-row.action')?.remove();
       showPreview(ev.file);
+      playgroundSetState('celebrating', 'KLART! 🎉');
+      setTimeout(() => playgroundSetState('idle'), 3000);
     } else if (ev.type === 'done') {
       hideTyping();
       document.querySelector('.bubble-row.action')?.remove();
       updateFileSelect(currentFile);
+      if (state !== 'celebrating') playgroundSetState('idle');
     } else if (ev.type === 'error') {
       hideTyping();
       addBubble('bot', '😬 ' + ev.text);
+      playgroundSetState('idle');
     }
   }
 }
 
 function createAction(type) {
   const labels = {
-    spel: '🎮 Gör ett spel', animation: '🌀 Gör en animation',
-    ritprogram: '🎨 Gör ett ritprogram', musik: '🎵 Gör musik',
-    quiz: '🧠 Gör ett quiz', berättelse: '📖 Gör en berättelse',
+    spel:'🎮 Gör ett spel', animation:'🌀 Gör en animation',
+    ritprogram:'🎨 Gör ett ritprogram', musik:'🎵 Gör musik',
+    quiz:'🧠 Gör ett quiz', berättelse:'📖 Gör en berättelse',
+    klicker:'👆 Gör ett klickspel', konst:'🖼️ Skapa konst',
+    överraskning:'🎲 Överraska mig!',
   };
   sendMessage(labels[type] || type, buildCreatePrompt(type));
 }
-
 function modifyAction(btn) {
   const text = btn.textContent;
   sendMessage(text, buildModifyPrompt(text));
 }
-
-// Text input send
 function sendTextInput() {
   const text = textInput.value.trim();
   if (!text) return;
@@ -615,6 +997,9 @@ textInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendTextInpu
 
 // Init
 updateFileSelect(null);
+resize();
+window.addEventListener('resize', () => { resize(); });
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
