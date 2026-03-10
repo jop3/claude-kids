@@ -56,6 +56,7 @@ function runClaude(message, sessionId) {
     const args = [
       "--print",
       "--output-format", "stream-json",
+      "--verbose",
       "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep",
       "-p", message,
     ];
