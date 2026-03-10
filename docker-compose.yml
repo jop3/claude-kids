@@ -7,6 +7,8 @@ services:
       # Mount .claude config dir and config file read-only for auth
       - ~/.claude:/root/.claude:ro
       - ~/.claude.json:/root/.claude.json:ro
+      # Override settings to strip Windows-only hooks that hang in Linux container
+      - ./claude-settings.json:/root/.claude/settings.json:ro
       # Workspace where Claude writes files (persists between restarts)
       - claudekids-workspace:/workspace
     restart: unless-stopped
