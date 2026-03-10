@@ -320,22 +320,12 @@ function drawSpeechBubble(cx, cy, text) {
 function drawRopes() {
   const W = canvas.width, gY = groundY();
 
-  // One suspension chain per platform, center-hung from ceiling
+  // Thin support legs from each platform down to ground
   platforms.forEach((p, i) => {
     const px2 = platX(p), py = platY(p), pw = platW(p);
-    const ax = px2 + pw * 0.5;
-    const sway = Math.sin(frameCount * 0.015 + i) * 2;
-    ctx.strokeStyle = theme.groundLine + '88';
-    ctx.lineWidth = S;
-    ctx.setLineDash([S * 3, S * 2]);
-    ctx.beginPath();
-    ctx.moveTo(ax + sway, 0);
-    ctx.lineTo(ax, py);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Small bolt at platform top
-    ctx.fillStyle = theme.accent;
-    ctx.fillRect(ax - 2, py - 2, 4, 4);
+    ctx.fillStyle = theme.groundLine + 'bb';
+    ctx.fillRect(px2 + pw * 0.25 - 1, py + S * 3, 2, gY - py - S * 3);
+    ctx.fillRect(px2 + pw * 0.75 - 1, py + S * 3, 2, gY - py - S * 3);
   });
 
   // Climbable ropes hanging down from platforms
