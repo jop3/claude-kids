@@ -70,7 +70,12 @@ app.post("/api/chat", (req, res) => {
 
     const proc = spawn(CLAUDE_BIN, args, {
       cwd: WORKSPACE,
-      env: { ...process.env, CLAUDE_NONINTERACTIVE: "1" },
+      env: {
+        ...process.env,
+        CLAUDE_NONINTERACTIVE: "1",
+        CLAUDE_CONFIG_DIR: "/tmp/claude-rw",
+        HOME: "/tmp",
+      },
       windowsHide: true,
     });
 

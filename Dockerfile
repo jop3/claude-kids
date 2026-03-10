@@ -18,4 +18,8 @@ COPY CLAUDE.md /workspace/CLAUDE.md
 
 EXPOSE 3456
 
-CMD ["node", "server.js"]
+COPY claude-settings.json /claude-settings.json
+COPY entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r//' /entrypoint.sh && chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]

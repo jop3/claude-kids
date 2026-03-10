@@ -934,10 +934,10 @@ async function sendMessage(userDisplayText, prompt) {
     addBubble('bot', '😬 Oj! Något gick fel. Försök igen!');
     playgroundSetState('idle');
     console.error(err);
+  } finally {
+    streaming = false;
+    setStatus(false, 'Redo!');
   }
-
-  streaming = false;
-  setStatus(false, 'Redo!');
 
   function handleEvent(ev) {
     if (ev.type === 'session') {
