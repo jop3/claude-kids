@@ -1,0 +1,16 @@
+services:
+  claudekids:
+    build: .
+    ports:
+      - "3456:3456"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      # Mount your .claude config read-only so Claude Code is authenticated
+      - ~/.claude:/root/.claude:ro
+      # Workspace where Claude writes files (persists between restarts)
+      - claudekids-workspace:/workspace
+    restart: unless-stopped
+
+volumes:
+  claudekids-workspace:

@@ -1,0 +1,14 @@
+{
+  "name": "claudekids",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ClaudeKids - Barn skapar med AI",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "express": "^5.1.0"
+  }
+}
