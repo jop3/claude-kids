@@ -1,8 +1,7 @@
 import express from "express";
 import { spawn } from "child_process";
-import { readdirSync, statSync } from "fs";
+import { readdirSync, statSync, readFileSync } from "fs";
 import { join } from "path";
-
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -10,6 +9,7 @@ app.use(express.static("public"));
 
 const WORKSPACE = process.env.WORKSPACE || "/workspace";
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+const MAX_RETRIES = 2;
 
 // Serve workspace files (for iframe preview)
 app.use("/preview", express.static(WORKSPACE));
@@ -18,7 +18,7 @@ app.use("/preview", express.static(WORKSPACE));
 app.get("/api/files", (_req, res) => {
   try {
     const files = readdirSync(WORKSPACE)
-      .filter((f) => f.endsWith(".html") && f !== "CLAUDE.md")
+      .filter((f) => f.endsWith(".html"))
       .map((f) => {
         const stat = statSync(join(WORKSPACE, f));
         return { name: f, mtime: stat.mtimeMs };
@@ -30,9 +30,85 @@ app.get("/api/files", (_req, res) => {
   }
 });
 
-// SSE endpoint — streams Claude Code output back to browser
-app.post("/api/chat", (req, res) => {
-  const { message, sessionId } = req.body;
+// Validate HTML file — returns null if ok, error string if broken
+function validateHtml(filename) {
+  try {
+    const content = readFileSync(join(WORKSPACE, filename), "utf8").trim();
+    if (content.length < 50) return "Filen är för kort eller tom.";
+    if (!content.includes("<html") && !content.includes("<!DOCTYPE"))
+      return "Filen saknar html-tagg.";
+    if (!content.includes("</html>") && !content.includes("</body>"))
+      return "Filen verkar ofullständig (saknar avslutande taggar).";
+    // Check for obvious JS syntax errors by looking for unclosed script tags
+    const scriptOpen = (content.match(/<script/gi) || []).length;
+    const scriptClose = (content.match(/<\/script>/gi) || []).length;
+    if (scriptOpen !== scriptClose)
+      return "Filen har ett trasigt script-block.";
+    return null;
+  } catch (e) {
+    return `Filen kunde inte läsas: ${e.message}`;
+  }
+}
+
+// Run one claude invocation, returns Promise<{ sessionId, detectedFile, text }>
+function runClaude(message, sessionId) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "--print",
+      "--output-format", "stream-json",
+      "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep",
+      "-p", message,
+    ];
+    if (sessionId) args.push("--resume", sessionId);
+
+    const proc = spawn(CLAUDE_BIN, args, {
+      cwd: WORKSPACE,
+      env: { ...process.env, CLAUDE_NONINTERACTIVE: "1" },
+      windowsHide: true,
+    });
+
+    let newSessionId = sessionId || null;
+    let detectedFile = null;
+    let text = "";
+    let rawBuf = "";
+
+    proc.stdout.on("data", (chunk) => {
+      rawBuf += chunk.toString();
+      const lines = rawBuf.split("\n");
+      rawBuf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const obj = JSON.parse(line);
+          if (obj.type === "system" && obj.subtype === "init" && obj.session_id)
+            newSessionId = obj.session_id;
+          if (obj.type === "assistant" && Array.isArray(obj.message?.content)) {
+            for (const block of obj.message.content) {
+              if (block.type === "text") text += block.text;
+            }
+          }
+          if (obj.type === "tool" && obj.content) {
+            const f = detectHtmlFile(obj);
+            if (f) detectedFile = f;
+          }
+        } catch {}
+      }
+    });
+
+    proc.stderr.on("data", (chunk) => {
+      console.error("[claude stderr]", chunk.toString().trim());
+    });
+
+    proc.on("close", (code) => {
+      if (code !== 0) return reject(new Error(`claude exited ${code}`));
+      resolve({ sessionId: newSessionId, detectedFile, text });
+    });
+  });
+}
+
+// SSE endpoint with silent self-healing retry loop
+app.post("/api/chat", async (req, res) => {
+  const { message, sessionId: incomingSessionId } = req.body;
   if (!message) return res.status(400).json({ error: "No message" });
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -41,103 +117,66 @@ app.post("/api/chat", (req, res) => {
 
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
-  // Build claude args
-  const args = [
-    "--print",
-    "--output-format", "stream-json",
-    "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep",
-    "-p", message,
-  ];
+  let currentSessionId = incomingSessionId || null;
+  let attempt = 0;
+  let lastError = null;
 
-  if (sessionId) {
-    args.push("--resume", sessionId);
+  while (attempt <= MAX_RETRIES) {
+    // On retry, inject the validation error silently into the prompt
+    const prompt =
+      attempt === 0
+        ? message
+        : `Den HTML-fil du skapade hade ett fel: "${lastError}". Fixa det direkt och spara om filen. Skriv inget till användaren om detta.`;
+
+    if (attempt === 0) {
+      send({ type: "action", text: "Tänker på din idé..." });
+    }
+
+    try {
+      const result = await runClaude(prompt, currentSessionId);
+      currentSessionId = result.sessionId;
+
+      // Emit session id on first attempt
+      if (attempt === 0 && result.sessionId) {
+        send({ type: "session", sessionId: result.sessionId });
+      }
+
+      // Emit assistant text (only on first attempt — retries are silent)
+      if (attempt === 0 && result.text) {
+        send({ type: "text", text: result.text });
+      }
+
+      // Validate the HTML file if one was written
+      if (result.detectedFile) {
+        const error = validateHtml(result.detectedFile);
+        if (error) {
+          lastError = error;
+          attempt++;
+          console.log(`[self-heal] attempt ${attempt}: ${error}`);
+          continue; // retry silently
+        }
+        // File is good — tell the browser to show it
+        send({ type: "file", file: result.detectedFile });
+      }
+
+      // Success
+      send({ type: "done" });
+      res.end();
+      return;
+    } catch (err) {
+      console.error("[runClaude error]", err.message);
+      lastError = err.message;
+      attempt++;
+    }
   }
 
-  const env = {
-    ...process.env,
-    CLAUDE_NONINTERACTIVE: "1",
-  };
-
-  const proc = spawn(CLAUDE_BIN, args, {
-    cwd: WORKSPACE,
-    env,
-    windowsHide: true,
-  });
-
-  let newSessionId = sessionId || null;
-  let textBuffer = "";
-
-  proc.stdout.on("data", (chunk) => {
-    const raw = chunk.toString();
-    // stream-json emits one JSON object per line
-    for (const line of raw.split("\n")) {
-      if (!line.trim()) continue;
-      try {
-        const obj = JSON.parse(line);
-
-        // Capture session id from init event
-        if (obj.type === "system" && obj.subtype === "init" && obj.session_id) {
-          newSessionId = obj.session_id;
-          send({ type: "session", sessionId: newSessionId });
-        }
-
-        // Stream assistant text
-        if (obj.type === "assistant" && Array.isArray(obj.message?.content)) {
-          for (const block of obj.message.content) {
-            if (block.type === "text") {
-              textBuffer += block.text;
-              send({ type: "text", text: block.text });
-            }
-          }
-        }
-
-        // Tool use — tell the browser what Claude is doing
-        if (obj.type === "assistant" && Array.isArray(obj.message?.content)) {
-          for (const block of obj.message.content) {
-            if (block.type === "tool_use") {
-              const action = toolAction(block.name, block.input);
-              if (action) send({ type: "action", text: action });
-            }
-          }
-        }
-
-        // Tool result — detect new/changed HTML files
-        if (obj.type === "tool" && obj.content) {
-          const fileMention = detectHtmlFile(obj);
-          if (fileMention) send({ type: "file", file: fileMention });
-        }
-      } catch {
-        // Non-JSON line, ignore
-      }
-    }
-  });
-
-  proc.stderr.on("data", (chunk) => {
-    const text = chunk.toString().trim();
-    if (text) console.error("[claude stderr]", text);
-  });
-
-  proc.on("close", (code) => {
-    if (code !== 0) {
-      send({ type: "error", text: "Oj, nagonting gick fel. Forsok igen!" });
-    }
-    send({ type: "done" });
-    res.end();
-  });
-
-  // If client disconnects, kill claude
-  res.on("close", () => proc.kill());
+  // All retries exhausted
+  send({ type: "error", text: "Oj, något gick fel! Försök med en ny idé." });
+  send({ type: "done" });
+  res.end();
 });
 
-function toolAction(name, input) {
-  if (name === "Write") return `Skapar ${input?.file_path?.split("/").pop() || "fil"}...`;
-  if (name === "Edit") return `Andrar ${input?.file_path?.split("/").pop() || "fil"}...`;
-  if (name === "Bash") return `Kor kod...`;
-  return null;
-}
-
 function detectHtmlFile(toolObj) {
-  // Look for file paths in tool results or input
   const text = JSON.stringify(toolObj);
   const match = text.match(/\/workspace\/([\w\-]+\.html)/);
   return match ? match[1] : null;

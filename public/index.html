@@ -12,10 +12,12 @@
     :root {
       --bg: #0f0e17;
       --surface: #1a1933;
+      --surface2: #252347;
       --bubble-bot: #2d2b55;
       --bubble-user: #e94560;
       --accent: #ffd166;
       --green: #06d6a0;
+      --purple: #7b5ea7;
       --text: #fffffe;
       --text-dim: #a7a9be;
     }
@@ -32,26 +34,26 @@
 
     /* ── Header ── */
     header {
-      background: linear-gradient(135deg, #e94560, #533483, #0f3460);
+      background: linear-gradient(135deg, #e94560 0%, #533483 60%, #0f3460 100%);
       padding: 10px 20px;
       display: flex;
       align-items: center;
       gap: 10px;
       flex-shrink: 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     header .logo { font-size: 28px; }
-    header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+    header h1 { font-size: 22px; font-weight: 900; }
     header .tagline {
       font-size: 12px; opacity: 0.8;
       background: rgba(255,255,255,0.15);
-      padding: 3px 10px; border-radius: 20px; margin-left: 4px;
+      padding: 3px 10px; border-radius: 20px;
     }
-    .status {
-      margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px; opacity: 0.85;
+    .hstatus {
+      margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px;
     }
     .status-dot {
-      width: 9px; height: 9px; border-radius: 50%; background: var(--green);
+      width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex-shrink: 0;
     }
     .status-dot.busy { background: var(--accent); animation: pulse 0.8s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
@@ -59,83 +61,182 @@
     /* ── Layout ── */
     .layout { display: flex; flex: 1; min-height: 0; }
 
-    /* ── Chat panel ── */
-    .chat-panel {
-      width: 420px; min-width: 300px;
-      display: flex; flex-direction: column;
+    /* ── Left panel ── */
+    .left-panel {
+      width: 380px;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
       background: var(--surface);
       border-right: 3px solid rgba(255,255,255,0.05);
+      overflow: hidden;
     }
 
+    /* Chat area */
     .messages {
-      flex: 1; overflow-y: auto;
-      padding: 16px 14px;
-      display: flex; flex-direction: column; gap: 14px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
     }
-    .messages::-webkit-scrollbar { width: 5px; }
-    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
-    /* Bubble rows */
-    .bubble-row { display: flex; align-items: flex-end; gap: 8px; }
+    .bubble-row { display: flex; align-items: flex-end; gap: 7px; }
     .bubble-row.user { flex-direction: row-reverse; }
 
     .avatar {
-      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; line-height: 1;
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
     }
-    .avatar.bot  { background: linear-gradient(135deg,#533483,#0f3460); box-shadow: 0 0 14px rgba(83,52,131,0.7); }
-    .avatar.kid  { background: linear-gradient(135deg,#e94560,#c23152); box-shadow: 0 0 14px rgba(233,69,96,0.5); }
+    .avatar.bot  { background: linear-gradient(135deg,#533483,#0f3460); box-shadow: 0 0 12px rgba(83,52,131,.7); }
+    .avatar.kid  { background: linear-gradient(135deg,#e94560,#c23152); box-shadow: 0 0 12px rgba(233,69,96,.5); }
 
     .bubble {
-      max-width: 76%; padding: 11px 15px; border-radius: 18px;
-      line-height: 1.55; font-size: 15px; word-break: break-word;
+      max-width: 80%; padding: 10px 14px; border-radius: 16px;
+      line-height: 1.5; font-size: 14px; word-break: break-word;
     }
-    .bubble.bot  { background: var(--bubble-bot); border-bottom-left-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
-    .bubble.user { background: var(--bubble-user); border-bottom-right-radius: 4px; box-shadow: 0 2px 12px rgba(233,69,96,0.3); }
+    .bubble.bot  { background: var(--bubble-bot); border-bottom-left-radius: 4px; }
+    .bubble.user { background: var(--bubble-user); border-bottom-right-radius: 4px; }
+    .bubble-row.action { padding-left: 41px; }
+    .bubble.action { background: transparent; color: var(--text-dim); font-size: 12px; font-style: italic; padding: 1px 4px; }
 
-    .bubble-row.action { padding-left: 46px; }
-    .bubble.action {
-      background: transparent; color: var(--text-dim);
-      font-size: 13px; padding: 2px 4px; font-style: italic; box-shadow: none;
-    }
-
-    /* Typing */
-    .bubble.typing { background: var(--bubble-bot); padding: 14px 18px; }
+    .bubble.typing { background: var(--bubble-bot); padding: 12px 16px; }
     .dots { display: flex; gap: 5px; align-items: center; }
     .dots span {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim);
+      width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim);
       animation: bounce 1.2s infinite;
     }
     .dots span:nth-child(2) { animation-delay: .2s; }
     .dots span:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 
-    /* ── Input ── */
-    .input-area {
-      padding: 12px 14px; background: var(--surface);
+    /* ── Control panel ── */
+    .control-panel {
+      flex-shrink: 0;
+      background: var(--surface);
       border-top: 2px solid rgba(255,255,255,0.06);
-      display: flex; gap: 8px; align-items: center;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 60vh;
+      overflow-y: auto;
     }
-    .input-area input {
-      flex: 1; padding: 12px 18px;
-      border: 2px solid rgba(255,255,255,0.1); border-radius: 28px;
+    .control-panel::-webkit-scrollbar { width: 4px; }
+    .control-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* Section label */
+    .section-label {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 0 2px;
+    }
+
+    /* Chip row */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .chip:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .chip.active {
+      background: var(--accent);
+      color: #1a1933;
+      border-color: var(--accent);
+      box-shadow: 0 0 14px rgba(255,209,102,0.4);
+    }
+    .chip.theme.active { background: var(--accent); color: #1a1933; border-color: var(--accent); }
+
+    /* Big action buttons */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .action-btn {
+      padding: 10px 8px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s;
+      line-height: 1.3;
+    }
+    .action-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 3px; }
+    .action-btn:hover {
+      border-color: var(--purple);
+      background: rgba(123,94,167,0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    }
+    .action-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* Modify chips — only shown after creation */
+    .modify-section { display: none; }
+    .modify-section.visible { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Text input fallback */
+    .text-toggle {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 2px;
+    }
+    .text-toggle:hover { color: var(--text); }
+
+    .text-input-row {
+      display: none;
+      gap: 6px;
+      align-items: center;
+    }
+    .text-input-row.visible { display: flex; }
+    .text-input-row input {
+      flex: 1; padding: 9px 14px;
+      border: 2px solid rgba(255,255,255,0.1); border-radius: 22px;
       background: var(--bg); color: var(--text);
-      font-family: inherit; font-size: 15px; outline: none; transition: border-color .2s;
+      font-family: inherit; font-size: 14px; outline: none;
+      transition: border-color .2s;
     }
-    .input-area input:focus { border-color: var(--bubble-user); }
-    .input-area input::placeholder { color: var(--text-dim); }
-    .input-area button {
-      width: 46px; height: 46px; border-radius: 50%;
+    .text-input-row input:focus { border-color: var(--bubble-user); }
+    .text-input-row input::placeholder { color: var(--text-dim); }
+    .text-input-row button {
+      width: 38px; height: 38px; border-radius: 50%;
       background: var(--bubble-user); color: white; border: none;
-      font-size: 20px; cursor: pointer;
+      font-size: 17px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 14px rgba(233,69,96,0.4);
-      transition: transform .15s, box-shadow .15s;
+      transition: transform .15s;
     }
-    .input-area button:hover { transform: scale(1.1); box-shadow: 0 6px 18px rgba(233,69,96,0.5); }
-    .input-area button:active { transform: scale(0.93); }
-    .input-area button:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .text-input-row button:hover { transform: scale(1.1); }
+    .text-input-row button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
 
     /* ── Preview panel ── */
     .preview-panel { flex: 1; display: flex; flex-direction: column; background: #111; }
@@ -154,46 +255,29 @@
     .tbtn {
       padding: 6px 12px; background: rgba(255,255,255,0.08); color: var(--text);
       border: none; border-radius: 10px; font-family: inherit; font-size: 13px;
-      cursor: pointer; transition: background .2s;
+      cursor: pointer; transition: background .2s; white-space: nowrap;
     }
-    .tbtn:hover { background: rgba(255,255,255,0.15); }
+    .tbtn:hover { background: rgba(255,255,255,0.16); }
 
     .preview-frame { flex: 1; position: relative; }
     .preview-frame iframe { width: 100%; height: 100%; border: none; }
 
-    /* ── Welcome ── */
+    /* Welcome */
     .welcome {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100%; padding: 40px; text-align: center;
       background: radial-gradient(ellipse at center, #1a1040 0%, var(--bg) 70%);
     }
-    .welcome .big-emoji { font-size: 76px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    .welcome .big-emoji { font-size: 80px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
-    .welcome h2 { font-size: 28px; font-weight: 900; margin-bottom: 10px; }
-    .welcome p { font-size: 16px; color: var(--text-dim); line-height: 1.7; max-width: 380px; }
+    .welcome h2 { font-size: 30px; font-weight: 900; margin-bottom: 10px; }
+    .welcome p { font-size: 16px; color: var(--text-dim); line-height: 1.7; }
 
-    .starters {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      margin-top: 24px; justify-content: center; max-width: 480px;
-    }
-    .starters button {
-      padding: 10px 18px;
-      background: rgba(255,255,255,0.07); color: var(--text);
-      border: 2px solid rgba(255,255,255,0.1); border-radius: 14px;
-      font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
-      transition: all .2s;
-    }
-    .starters button:hover {
-      background: rgba(233,69,96,0.2); border-color: var(--bubble-user);
-      transform: translateY(-3px); box-shadow: 0 6px 16px rgba(233,69,96,0.2);
-    }
+    .layout.fullscreen .left-panel { display: none; }
 
-    .layout.fullscreen .chat-panel { display: none; }
-
-    @media (max-width: 768px) {
+    @media (max-width: 700px) {
       .layout { flex-direction: column; }
-      .chat-panel { width: 100%; height: 55%; border-right: none; border-bottom: 2px solid rgba(255,255,255,0.06); }
-      .preview-panel { height: 45%; }
+      .left-panel { width: 100%; height: 50%; border-right: none; border-bottom: 2px solid rgba(255,255,255,0.06); }
     }
   </style>
 </head>
@@ -203,21 +287,73 @@
   <span class="logo">🤖</span>
   <h1>ClaudeKids</h1>
   <span class="tagline">Skapa med AI!</span>
-  <div class="status">
+  <div class="hstatus">
     <div class="status-dot" id="statusDot"></div>
     <span id="statusText">Redo!</span>
   </div>
 </header>
 
 <div class="layout" id="layout">
-  <div class="chat-panel">
+
+  <!-- Left panel: chat + controls -->
+  <div class="left-panel">
+
     <div class="messages" id="messages"></div>
-    <div class="input-area">
-      <input type="text" id="input" placeholder="Vad vill du skapa? 🎮" autocomplete="off">
-      <button id="sendBtn" title="Skicka">🚀</button>
+
+    <div class="control-panel" id="controlPanel">
+
+      <!-- Theme selector -->
+      <div class="section-label">🎨 Tema</div>
+      <div class="chip-row" id="themeChips">
+        <button class="chip theme active" data-theme="rymden">🚀 Rymden</button>
+        <button class="chip theme" data-theme="prinsessa">👸 Prinsessa</button>
+        <button class="chip theme" data-theme="dinosaurier">🦕 Dinosaurier</button>
+        <button class="chip theme" data-theme="havet">🌊 Havet</button>
+        <button class="chip theme" data-theme="halloween">🎃 Halloween</button>
+        <button class="chip theme" data-theme="djungeln">🌿 Djungeln</button>
+        <button class="chip theme" data-theme="sport">⚽ Sport</button>
+        <button class="chip theme" data-theme="saga">🏰 Saga</button>
+      </div>
+
+      <!-- Create actions -->
+      <div class="section-label">✨ Skapa något nytt</div>
+      <div class="action-grid" id="createGrid">
+        <button class="action-btn" onclick="createAction('spel')"><span class="btn-icon">🎮</span>Spel</button>
+        <button class="action-btn" onclick="createAction('animation')"><span class="btn-icon">🌀</span>Animation</button>
+        <button class="action-btn" onclick="createAction('ritprogram')"><span class="btn-icon">🎨</span>Ritprogram</button>
+        <button class="action-btn" onclick="createAction('musik')"><span class="btn-icon">🎵</span>Musik</button>
+        <button class="action-btn" onclick="createAction('quiz')"><span class="btn-icon">🧠</span>Quiz</button>
+        <button class="action-btn" onclick="createAction('berättelse')"><span class="btn-icon">📖</span>Berättelse</button>
+      </div>
+
+      <!-- Modify section (shown after creation) -->
+      <div class="modify-section" id="modifySection">
+        <div class="section-label">⚡ Ändra det du skapade</div>
+        <div class="chip-row" id="modifyChips">
+          <button class="chip" onclick="modifyAction(this)">🚀 Gör det snabbare</button>
+          <button class="chip" onclick="modifyAction(this)">😊 Lägg till fler figurer</button>
+          <button class="chip" onclick="modifyAction(this)">🏆 Lägg till poäng</button>
+          <button class="chip" onclick="modifyAction(this)">🎵 Lägg till ljud</button>
+          <button class="chip" onclick="modifyAction(this)">🌈 Byt till regnbågsfärger</button>
+          <button class="chip" onclick="modifyAction(this)">💥 Gör det svårare</button>
+          <button class="chip" onclick="modifyAction(this)">🐌 Gör det lättare</button>
+          <button class="chip" onclick="modifyAction(this)">🎉 Lägg till konfetti</button>
+          <button class="chip" onclick="modifyAction(this)">🌟 Gör det större</button>
+          <button class="chip" onclick="modifyAction(this)">🎲 Överraska mig!</button>
+        </div>
+      </div>
+
+      <!-- Optional text input -->
+      <span class="text-toggle" id="textToggle" onclick="toggleTextInput()">✏️ Skriv din egen idé...</span>
+      <div class="text-input-row" id="textInputRow">
+        <input type="text" id="textInput" placeholder="Beskriv vad du vill..." autocomplete="off">
+        <button id="textSendBtn">🚀</button>
+      </div>
+
     </div>
   </div>
 
+  <!-- Preview panel -->
   <div class="preview-panel">
     <div class="preview-toolbar" id="toolbar" style="display:none">
       <span style="font-size:16px">🎨</span>
@@ -228,27 +364,16 @@
     <div class="preview-frame" id="previewFrame">
       <div class="welcome" id="welcomeState">
         <div class="big-emoji">🚀</div>
-        <h2>Vad vill du skapa idag?</h2>
-        <p>Skriv i chatten vad du vill göra!<br>Spel, animationer, konst — allt går!</p>
-        <div class="starters">
-          <button onclick="starter(this)">🚀 Rymdspel</button>
-          <button onclick="starter(this)">🌈 Rita en regnbåge</button>
-          <button onclick="starter(this)">🧩 Minnesspel</button>
-          <button onclick="starter(this)">🎵 Trummaskin</button>
-          <button onclick="starter(this)">🌀 Hypnotisk animation</button>
-          <button onclick="starter(this)">🐍 Ormen spel</button>
-          <button onclick="starter(this)">🎨 Ritprogram</button>
-          <button onclick="starter(this)">🏓 Pong-spel</button>
-        </div>
+        <h2>Vad vill du skapa?</h2>
+        <p>Välj ett tema och klicka på<br>något du vill göra!</p>
       </div>
     </div>
   </div>
+
 </div>
 
 <script>
 const messagesEl   = document.getElementById('messages');
-const inputEl      = document.getElementById('input');
-const sendBtn      = document.getElementById('sendBtn');
 const toolbar      = document.getElementById('toolbar');
 const fileSelect   = document.getElementById('fileSelect');
 const welcomeState = document.getElementById('welcomeState');
@@ -256,14 +381,32 @@ const previewFrame = document.getElementById('previewFrame');
 const layoutEl     = document.getElementById('layout');
 const statusDot    = document.getElementById('statusDot');
 const statusText   = document.getElementById('statusText');
+const modifySection = document.getElementById('modifySection');
+const createGrid   = document.getElementById('createGrid');
+const textInput    = document.getElementById('textInput');
+const textSendBtn  = document.getElementById('textSendBtn');
+const textInputRow = document.getElementById('textInputRow');
 
 let sessionId   = null;
 let streaming   = false;
 let currentFile = null;
+let activeTheme = 'rymden';
 
+// ── Theme selection ──
+document.getElementById('themeChips').addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip.theme');
+  if (!btn || streaming) return;
+  document.querySelectorAll('.chip.theme').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  activeTheme = btn.dataset.theme;
+});
+
+// ── Status ──
 function setStatus(busy, text) {
   statusDot.className = 'status-dot' + (busy ? ' busy' : '');
   statusText.textContent = text;
+  document.querySelectorAll('.action-btn, .chip').forEach(b => b.disabled = busy);
+  textSendBtn.disabled = busy;
 }
 
 // ── Bubbles ──
@@ -320,6 +463,8 @@ function showPreview(filename) {
   iframe.src = `/preview/${filename}?t=${Date.now()}`;
   previewFrame.appendChild(iframe);
   updateFileSelect(filename);
+  // Show modify panel
+  modifySection.classList.add('visible');
 }
 
 function reloadPreview() { if (currentFile) showPreview(currentFile); }
@@ -341,16 +486,47 @@ async function updateFileSelect(active) {
 
 function loadSelectedFile() { showPreview(fileSelect.value); }
 
-// ── Send ──
-async function send() {
-  const text = inputEl.value.trim();
-  if (!text || streaming) return;
-  inputEl.value = '';
-  streaming = true;
-  sendBtn.disabled = true;
-  setStatus(true, 'Tänker...');
+// ── Text toggle ──
+function toggleTextInput() {
+  textInputRow.classList.toggle('visible');
+  if (textInputRow.classList.contains('visible')) textInput.focus();
+}
 
-  addBubble('user', text);
+// ── Build prompts ──
+function themeLabel() {
+  const map = {
+    rymden: 'rymd och planeter', prinsessa: 'prinsessor och slott',
+    dinosaurier: 'dinosaurier', havet: 'havet och fiskar',
+    halloween: 'halloween och spöken', djungeln: 'djungeln och djur',
+    sport: 'sport och bollsporter', saga: 'sagor och riddare',
+  };
+  return map[activeTheme] || activeTheme;
+}
+
+function buildCreatePrompt(type) {
+  const prompts = {
+    spel: `Skapa ett roligt spel med tema "${themeLabel()}". Gör det enkelt att spela direkt i webbläsaren.`,
+    animation: `Skapa en häftig animation med tema "${themeLabel()}". Det ska röra sig och vara färgglatt!`,
+    ritprogram: `Skapa ett ritprogram med tema "${themeLabel()}". Man ska kunna rita med musen i olika färger.`,
+    musik: `Skapa ett musikaliskt instrument eller trummaskin med tema "${themeLabel()}". Man ska kunna göra musik!`,
+    quiz: `Skapa ett roligt quiz med tema "${themeLabel()}". Ställ 5 frågor med knappar att svara på.`,
+    berättelse: `Skapa en interaktiv berättelse med tema "${themeLabel()}". Läsaren ska kunna klicka sig vidare i historien.`,
+  };
+  return prompts[type] || `Skapa något kul med tema "${themeLabel()}".`;
+}
+
+function buildModifyPrompt(action) {
+  const clean = action.replace(/^[\p{Emoji_Presentation}\s]+/u, '').trim();
+  return `${clean} i det jag skapade. Uppdatera filen direkt.`;
+}
+
+// ── Send ──
+async function sendMessage(userDisplayText, prompt) {
+  if (streaming) return;
+  streaming = true;
+  setStatus(true, 'Jobbar...');
+
+  addBubble('user', userDisplayText);
   showTyping();
 
   let botBubble = null;
@@ -360,7 +536,7 @@ async function send() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, sessionId }),
+      body: JSON.stringify({ message: prompt, sessionId }),
     });
 
     const reader = res.body.getReader();
@@ -385,55 +561,60 @@ async function send() {
   }
 
   streaming = false;
-  sendBtn.disabled = false;
   setStatus(false, 'Redo!');
-  inputEl.focus();
 
   function handleEvent(ev) {
     if (ev.type === 'session') {
       sessionId = ev.sessionId;
-    }
-    else if (ev.type === 'text') {
+    } else if (ev.type === 'text') {
       hideTyping();
-      if (!botBubble) {
-        botBubble = addBubble('bot', '');
-      }
+      if (!botBubble) botBubble = addBubble('bot', '');
       botText += ev.text;
       botBubble.textContent = botText;
       messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-    else if (ev.type === 'action') {
+    } else if (ev.type === 'action') {
       setStatus(true, ev.text);
       addAction('⚙️ ' + ev.text);
-    }
-    else if (ev.type === 'file') {
+    } else if (ev.type === 'file') {
       document.querySelector('.bubble-row.action')?.remove();
       showPreview(ev.file);
-      setStatus(true, 'Laddar ' + ev.file + '...');
-    }
-    else if (ev.type === 'done') {
+    } else if (ev.type === 'done') {
       hideTyping();
       document.querySelector('.bubble-row.action')?.remove();
       updateFileSelect(currentFile);
-    }
-    else if (ev.type === 'error') {
+    } else if (ev.type === 'error') {
       hideTyping();
       addBubble('bot', '😬 ' + ev.text);
     }
   }
 }
 
-function starter(btn) {
-  // Strip leading emoji and whitespace
-  inputEl.value = btn.textContent.replace(/^[\p{Emoji_Presentation}\s]+/u, '').trim();
-  send();
+function createAction(type) {
+  const labels = {
+    spel: '🎮 Gör ett spel', animation: '🌀 Gör en animation',
+    ritprogram: '🎨 Gör ett ritprogram', musik: '🎵 Gör musik',
+    quiz: '🧠 Gör ett quiz', berättelse: '📖 Gör en berättelse',
+  };
+  sendMessage(labels[type] || type, buildCreatePrompt(type));
 }
 
-sendBtn.addEventListener('click', send);
-inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+function modifyAction(btn) {
+  const text = btn.textContent;
+  sendMessage(text, buildModifyPrompt(text));
+}
 
+// Text input send
+function sendTextInput() {
+  const text = textInput.value.trim();
+  if (!text) return;
+  textInput.value = '';
+  sendMessage(text, text);
+}
+textSendBtn.addEventListener('click', sendTextInput);
+textInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendTextInput(); });
+
+// Init
 updateFileSelect(null);
-inputEl.focus();
 </script>
 </body>
 </html>
