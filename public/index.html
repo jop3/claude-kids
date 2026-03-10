@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClaudeKids</title>
+  <title>ClaudeKids 🚀</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #1a1a2e;
-      --surface: #16213e;
-      --surface2: #0f3460;
-      --accent: #e94560;
-      --accent2: #533483;
-      --green: #2ecc71;
-      --text: #eee;
-      --text-dim: #889;
-      --radius: 16px;
+      --bg: #0f0e17;
+      --surface: #1a1933;
+      --bubble-bot: #2d2b55;
+      --bubble-user: #e94560;
+      --accent: #ffd166;
+      --green: #06d6a0;
+      --text: #fffffe;
+      --text-dim: #a7a9be;
     }
 
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Nunito', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       height: 100vh;
@@ -29,308 +30,295 @@
       overflow: hidden;
     }
 
+    /* ── Header ── */
     header {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: linear-gradient(135deg, #e94560, #533483, #0f3460);
       padding: 10px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
+    header .logo { font-size: 28px; }
     header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    header .sub { font-size: 13px; opacity: 0.8; }
-
-    .layout {
-      display: flex;
-      flex: 1;
-      min-height: 0;
+    header .tagline {
+      font-size: 12px; opacity: 0.8;
+      background: rgba(255,255,255,0.15);
+      padding: 3px 10px; border-radius: 20px; margin-left: 4px;
     }
+    .status {
+      margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px; opacity: 0.85;
+    }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: var(--green);
+    }
+    .status-dot.busy { background: var(--accent); animation: pulse 0.8s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Layout ── */
+    .layout { display: flex; flex: 1; min-height: 0; }
 
     /* ── Chat panel ── */
     .chat-panel {
-      width: 400px;
-      min-width: 300px;
-      display: flex;
-      flex-direction: column;
+      width: 420px; min-width: 300px;
+      display: flex; flex-direction: column;
       background: var(--surface);
-      border-right: 2px solid var(--surface2);
+      border-right: 3px solid rgba(255,255,255,0.05);
     }
 
     .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      flex: 1; overflow-y: auto;
+      padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 14px;
     }
     .messages::-webkit-scrollbar { width: 5px; }
-    .messages::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-    .msg {
-      max-width: 92%;
-      padding: 10px 14px;
-      border-radius: var(--radius);
-      line-height: 1.5;
-      font-size: 15px;
-      white-space: pre-wrap;
-      word-break: break-word;
+    /* Bubble rows */
+    .bubble-row { display: flex; align-items: flex-end; gap: 8px; }
+    .bubble-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; line-height: 1;
     }
-    .msg.user {
-      align-self: flex-end;
-      background: var(--accent);
-      border-bottom-right-radius: 4px;
+    .avatar.bot  { background: linear-gradient(135deg,#533483,#0f3460); box-shadow: 0 0 14px rgba(83,52,131,0.7); }
+    .avatar.kid  { background: linear-gradient(135deg,#e94560,#c23152); box-shadow: 0 0 14px rgba(233,69,96,0.5); }
+
+    .bubble {
+      max-width: 76%; padding: 11px 15px; border-radius: 18px;
+      line-height: 1.55; font-size: 15px; word-break: break-word;
     }
-    .msg.assistant {
-      align-self: flex-start;
-      background: var(--surface2);
-      border-bottom-left-radius: 4px;
-    }
-    .msg.action {
-      align-self: flex-start;
-      background: transparent;
-      color: var(--text-dim);
-      font-size: 13px;
-      padding: 2px 6px;
-      font-style: italic;
+    .bubble.bot  { background: var(--bubble-bot); border-bottom-left-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+    .bubble.user { background: var(--bubble-user); border-bottom-right-radius: 4px; box-shadow: 0 2px 12px rgba(233,69,96,0.3); }
+
+    .bubble-row.action { padding-left: 46px; }
+    .bubble.action {
+      background: transparent; color: var(--text-dim);
+      font-size: 13px; padding: 2px 4px; font-style: italic; box-shadow: none;
     }
 
-    /* Typing indicator */
-    .typing {
-      align-self: flex-start;
-      padding: 10px 14px;
-      background: var(--surface2);
-      border-radius: var(--radius);
-      font-size: 13px;
-      color: var(--text-dim);
+    /* Typing */
+    .bubble.typing { background: var(--bubble-bot); padding: 14px 18px; }
+    .dots { display: flex; gap: 5px; align-items: center; }
+    .dots span {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim);
+      animation: bounce 1.2s infinite;
     }
-    .dots span { animation: blink 1.4s infinite; }
     .dots span:nth-child(2) { animation-delay: .2s; }
     .dots span:nth-child(3) { animation-delay: .4s; }
-    @keyframes blink { 0%,60%,100%{opacity:.2} 30%{opacity:1} }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
 
-    /* Input */
+    /* ── Input ── */
     .input-area {
-      padding: 10px 14px;
-      background: var(--surface);
-      border-top: 2px solid var(--surface2);
-      display: flex;
-      gap: 8px;
+      padding: 12px 14px; background: var(--surface);
+      border-top: 2px solid rgba(255,255,255,0.06);
+      display: flex; gap: 8px; align-items: center;
     }
     .input-area input {
-      flex: 1;
-      padding: 11px 16px;
-      border: 2px solid var(--surface2);
-      border-radius: 24px;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
-      transition: border-color .2s;
+      flex: 1; padding: 12px 18px;
+      border: 2px solid rgba(255,255,255,0.1); border-radius: 28px;
+      background: var(--bg); color: var(--text);
+      font-family: inherit; font-size: 15px; outline: none; transition: border-color .2s;
     }
-    .input-area input:focus { border-color: var(--accent); }
+    .input-area input:focus { border-color: var(--bubble-user); }
     .input-area input::placeholder { color: var(--text-dim); }
     .input-area button {
-      padding: 11px 18px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 24px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform .1s, opacity .2s;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--bubble-user); color: white; border: none;
+      font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(233,69,96,0.4);
+      transition: transform .15s, box-shadow .15s;
     }
-    .input-area button:hover { transform: scale(1.05); }
-    .input-area button:active { transform: scale(0.95); }
-    .input-area button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .input-area button:hover { transform: scale(1.1); box-shadow: 0 6px 18px rgba(233,69,96,0.5); }
+    .input-area button:active { transform: scale(0.93); }
+    .input-area button:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── Preview panel ── */
-    .preview-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
+    .preview-panel { flex: 1; display: flex; flex-direction: column; background: #111; }
 
     .preview-toolbar {
-      padding: 8px 16px;
-      background: var(--surface);
-      border-bottom: 2px solid var(--surface2);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      padding: 8px 14px; background: var(--surface);
+      border-bottom: 2px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
     }
     .preview-toolbar select {
-      flex: 1;
-      padding: 6px 10px;
-      background: var(--bg);
-      color: var(--text);
-      border: 2px solid var(--surface2);
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
+      flex: 1; padding: 6px 10px;
+      background: var(--bg); color: var(--text);
+      border: 2px solid rgba(255,255,255,0.1); border-radius: 10px;
+      font-family: inherit; font-size: 14px; outline: none;
     }
-    .preview-toolbar button {
-      padding: 6px 12px;
-      background: var(--surface2);
-      color: var(--text);
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      white-space: nowrap;
+    .tbtn {
+      padding: 6px 12px; background: rgba(255,255,255,0.08); color: var(--text);
+      border: none; border-radius: 10px; font-family: inherit; font-size: 13px;
+      cursor: pointer; transition: background .2s;
     }
-    .preview-toolbar button:hover { background: var(--accent2); }
-    .preview-toolbar .dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--green);
-      display: none;
-      animation: pulse 1s infinite;
-    }
-    .preview-toolbar .dot.visible { display: block; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .tbtn:hover { background: rgba(255,255,255,0.15); }
 
-    .preview-frame {
-      flex: 1;
-      position: relative;
-      background: white;
-    }
-    .preview-frame iframe {
-      width: 100%; height: 100%; border: none;
-    }
+    .preview-frame { flex: 1; position: relative; }
+    .preview-frame iframe { width: 100%; height: 100%; border: none; }
 
-    .preview-empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      background: var(--bg);
-      text-align: center;
-      color: var(--text-dim);
-      padding: 40px;
+    /* ── Welcome ── */
+    .welcome {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; padding: 40px; text-align: center;
+      background: radial-gradient(ellipse at center, #1a1040 0%, var(--bg) 70%);
     }
-    .preview-empty h2 { font-size: 26px; margin-bottom: 10px; color: var(--text); }
-    .preview-empty p { font-size: 15px; line-height: 1.7; }
+    .welcome .big-emoji { font-size: 76px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    .welcome h2 { font-size: 28px; font-weight: 900; margin-bottom: 10px; }
+    .welcome p { font-size: 16px; color: var(--text-dim); line-height: 1.7; max-width: 380px; }
 
     .starters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 20px;
-      justify-content: center;
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 24px; justify-content: center; max-width: 480px;
     }
     .starters button {
-      padding: 9px 16px;
-      background: var(--surface2);
-      color: var(--text);
-      border: 2px solid transparent;
-      border-radius: 12px;
-      font-size: 14px;
-      cursor: pointer;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.07); color: var(--text);
+      border: 2px solid rgba(255,255,255,0.1); border-radius: 14px;
+      font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
       transition: all .2s;
     }
-    .starters button:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .starters button:hover {
+      background: rgba(233,69,96,0.2); border-color: var(--bubble-user);
+      transform: translateY(-3px); box-shadow: 0 6px 16px rgba(233,69,96,0.2);
+    }
 
     .layout.fullscreen .chat-panel { display: none; }
+
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .chat-panel { width: 100%; height: 55%; border-right: none; border-bottom: 2px solid rgba(255,255,255,0.06); }
+      .preview-panel { height: 45%; }
+    }
   </style>
 </head>
 <body>
 
 <header>
+  <span class="logo">🤖</span>
   <h1>ClaudeKids</h1>
-  <span class="sub">Skapa coola grejer med AI!</span>
+  <span class="tagline">Skapa med AI!</span>
+  <div class="status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Redo!</span>
+  </div>
 </header>
 
 <div class="layout" id="layout">
-
   <div class="chat-panel">
     <div class="messages" id="messages"></div>
     <div class="input-area">
-      <input type="text" id="input" placeholder="Vad vill du skapa?" autocomplete="off">
-      <button id="sendBtn">Skicka</button>
+      <input type="text" id="input" placeholder="Vad vill du skapa? 🎮" autocomplete="off">
+      <button id="sendBtn" title="Skicka">🚀</button>
     </div>
   </div>
 
   <div class="preview-panel">
     <div class="preview-toolbar" id="toolbar" style="display:none">
-      <div class="dot" id="liveDot"></div>
+      <span style="font-size:16px">🎨</span>
       <select id="fileSelect" onchange="loadSelectedFile()"></select>
-      <button onclick="reloadPreview()">Starta om</button>
-      <button onclick="toggleFullscreen()">Fullskarm</button>
+      <button class="tbtn" onclick="reloadPreview()">🔄 Starta om</button>
+      <button class="tbtn" onclick="toggleFullscreen()">⛶ Fullskärm</button>
     </div>
     <div class="preview-frame" id="previewFrame">
-      <div class="preview-empty" id="emptyState">
-        <div>
-          <h2>Vad vill du skapa?</h2>
-          <p>Skriv i chatten vad du vill gora!<br>Spel, animationer, konst — allt gar!</p>
-          <div class="starters">
-            <button onclick="starter(this)">Gora ett rymdspel</button>
-            <button onclick="starter(this)">Rita en regnbage</button>
-            <button onclick="starter(this)">Bygga en labyrint</button>
-            <button onclick="starter(this)">Gora en rolig animation</button>
-            <button onclick="starter(this)">Skapa ett minne-spel</button>
-            <button onclick="starter(this)">Bygga en trummaskin</button>
-          </div>
+      <div class="welcome" id="welcomeState">
+        <div class="big-emoji">🚀</div>
+        <h2>Vad vill du skapa idag?</h2>
+        <p>Skriv i chatten vad du vill göra!<br>Spel, animationer, konst — allt går!</p>
+        <div class="starters">
+          <button onclick="starter(this)">🚀 Rymdspel</button>
+          <button onclick="starter(this)">🌈 Rita en regnbåge</button>
+          <button onclick="starter(this)">🧩 Minnesspel</button>
+          <button onclick="starter(this)">🎵 Trummaskin</button>
+          <button onclick="starter(this)">🌀 Hypnotisk animation</button>
+          <button onclick="starter(this)">🐍 Ormen spel</button>
+          <button onclick="starter(this)">🎨 Ritprogram</button>
+          <button onclick="starter(this)">🏓 Pong-spel</button>
         </div>
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-const messagesEl = document.getElementById('messages');
-const inputEl    = document.getElementById('input');
-const sendBtn    = document.getElementById('sendBtn');
-const toolbar    = document.getElementById('toolbar');
-const fileSelect = document.getElementById('fileSelect');
-const liveDot    = document.getElementById('liveDot');
-const emptyState = document.getElementById('emptyState');
+const messagesEl   = document.getElementById('messages');
+const inputEl      = document.getElementById('input');
+const sendBtn      = document.getElementById('sendBtn');
+const toolbar      = document.getElementById('toolbar');
+const fileSelect   = document.getElementById('fileSelect');
+const welcomeState = document.getElementById('welcomeState');
 const previewFrame = document.getElementById('previewFrame');
-const layoutEl   = document.getElementById('layout');
+const layoutEl     = document.getElementById('layout');
+const statusDot    = document.getElementById('statusDot');
+const statusText   = document.getElementById('statusText');
 
-let sessionId = null;
-let streaming  = false;
+let sessionId   = null;
+let streaming   = false;
 let currentFile = null;
 
-// ── Messages ──
+function setStatus(busy, text) {
+  statusDot.className = 'status-dot' + (busy ? ' busy' : '');
+  statusText.textContent = text;
+}
 
-function addMsg(role, text) {
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.textContent = text;
-  messagesEl.appendChild(div);
+// ── Bubbles ──
+function addBubble(role, text) {
+  const row = document.createElement('div');
+  row.className = `bubble-row ${role}`;
+  const av  = document.createElement('div');
+  av.className = `avatar ${role === 'user' ? 'kid' : 'bot'}`;
+  av.textContent = role === 'user' ? '😄' : '🤖';
+  const bub = document.createElement('div');
+  bub.className = `bubble ${role}`;
+  bub.textContent = text;
+  if (role === 'bot') { row.appendChild(av); row.appendChild(bub); }
+  else                { row.appendChild(bub); row.appendChild(av); }
+  messagesEl.appendChild(row);
   messagesEl.scrollTop = messagesEl.scrollHeight;
-  return div;
+  return bub;
+}
+
+function addAction(text) {
+  document.querySelector('.bubble-row.action')?.remove();
+  const row = document.createElement('div');
+  row.className = 'bubble-row action';
+  const bub = document.createElement('div');
+  bub.className = 'bubble action';
+  bub.textContent = text;
+  row.appendChild(bub);
+  messagesEl.appendChild(row);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 function showTyping() {
-  const div = document.createElement('div');
-  div.className = 'typing'; div.id = 'typing';
-  div.innerHTML = '<span class="dots"><span>●</span><span>●</span><span>●</span></span> Tanker...';
-  messagesEl.appendChild(div);
+  const row = document.createElement('div');
+  row.className = 'bubble-row bot'; row.id = 'typingRow';
+  const av = document.createElement('div');
+  av.className = 'avatar bot'; av.textContent = '🤖';
+  const bub = document.createElement('div');
+  bub.className = 'bubble typing';
+  bub.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  row.appendChild(av); row.appendChild(bub);
+  messagesEl.appendChild(row);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
-function hideTyping() { document.getElementById('typing')?.remove(); }
+function hideTyping() { document.getElementById('typingRow')?.remove(); }
 
 // ── Preview ──
-
 function showPreview(filename) {
   currentFile = filename;
-  emptyState.style.display = 'none';
+  welcomeState.style.display = 'none';
   toolbar.style.display = 'flex';
-
-  // Remove old iframe
   previewFrame.querySelector('iframe')?.remove();
-
   const iframe = document.createElement('iframe');
   iframe.sandbox = 'allow-scripts allow-same-origin';
   iframe.src = `/preview/${filename}?t=${Date.now()}`;
   previewFrame.appendChild(iframe);
-
-  // Update file select
   updateFileSelect(filename);
 }
 
@@ -338,36 +326,35 @@ function reloadPreview() { if (currentFile) showPreview(currentFile); }
 function toggleFullscreen() { layoutEl.classList.toggle('fullscreen'); }
 
 async function updateFileSelect(active) {
-  const res = await fetch('/api/files');
-  const files = await res.json();
-  fileSelect.innerHTML = '';
-  for (const f of files) {
-    const opt = document.createElement('option');
-    opt.value = f.name;
-    opt.textContent = f.name;
-    if (f.name === active) opt.selected = true;
-    fileSelect.appendChild(opt);
-  }
-  if (files.length > 0) toolbar.style.display = 'flex';
+  try {
+    const files = await fetch('/api/files').then(r => r.json());
+    fileSelect.innerHTML = '';
+    for (const f of files) {
+      const opt = document.createElement('option');
+      opt.value = f.name; opt.textContent = f.name;
+      if (f.name === active) opt.selected = true;
+      fileSelect.appendChild(opt);
+    }
+    if (files.length) toolbar.style.display = 'flex';
+  } catch {}
 }
 
 function loadSelectedFile() { showPreview(fileSelect.value); }
 
 // ── Send ──
-
 async function send() {
   const text = inputEl.value.trim();
   if (!text || streaming) return;
   inputEl.value = '';
   streaming = true;
   sendBtn.disabled = true;
-  liveDot.classList.add('visible');
+  setStatus(true, 'Tänker...');
 
-  addMsg('user', text);
+  addBubble('user', text);
   showTyping();
 
-  let assistantDiv = null;
-  let assistantText = '';
+  let botBubble = null;
+  let botText   = '';
 
   try {
     const res = await fetch('/api/chat', {
@@ -377,34 +364,29 @@ async function send() {
     });
 
     const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf = '';
+    const dec    = new TextDecoder();
+    let buf      = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += dec.decode(value, { stream: true });
-
       const lines = buf.split('\n');
-      buf = lines.pop(); // incomplete line stays in buffer
-
+      buf = lines.pop();
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
-        try {
-          const ev = JSON.parse(line.slice(6));
-          handleEvent(ev);
-        } catch {}
+        try { handleEvent(JSON.parse(line.slice(6))); } catch {}
       }
     }
   } catch (err) {
     hideTyping();
-    addMsg('assistant', 'Oj! Nagot gick fel. Forsok igen!');
+    addBubble('bot', '😬 Oj! Något gick fel. Försök igen!');
     console.error(err);
   }
 
   streaming = false;
   sendBtn.disabled = false;
-  liveDot.classList.remove('visible');
+  setStatus(false, 'Redo!');
   inputEl.focus();
 
   function handleEvent(ev) {
@@ -413,45 +395,45 @@ async function send() {
     }
     else if (ev.type === 'text') {
       hideTyping();
-      if (!assistantDiv) {
-        assistantDiv = addMsg('assistant', '');
+      if (!botBubble) {
+        botBubble = addBubble('bot', '');
       }
-      assistantText += ev.text;
-      assistantDiv.textContent = assistantText;
+      botText += ev.text;
+      botBubble.textContent = botText;
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
     else if (ev.type === 'action') {
-      // Show ephemeral action line, remove previous one
-      document.querySelector('.msg.action')?.remove();
-      addMsg('action', ev.text);
+      setStatus(true, ev.text);
+      addAction('⚙️ ' + ev.text);
     }
     else if (ev.type === 'file') {
-      // New/changed HTML file — show it immediately
-      document.querySelector('.msg.action')?.remove();
+      document.querySelector('.bubble-row.action')?.remove();
       showPreview(ev.file);
+      setStatus(true, 'Laddar ' + ev.file + '...');
     }
     else if (ev.type === 'done') {
       hideTyping();
-      document.querySelector('.msg.action')?.remove();
-      // Refresh file list in dropdown
+      document.querySelector('.bubble-row.action')?.remove();
       updateFileSelect(currentFile);
     }
     else if (ev.type === 'error') {
       hideTyping();
-      addMsg('assistant', ev.text);
+      addBubble('bot', '😬 ' + ev.text);
     }
   }
 }
 
-function starter(btn) { inputEl.value = btn.textContent; send(); }
+function starter(btn) {
+  // Strip leading emoji and whitespace
+  inputEl.value = btn.textContent.replace(/^[\p{Emoji_Presentation}\s]+/u, '').trim();
+  send();
+}
 
 sendBtn.addEventListener('click', send);
 inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
 
-// Load existing files on startup
 updateFileSelect(null);
 inputEl.focus();
 </script>
-
 </body>
 </html>

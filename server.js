@@ -1,16 +1,8 @@
 import express from "express";
 import { spawn } from "child_process";
-import { readFileSync, watch, readdirSync, statSync } from "fs";
+import { readdirSync, statSync } from "fs";
 import { join } from "path";
 
-// Load .env manually
-try {
-  const env = readFileSync(".env", "utf8");
-  for (const line of env.split("\n")) {
-    const [key, ...vals] = line.split("=");
-    if (key && vals.length) process.env[key.trim()] = vals.join("=").trim();
-  }
-} catch {}
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -53,7 +45,6 @@ app.post("/api/chat", (req, res) => {
   const args = [
     "--print",
     "--output-format", "stream-json",
-    "--no-markdown",
     "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep",
     "-p", message,
   ];
@@ -64,7 +55,6 @@ app.post("/api/chat", (req, res) => {
 
   const env = {
     ...process.env,
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     CLAUDE_NONINTERACTIVE: "1",
   };
 
