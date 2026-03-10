@@ -319,22 +319,45 @@ function drawSpeechBubble(cx, cy, text) {
 // ── Draw ropes ──
 function drawRopes() {
   const W = canvas.width, gY = groundY();
+
+  // One suspension chain per platform, center-hung from ceiling
+  platforms.forEach((p, i) => {
+    const px2 = platX(p), py = platY(p), pw = platW(p);
+    const ax = px2 + pw * 0.5;
+    const sway = Math.sin(frameCount * 0.015 + i) * 2;
+    ctx.strokeStyle = theme.groundLine + '88';
+    ctx.lineWidth = S;
+    ctx.setLineDash([S * 3, S * 2]);
+    ctx.beginPath();
+    ctx.moveTo(ax + sway, 0);
+    ctx.lineTo(ax, py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Small bolt at platform top
+    ctx.fillStyle = theme.accent;
+    ctx.fillRect(ax - 2, py - 2, 4, 4);
+  });
+
+  // Climbable ropes hanging down from platforms
   ropes.forEach(r => {
     const p = platforms[r.fromPlatIdx];
     const px2 = platX(p), pw = platW(p);
-    const rx = Math.floor(W * r.tx);
     const ropeTX = px2 + pw * 0.5;
     const ropeTY = platY(p) + S * 3;
-    // Draw rope as segmented line with slight sway
+    const sway = Math.sin(frameCount * 0.02 + r.fromPlatIdx) * 5;
     ctx.strokeStyle = '#8B6914';
-    ctx.lineWidth = S * 1.2;
+    ctx.lineWidth = S * 1.5;
     ctx.setLineDash([S * 2, S * 1]);
     ctx.beginPath();
     ctx.moveTo(ropeTX, ropeTY);
-    const sway = Math.sin(frameCount * 0.02 + r.fromPlatIdx) * 4;
-    ctx.quadraticCurveTo(ropeTX + sway, (ropeTY + gY) / 2, ropeTX + sway * 0.5, gY - 4);
+    ctx.quadraticCurveTo(ropeTX + sway, (ropeTY + gY) / 2, ropeTX + sway * 0.4, gY - 4);
     ctx.stroke();
     ctx.setLineDash([]);
+    // Knot at bottom
+    ctx.fillStyle = '#8B6914';
+    ctx.beginPath();
+    ctx.arc(ropeTX + sway * 0.4, gY - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
   });
 }
 
