@@ -237,12 +237,28 @@ let charWalk = 0;
 let charBlink = 0;
 let frameCount = 0;
 
-// Platforms (for jumping)
+// Platforms with rope attachment points
 const platforms = [
-  { x: 0.55, y: 0.58, w: 0.12 },
-  { x: 0.72, y: 0.42, w: 0.10 },
-  { x: 0.35, y: 0.48, w: 0.08 },
+  { x: 0.55, y: 0.52, w: 0.13 },
+  { x: 0.72, y: 0.36, w: 0.11 },
+  { x: 0.32, y: 0.44, w: 0.10 },
 ];
+
+// Ropes connecting ground to platforms
+const ropes = [
+  { fromPlatIdx: 0, tx: 0.615 }, // hangs from platform 0
+  { fromPlatIdx: 2, tx: 0.37  }, // hangs from platform 2
+];
+
+// Idle activity states for more variety
+let idleActivity = 'wander'; // wander | climb | swing | sit
+let idleActivityTimer = 0;
+let climbTarget = null;   // which platform to climb to (index)
+let climbProgress = 0;    // 0..1
+let swingAngle = 0;
+let swingRopeIdx = -1;    // which rope we're on
+let hammerFrame = 0;      // for hammer animation
+let dustParticles = [];   // separate dust cloud
 
 // Stars / particles
 let stars = [];
@@ -300,63 +316,125 @@ function drawSpeechBubble(cx, cy, text) {
   ctx.fillText(text, bx + S * 4, by + bh - S * 2.5);
 }
 
+// ── Draw ropes ──
+function drawRopes() {
+  const W = canvas.width, gY = groundY();
+  ropes.forEach(r => {
+    const p = platforms[r.fromPlatIdx];
+    const px2 = platX(p), pw = platW(p);
+    const rx = Math.floor(W * r.tx);
+    const ropeTX = px2 + pw * 0.5;
+    const ropeTY = platY(p) + S * 3;
+    // Draw rope as segmented line with slight sway
+    ctx.strokeStyle = '#8B6914';
+    ctx.lineWidth = S * 1.2;
+    ctx.setLineDash([S * 2, S * 1]);
+    ctx.beginPath();
+    ctx.moveTo(ropeTX, ropeTY);
+    const sway = Math.sin(frameCount * 0.02 + r.fromPlatIdx) * 4;
+    ctx.quadraticCurveTo(ropeTX + sway, (ropeTY + gY) / 2, ropeTX + sway * 0.5, gY - 4);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
 // ── Draw themed character (pixel art) ──
 function drawCharacter(x, y, dir, walkFrame, blinkFrame, st) {
-  const W = canvas.width, H = canvas.height;
   const gY = groundY();
-  const cx = x, cy = gY - 20 - (onGround ? 0 : -charVY * 0.5);
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(cx, gY - 2, 10, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
 
   const bc = theme.charBody;
   const fc = theme.charColor;
   const ac = theme.accent;
 
-  // Walk bob
-  const bob = onGround ? Math.sin(walkFrame * 0.3) * 2 : 0;
+  // Shadow on ground (only when near ground)
+  const shadowAlpha = Math.max(0, 1 - Math.abs(y - (gY - 20)) / 100) * 0.35;
+  if (shadowAlpha > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+    ctx.beginPath();
+    ctx.ellipse(x, gY - 2, 10, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-  // Body (12x14 px grid drawn as rects)
-  const bx = cx - 6, by = cy - 20 + bob;
+  const bob = onGround ? Math.sin(walkFrame * 0.3) * 1.5 : 0;
+  const bx = x - 6, by = y - 20 + bob;
 
   if (st === 'thinking') {
-    // Scratch head animation
-    const scratchOff = Math.sin(frameCount * 0.3) * 1;
-    drawPixelBody(bx, by, bc, fc, ac, dir);
-    // Question mark bubble
-    if (Math.floor(frameCount / 20) % 2 === 0) {
-      ctx.font = `bold ${S * 6}px sans-serif`;
+    // Pace and scratch head
+    drawPixelBody(bx, by, bc, fc, ac, dir, walkFrame, blinkFrame, 'think');
+    if (Math.floor(frameCount / 18) % 2 === 0) {
+      ctx.font = `bold ${S * 5}px sans-serif`;
       ctx.fillStyle = ac;
-      ctx.fillText('?', cx + dir * 8, by - 4);
+      ctx.fillText('?', x + dir * 10, by - 6);
     }
   } else if (st === 'writing') {
-    drawPixelBody(bx, by, bc, fc, ac, dir);
-    // Typing hands effect
-    const typeFrame = Math.floor(frameCount / 8) % 3;
-    ctx.fillStyle = fc;
-    for (let i = 0; i < typeFrame + 1; i++) {
-      ctx.fillRect(cx + dir * (6 + i * 3), by + 10, 2, 2);
-    }
+    // Hammer animation!
+    drawPixelBody(bx, by, bc, fc, ac, dir, 0, blinkFrame, 'hammer');
+    drawHammer(x, by, dir);
   } else if (st === 'celebrating') {
-    drawPixelBody(bx, by - Math.abs(Math.sin(frameCount * 0.2)) * 4, bc, fc, ac, dir);
-    // Stars around
-    for (let i = 0; i < 3; i++) {
-      const sa = frameCount * 0.05 + i * 2.1;
-      const sx = cx + Math.cos(sa) * 18;
-      const sy = by + 6 + Math.sin(sa) * 10;
+    const jumpOff = -Math.abs(Math.sin(frameCount * 0.22)) * 6;
+    drawPixelBody(bx, by + jumpOff, bc, fc, ac, dir, walkFrame, blinkFrame, 'celebrate');
+    // Orbiting stars
+    for (let i = 0; i < 4; i++) {
+      const sa = frameCount * 0.06 + i * 1.57;
       ctx.font = '10px sans-serif';
-      ctx.fillText('⭐', sx - 5, sy);
+      ctx.fillText('⭐', x + Math.cos(sa) * 20 - 5, by + 6 + jumpOff + Math.sin(sa) * 12);
     }
+  } else if (idleActivity === 'climb' && climbTarget !== null) {
+    // Climbing pose — arms up, legs spread
+    drawPixelBody(bx, by, bc, fc, ac, dir, walkFrame, blinkFrame, 'climb');
+  } else if (idleActivity === 'swing') {
+    // Swinging on rope
+    drawPixelBody(bx, by, bc, fc, ac, dir, 0, blinkFrame, 'swing');
+  } else if (idleActivity === 'sit') {
+    drawPixelBody(bx, by + 4, bc, fc, ac, dir, 0, blinkFrame, 'sit');
   } else {
-    // Idle / walking
     drawPixelBody(bx, by, bc, fc, ac, dir, walkFrame, blinkFrame);
   }
 }
 
-function drawPixelBody(bx, by, bc, fc, ac, dir, walk = 0, blink = 0) {
+function drawHammer(cx, by, dir) {
+  const hf = hammerFrame;
+  // Hammer swing arc: 0=up, 1=mid, 2=down
+  const phase = Math.floor(hf / 8) % 3;
+  const angles = [-1.2, -0.4, 0.4]; // radians from vertical
+  const angle = angles[phase];
+
+  const armX = cx + dir * 8;
+  const armY = by + 9;
+  const len = 14;
+  const hx = armX + Math.sin(angle) * dir * len;
+  const hy = armY + Math.cos(angle) * len;
+
+  // Handle
+  ctx.strokeStyle = '#8B6914';
+  ctx.lineWidth = S * 1.5;
+  ctx.beginPath();
+  ctx.moveTo(armX, armY);
+  ctx.lineTo(hx, hy);
+  ctx.stroke();
+
+  // Hammer head
+  ctx.fillStyle = '#aaa';
+  ctx.fillRect(hx - 4, hy - 3, 8, 5);
+  ctx.fillStyle = '#888';
+  ctx.fillRect(hx - 4, hy - 3, 3, 5);
+
+  // Dust cloud when hammer hits (phase === 2)
+  if (phase === 2 && hf % 8 === 16) {
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * i) / 6 - Math.PI * 0.2;
+      dustParticles.push({
+        x: hx, y: hy + 2,
+        vx: Math.cos(a) * (1.5 + Math.random() * 2),
+        vy: -Math.random() * 2 - 0.5,
+        life: 25, maxLife: 25,
+        r: 4 + Math.random() * 5,
+      });
+    }
+  }
+}
+
+function drawPixelBody(bx, by, bc, fc, ac, dir, walk = 0, blink = 0, pose = '') {
   // Head
   ctx.fillStyle = fc;
   ctx.fillRect(bx + 2, by, 8, 8);
@@ -365,29 +443,80 @@ function drawPixelBody(bx, by, bc, fc, ac, dir, walk = 0, blink = 0) {
     ctx.fillStyle = '#000';
     ctx.fillRect(bx + (dir > 0 ? 6 : 3), by + 3, 2, 2);
   }
-  // Smile
+  // Expression by pose
   ctx.fillStyle = '#000';
-  ctx.fillRect(bx + 4, by + 6, 4, 1);
+  if (pose === 'think') {
+    // Thinking face — one eye squinted
+    ctx.fillRect(bx + (dir > 0 ? 6 : 3), by + 3, 2, 1);
+    ctx.fillRect(bx + 4, by + 6, 3, 1); // flat mouth
+  } else if (pose === 'celebrate') {
+    ctx.fillRect(bx + 3, by + 5, 6, 2); // big smile
+    ctx.fillRect(bx + 3, by + 5, 1, 1); // dimple
+    ctx.fillRect(bx + 8, by + 5, 1, 1);
+  } else {
+    ctx.fillRect(bx + 4, by + 6, 4, 1); // normal smile
+  }
+
   // Body
   ctx.fillStyle = bc;
   ctx.fillRect(bx + 2, by + 8, 8, 7);
   // Accent stripe
   ctx.fillStyle = ac;
   ctx.fillRect(bx + 3, by + 9, 6, 2);
-  // Arms (animated when walking)
-  const armSwing = Math.sin(walk * 0.3) * 2;
-  ctx.fillStyle = fc;
-  ctx.fillRect(bx + (dir > 0 ? 0 : 10), by + 8 + armSwing, 2, 5);
-  ctx.fillRect(bx + (dir > 0 ? 10 : 0), by + 8 - armSwing, 2, 5);
-  // Legs
-  const legL = Math.sin(walk * 0.3) * 3;
-  ctx.fillStyle = bc;
-  ctx.fillRect(bx + 2, by + 15, 3, 4 + (legL > 0 ? 1 : 0));
-  ctx.fillRect(bx + 7, by + 15, 3, 4 + (legL < 0 ? 1 : 0));
-  // Feet
-  ctx.fillStyle = '#000';
-  ctx.fillRect(bx + 1 + (legL > 0 ? 1 : 0), by + 18, 4, 2);
-  ctx.fillRect(bx + 7 - (legL < 0 ? 1 : 0), by + 18, 4, 2);
+
+  if (pose === 'climb') {
+    // Arms reach up alternately
+    const cl = Math.floor(walk / 10) % 2;
+    ctx.fillStyle = fc;
+    ctx.fillRect(bx + (cl ? 0 : 10), by + 2, 2, 7);  // high arm
+    ctx.fillRect(bx + (cl ? 10 : 0), by + 8, 2, 5);  // low arm
+    // Legs spread on rope
+    ctx.fillStyle = bc;
+    ctx.fillRect(bx + 2, by + 15, 3, 4);
+    ctx.fillRect(bx + 7, by + 15, 3, 4);
+  } else if (pose === 'swing') {
+    // Arms up gripping rope
+    ctx.fillStyle = fc;
+    ctx.fillRect(bx + 3, by + 2, 2, 7);
+    ctx.fillRect(bx + 7, by + 2, 2, 7);
+    // Legs dangling
+    ctx.fillStyle = bc;
+    const legSwing = Math.sin(frameCount * 0.08) * 3;
+    ctx.fillRect(bx + 2, by + 15, 3, 4 + legSwing);
+    ctx.fillRect(bx + 7, by + 15, 3, 4 - legSwing);
+  } else if (pose === 'sit') {
+    // Arms resting, legs bent forward
+    ctx.fillStyle = fc;
+    ctx.fillRect(bx, by + 10, 2, 4);
+    ctx.fillRect(bx + 10, by + 10, 2, 4);
+    ctx.fillStyle = bc;
+    ctx.fillRect(bx + 1, by + 15, 5, 3);
+    ctx.fillRect(bx + 6, by + 15, 5, 3);
+    ctx.fillRect(bx + 1, by + 17, 5, 2);
+    ctx.fillRect(bx + 6, by + 17, 5, 2);
+  } else if (pose === 'hammer') {
+    // One arm out for hammer, other normal
+    ctx.fillStyle = fc;
+    ctx.fillRect(bx + (dir > 0 ? 10 : 0), by + 8, 2, 5);
+    ctx.fillStyle = bc;
+    ctx.fillRect(bx + 2, by + 15, 3, 5);
+    ctx.fillRect(bx + 7, by + 15, 3, 5);
+  } else {
+    // Normal walk arms
+    const armSwing = Math.sin(walk * 0.3) * 2;
+    ctx.fillStyle = fc;
+    ctx.fillRect(bx + (dir > 0 ? 0 : 10), by + 8 + armSwing, 2, 5);
+    ctx.fillRect(bx + (dir > 0 ? 10 : 0), by + 8 - armSwing, 2, 5);
+    // Legs
+    const legL = Math.sin(walk * 0.3) * 3;
+    ctx.fillStyle = bc;
+    ctx.fillRect(bx + 2, by + 15, 3, 4 + (legL > 0 ? 1 : 0));
+    ctx.fillRect(bx + 7, by + 15, 3, 4 + (legL < 0 ? 1 : 0));
+    // Feet
+    ctx.fillStyle = '#333';
+    ctx.fillRect(bx + 1 + (legL > 0 ? 1 : 0), by + 18, 4, 2);
+    ctx.fillRect(bx + 7 - (legL < 0 ? 1 : 0), by + 18, 4, 2);
+  }
 }
 
 function groundY() {
@@ -435,17 +564,18 @@ function drawScene() {
     ctx.fillRect(gx, gY - h, S * 4, h);
   }
 
-  // Platforms
+  // Platforms — flat ledges with short stubby legs
   platforms.forEach(p => {
     const px2 = platX(p), py = platY(p), pw = platW(p);
+    // Platform surface
     ctx.fillStyle = t.ground;
     ctx.fillRect(px2, py, pw, S * 3);
     ctx.fillStyle = t.groundLine;
     ctx.fillRect(px2, py, pw, S * 1);
-    // Platform support posts
+    // Short legs only (6px, not full height)
     ctx.fillStyle = t.groundLine;
-    ctx.fillRect(px2 + S * 2, py + S * 3, S * 2, gY - py - S * 3);
-    ctx.fillRect(px2 + pw - S * 4, py + S * 3, S * 2, gY - py - S * 3);
+    ctx.fillRect(px2 + S * 2, py + S * 3, S * 2, S * 6);
+    ctx.fillRect(px2 + pw - S * 4, py + S * 3, S * 2, S * 6);
   });
 
   // Theme-specific decorations
@@ -612,6 +742,7 @@ function drawThemeDecos(W, H, gY, t) {
 let autoMoveTimer = 0;
 let autoTarget = 200;
 let jumpCooldown = 0;
+let currentPlatformIdx = -1; // which platform char is standing on (-1 = ground)
 
 function updateCharacter() {
   const W = canvas.width;
@@ -619,69 +750,201 @@ function updateCharacter() {
   frameCount++;
   charWalk++;
   charBlink++;
+  if (state === 'writing') hammerFrame++;
 
-  // Gravity
+  // ── Climbing animation (overrides physics) ──
+  if (idleActivity === 'climb' && climbTarget !== null) {
+    const p = platforms[climbTarget];
+    const ropeX = platX(p) + platW(p) * 0.5;
+    const targetY = platY(p) - 20;
+    climbProgress += 0.008;
+    charX = ropeX;
+    charY = (gY - 20) + (targetY - (gY - 20)) * Math.min(1, climbProgress);
+    onGround = false;
+    if (climbProgress >= 1) {
+      // Landed on platform
+      charY = targetY;
+      onGround = true;
+      currentPlatformIdx = climbTarget;
+      idleActivity = 'wander';
+      climbTarget = null;
+      autoTarget = charX + (Math.random() > 0.5 ? 1 : -1) * 20;
+      autoMoveTimer = 60 + Math.random() * 80;
+    }
+    return;
+  }
+
+  // ── Swinging on rope ──
+  if (idleActivity === 'swing') {
+    idleActivityTimer--;
+    swingAngle += 0.035;
+    const rope = ropes[swingRopeIdx];
+    const p = platforms[rope.fromPlatIdx];
+    const ropeTopX = platX(p) + platW(p) * 0.5;
+    const ropeTopY = platY(p) + S * 3;
+    const ropeLen = gY - ropeTopY - 30;
+    const swA = Math.sin(swingAngle) * 0.55;
+    charX = ropeTopX + Math.sin(swA) * ropeLen;
+    charY = ropeTopY + Math.cos(swA) * ropeLen;
+    onGround = false;
+    if (idleActivityTimer <= 0) {
+      // Drop off rope
+      charVY = -3;
+      charX = ropeTopX;
+      charY = gY - 20;
+      onGround = true;
+      currentPlatformIdx = -1;
+      idleActivity = 'wander';
+      autoMoveTimer = 40;
+    }
+    return;
+  }
+
+  // ── Gravity ──
   if (!onGround) {
     charVY += 0.5;
     charY += charVY;
-    if (charY >= gY - 20) { charY = gY - 20; charVY = 0; onGround = true; }
+    if (charY >= gY - 20) { charY = gY - 20; charVY = 0; onGround = true; currentPlatformIdx = -1; }
   } else {
-    charY = gY - 20;
+    if (currentPlatformIdx >= 0) {
+      const p = platforms[currentPlatformIdx];
+      charY = platY(p) - 20;
+    } else {
+      charY = gY - 20;
+    }
   }
 
-  // Platform collision
-  platforms.forEach(p => {
+  // Platform landing (jumping up to platforms)
+  platforms.forEach((p, i) => {
     const px2 = platX(p), py = platY(p), pw = platW(p);
-    if (charX > px2 && charX < px2 + pw && charVY >= 0 && charY > py - 22 && charY < py + 5) {
-      charY = py - 20; charVY = 0; onGround = true;
+    if (charX > px2 && charX < px2 + pw && charVY >= 0 && charY >= py - 22 && charY <= py + 2) {
+      charY = py - 20; charVY = 0; onGround = true; currentPlatformIdx = i;
     }
   });
 
-  // Jump cooldown
-  if (jumpCooldown > 0) jumpCooldown--;
-
-  // State-based movement
-  if (state === 'idle') {
-    // Wander around
-    autoMoveTimer--;
-    if (autoMoveTimer <= 0) {
-      autoTarget = 60 + Math.random() * (W - 120);
-      autoMoveTimer = 80 + Math.random() * 120;
+  // Fall off platform edge
+  if (currentPlatformIdx >= 0) {
+    const p = platforms[currentPlatformIdx];
+    const px2 = platX(p), pw = platW(p);
+    if (charX < px2 || charX > px2 + pw) {
+      onGround = false; currentPlatformIdx = -1;
     }
-    const dx = autoTarget - charX;
-    if (Math.abs(dx) > 4) {
-      charDir = dx > 0 ? 1 : -1;
-      charX += charDir * 1.2;
-    }
-    // Random jump
-    if (onGround && Math.random() < 0.005) {
-      charVY = -8; onGround = false;
-    }
-  } else if (state === 'thinking') {
-    // Pace back and forth
-    const paceAmp = 40;
-    const center = W / 2;
-    const target = center + Math.sin(frameCount * 0.02) * paceAmp;
-    const dx = target - charX;
-    if (Math.abs(dx) > 2) { charDir = dx > 0 ? 1 : -1; charX += charDir * 0.8; }
-  } else if (state === 'writing') {
-    // Walk toward center then stop and "type"
-    const center = W * 0.4;
-    const dx = center - charX;
-    if (Math.abs(dx) > 6) { charDir = dx > 0 ? 1 : -1; charX += charDir * 1.5; }
-  } else if (state === 'jumping') {
-    // Excited running and jumping
-    charX += charDir * 2.5;
-    if (charX > W - 40) { charDir = -1; if (onGround) { charVY = -9; onGround = false; } }
-    if (charX < 40) { charDir = 1; if (onGround) { charVY = -9; onGround = false; } }
-    if (onGround && Math.random() < 0.02) { charVY = -10; onGround = false; }
-  } else if (state === 'celebrating') {
-    // Jump in place with particles
-    if (onGround && jumpCooldown <= 0) { charVY = -10; onGround = false; jumpCooldown = 30; spawnParticles(charX, charY, theme.accent, 6); }
-    charX += Math.sin(frameCount * 0.05) * 1;
   }
 
-  // Clamp to screen
+  if (jumpCooldown > 0) jumpCooldown--;
+
+  // ── State-based movement ──
+  if (state === 'idle') {
+    idleActivityTimer--;
+
+    // Pick a new idle activity
+    if (idleActivityTimer <= 0) {
+      const roll = Math.random();
+      if (roll < 0.35 && ropes.length > 0 && currentPlatformIdx < 0) {
+        // Start swinging on a rope
+        swingRopeIdx = Math.floor(Math.random() * ropes.length);
+        swingAngle = 0;
+        idleActivity = 'swing';
+        idleActivityTimer = 120 + Math.floor(Math.random() * 80);
+        // Walk to rope base first
+        const rope = ropes[swingRopeIdx];
+        const p = platforms[rope.fromPlatIdx];
+        autoTarget = platX(p) + platW(p) * 0.5;
+        autoMoveTimer = 60;
+      } else if (roll < 0.60 && currentPlatformIdx < 0) {
+        // Climb up to a random platform
+        climbTarget = Math.floor(Math.random() * platforms.length);
+        climbProgress = 0;
+        idleActivity = 'climb';
+        idleActivityTimer = 999;
+        const p = platforms[climbTarget];
+        autoTarget = platX(p) + platW(p) * 0.5;
+        autoMoveTimer = 60;
+      } else if (roll < 0.72 && onGround) {
+        // Sit down and rest
+        idleActivity = 'sit';
+        idleActivityTimer = 80 + Math.floor(Math.random() * 60);
+        say(['Hmm... 🤔', 'Vad ska det bli? 💭', 'Jag funderar... ✨'][Math.floor(Math.random()*3)], 70);
+      } else if (currentPlatformIdx >= 0 && roll < 0.80) {
+        // Jump down from platform
+        charVY = -4; onGround = false; currentPlatformIdx = -1;
+        idleActivity = 'wander';
+        idleActivityTimer = 80 + Math.floor(Math.random() * 80);
+      } else {
+        idleActivity = 'wander';
+        autoTarget = 50 + Math.random() * (W - 100);
+        autoMoveTimer = 80 + Math.random() * 120;
+        idleActivityTimer = 120 + Math.floor(Math.random() * 120);
+      }
+    }
+
+    if (idleActivity === 'wander') {
+      // Walk toward auto-target (on whatever surface we're on)
+      autoMoveTimer--;
+      if (autoMoveTimer <= 0) {
+        if (currentPlatformIdx >= 0) {
+          const p = platforms[currentPlatformIdx];
+          const px2 = platX(p), pw = platW(p);
+          autoTarget = px2 + 6 + Math.random() * Math.max(1, pw - 12);
+        } else {
+          autoTarget = 50 + Math.random() * (W - 100);
+        }
+        autoMoveTimer = 60 + Math.random() * 80;
+      }
+      const dx = autoTarget - charX;
+      if (Math.abs(dx) > 4) {
+        charDir = dx > 0 ? 1 : -1;
+        charX += charDir * 1.2;
+      }
+      // Occasional small hop
+      if (onGround && currentPlatformIdx < 0 && Math.random() < 0.004) {
+        charVY = -7; onGround = false;
+      }
+    } else if (idleActivity === 'sit') {
+      // Just sit still
+    }
+    // Approach swing / climb targets
+    else if (idleActivity === 'swing' || idleActivity === 'climb') {
+      const dx = autoTarget - charX;
+      if (Math.abs(dx) > 5) {
+        charDir = dx > 0 ? 1 : -1;
+        charX += charDir * 1.5;
+      } else if (idleActivity === 'swing') {
+        // At rope base — start swinging
+        swingAngle = 0;
+      }
+    }
+
+  } else if (state === 'thinking') {
+    idleActivity = 'wander';
+    const center = W / 2;
+    const target = center + Math.sin(frameCount * 0.02) * 45;
+    const dx = target - charX;
+    if (Math.abs(dx) > 2) { charDir = dx > 0 ? 1 : -1; charX += charDir * 0.9; }
+    // Drop to ground if on platform while thinking
+    if (currentPlatformIdx >= 0 && onGround) { charVY = -2; onGround = false; currentPlatformIdx = -1; }
+  } else if (state === 'writing') {
+    idleActivity = 'wander';
+    // Run to center, stand, hammer away
+    const center = W * 0.42;
+    const dx = center - charX;
+    if (Math.abs(dx) > 8) { charDir = dx > 0 ? 1 : -1; charX += charDir * 2; }
+    else charDir = 1;
+  } else if (state === 'jumping') {
+    idleActivity = 'wander';
+    charX += charDir * 2.5;
+    if (charX > W - 40) { charDir = -1; if (onGround) { charVY = -9; onGround = false; } }
+    if (charX < 40)  { charDir = 1;  if (onGround) { charVY = -9; onGround = false; } }
+    if (onGround && Math.random() < 0.02) { charVY = -10; onGround = false; }
+  } else if (state === 'celebrating') {
+    idleActivity = 'wander';
+    if (onGround && jumpCooldown <= 0) {
+      charVY = -11; onGround = false; jumpCooldown = 28;
+      spawnParticles(charX, charY, theme.accent, 8);
+    }
+    charX += Math.sin(frameCount * 0.06) * 1.5;
+  }
+
   charX = Math.max(20, Math.min(W - 20, charX));
 }
 
@@ -693,6 +956,19 @@ function updateParticles() {
     ctx.globalAlpha = p.life / 40;
     ctx.fillStyle = p.color;
     ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+    ctx.globalAlpha = 1;
+  });
+
+  // Dust particles (hammer impact)
+  dustParticles = dustParticles.filter(p => p.life > 0);
+  dustParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life--;
+    const alpha = (p.life / p.maxLife) * 0.55;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#d4b896';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
     ctx.globalAlpha = 1;
   });
 }
@@ -710,6 +986,7 @@ function loop() {
   if (canvas.width === 0) { requestAnimationFrame(loop); return; }
   updateCharacter();
   drawScene();
+  drawRopes();
   updateParticles();
   drawCharacter(charX, charY, charDir, charWalk, charBlink, state);
 

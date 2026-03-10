@@ -1,6 +1,6 @@
 import express from "express";
 import { spawn } from "child_process";
-import { readdirSync, statSync, readFileSync } from "fs";
+import { readdirSync, statSync, readFileSync, copyFileSync, existsSync } from "fs";
 import { join } from "path";
 
 const app = express();
@@ -57,10 +57,19 @@ app.post("/api/chat", (req, res) => {
   const MAX_RETRIES = 2;
 
   function runAttempt(prompt) {
+    // Refresh credentials from mounted (read-only) source before each spawn
+    try {
+      if (existsSync("/root/.claude/.credentials.json"))
+        copyFileSync("/root/.claude/.credentials.json", "/tmp/claude-rw/.credentials.json");
+      if (existsSync("/root/.claude/--.credentials.json"))
+        copyFileSync("/root/.claude/--.credentials.json", "/tmp/claude-rw/--.credentials.json");
+    } catch {}
+
     const args = [
       "--print",
       "--output-format", "stream-json",
       "--verbose",
+      "--model", process.env.CLAUDE_MODEL || "claude-sonnet-4-5",
       "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep",
       "-p", prompt,
     ];
@@ -77,7 +86,9 @@ app.post("/api/chat", (req, res) => {
         HOME: "/tmp",
       },
       windowsHide: true,
+      stdio: ["pipe", "pipe", "pipe"],
     });
+    proc.stdin.end(); // Claude waits for stdin close when spawned non-interactively
 
     let buf = "";
     let detectedFile = null;
