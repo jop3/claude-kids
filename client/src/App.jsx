@@ -23,6 +23,22 @@ export default function App() {
     setScreen(screenName);
   }
 
+  // Build props: for namePicker, inject onConfirm so it navigates back to builder
+  const screenProps = { navigate, ...screenParams };
+  if (screen === 'namePicker') {
+    const { returnTo, ...rest } = screenParams;
+    screenProps.params = {
+      ...rest,
+      onConfirm: (pickedName) => {
+        if (returnTo === 'builder') {
+          navigate('builder', { ...rest, name: pickedName });
+        } else {
+          navigate(returnTo || 'home', { ...rest, name: pickedName });
+        }
+      },
+    };
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -34,7 +50,7 @@ export default function App() {
       fontFamily: 'sans-serif',
       color: '#fff',
     }}>
-      <Screen navigate={navigate} {...screenParams} />
+      <Screen {...screenProps} />
     </div>
   );
 }

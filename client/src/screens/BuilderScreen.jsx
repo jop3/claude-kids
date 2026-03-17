@@ -27,13 +27,16 @@ function useIsLandscape() {
   return isLandscape;
 }
 
-export default function BuilderScreen({ navigate, category, projectId: initialProjectId }) {
+const DEFAULT_NAME = 'Nytt projekt';
+
+export default function BuilderScreen({ navigate, category, projectId: initialProjectId, name: initialName }) {
   const isLandscape = useIsLandscape();
-  const [projectName, setProjectName] = useState('Mitt projekt');
+  const [projectName, setProjectName] = useState(initialName || DEFAULT_NAME);
   const [addedBlocks, setAddedBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [currentProjectId, setCurrentProjectId] = useState(initialProjectId || null);
   const [toast, setToast] = useState(null);
+  const [autoSavePending, setAutoSavePending] = useState(!!initialName && !initialProjectId);
   const nameRef = useRef(null);
   const toastTimerRef = useRef(null);
 
@@ -44,7 +47,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
     if (initialProjectId) {
       const proj = getProject(initialProjectId);
       if (proj) {
-        setProjectName(proj.name || 'Mitt projekt');
+        setProjectName(proj.name || DEFAULT_NAME);
         setCurrentProjectId(proj.id);
         if (Array.isArray(proj.blocks)) {
           const mapped = proj.blocks.map(b =>
@@ -55,6 +58,32 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       }
     }
   }, [initialProjectId]);
+
+  // Auto-save when arriving back from name picker with a name
+  useEffect(() => {
+    if (autoSavePending && initialName) {
+      setAutoSavePending(false);
+      const name = initialName;
+      const now = new Date().toISOString();
+      const project = {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36),
+        version: '1.0',
+        type: cat,
+        name,
+        theme: 'default',
+        colorPalette: [],
+        thumbnail: null,
+        created: now,
+        modified: now,
+        blocks: [],
+        playgroundState: {},
+      };
+      saveProject(project);
+      setCurrentProjectId(project.id);
+      showToast('Sparat som ' + name + '!');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function showToast(msg) {
     setToast(msg);
@@ -82,10 +111,15 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
 
   function handleSave() {
     const name = nameRef.current ? nameRef.current.innerText.trim() : projectName;
+    // First save with default name — send to name picker
+    if (!currentProjectId && (!name || name === DEFAULT_NAME)) {
+      navigate('namePicker', { category: cat, returnTo: 'builder' });
+      return null;
+    }
     const project = buildProject(name, currentProjectId);
     saveProject(project);
     setCurrentProjectId(project.id);
-    showToast('✅ Sparat!');
+    showToast('Sparat!');
     return project;
   }
 
@@ -99,7 +133,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
 
   function handleSpela() {
     const project = handleSave();
-    navigate('play', { projectId: project.id });
+    if (project) navigate('play', { projectId: project.id });
   }
 
   function handleBlockChipClick(block) {
