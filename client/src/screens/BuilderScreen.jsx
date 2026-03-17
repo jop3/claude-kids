@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
+import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
+import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
 
 const CATEGORY_EMOJI = {
   musik: '🎵',
@@ -9,10 +11,8 @@ const CATEGORY_EMOJI = {
   berattelse: '📖',
 };
 
-const DUMMY_BLOCKS = [
-  { id: 'color', name: 'Färg', emoji: '🎨' },
-  { id: 'text', name: 'Text', emoji: '📝' },
-  { id: 'shape', name: 'Form', emoji: '🔷' },
+const AVAILABLE_BLOCKS = [
+  { id: 'color-picker', name: 'Färg', emoji: '🎨', type: 'color-picker' },
 ];
 
 function useIsLandscape() {
@@ -34,6 +34,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const [projectName, setProjectName] = useState(initialName || DEFAULT_NAME);
   const [addedBlocks, setAddedBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
+  const [blockConfigs, setBlockConfigs] = useState({});
   const [currentProjectId, setCurrentProjectId] = useState(initialProjectId || null);
   const [toast, setToast] = useState(null);
   const [autoSavePending, setAutoSavePending] = useState(!!initialName && !initialProjectId);
@@ -51,9 +52,14 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
         setCurrentProjectId(proj.id);
         if (Array.isArray(proj.blocks)) {
           const mapped = proj.blocks.map(b =>
-            DUMMY_BLOCKS.find(d => d.id === b.id) || b
+            AVAILABLE_BLOCKS.find(d => d.id === b.id) || b
           );
           setAddedBlocks(mapped);
+          const configs = {};
+          proj.blocks.forEach(b => {
+            if (b.config) configs[b.id] = b.config;
+          });
+          setBlockConfigs(configs);
         }
       }
     }
@@ -104,7 +110,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       thumbnail: null,
       created: existing?.created || now,
       modified: now,
-      blocks: addedBlocks.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })),
+      blocks: addedBlocks.map(b => ({ id: b.id, name: b.name, emoji: b.emoji, type: b.type, config: blockConfigs[b.id] || {} })),
       playgroundState: {},
     };
   }
@@ -141,6 +147,20 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       setAddedBlocks(prev => [...prev, block]);
     }
     setSelectedBlock(block);
+  }
+
+  function handleRemoveBlock(blockId) {
+    setAddedBlocks(prev => prev.filter(b => b.id !== blockId));
+    setSelectedBlock(prev => (prev?.id === blockId ? null : prev));
+    setBlockConfigs(prev => {
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
+  }
+
+  function handleConfigChange(blockId, config) {
+    setBlockConfigs(prev => ({ ...prev, [blockId]: { ...(prev[blockId] || {}), ...config } }));
   }
 
   const topBar = (
@@ -216,6 +236,9 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
     </div>
   );
 
+  const colorPickerBlock = addedBlocks.find(b => b.type === 'color-picker');
+  const colorPickerConfig = colorPickerBlock ? (blockConfigs[colorPickerBlock.id] || { color: '#6c3bbd' }) : null;
+
   const previewArea = (
     <div style={{
       flex: 1,
@@ -226,9 +249,16 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       justifyContent: 'center',
       gap: 16,
       minHeight: 0,
+      overflow: 'hidden',
     }}>
-      <div style={{ fontSize: '4rem' }}>{catEmoji}</div>
-      <div style={{ color: '#8b949e', fontSize: '1rem', letterSpacing: 1 }}>Förhandsgranskning</div>
+      {colorPickerConfig ? (
+        <ColorPickerPreview config={colorPickerConfig} />
+      ) : (
+        <>
+          <div style={{ fontSize: '4rem' }}>{catEmoji}</div>
+          <div style={{ color: '#8b949e', fontSize: '1rem', letterSpacing: 1 }}>Förhandsgranskning</div>
+        </>
+      )}
     </div>
   );
 
@@ -260,7 +290,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           overflowX: 'auto',
           paddingBottom: 4,
         }}>
-          {DUMMY_BLOCKS.map(block => (
+          {AVAILABLE_BLOCKS.map(block => (
             <button
               key={block.id}
               onClick={() => handleBlockChipClick(block)}
@@ -286,6 +316,52 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           ))}
         </div>
       </div>
+      {/* Added blocks list */}
+      {addedBlocks.length > 0 && (
+        <div style={{
+          padding: '8px 16px',
+          borderBottom: '1px solid #30363d',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}>
+          {addedBlocks.map(block => (
+            <div
+              key={block.id}
+              onClick={() => setSelectedBlock(block)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: selectedBlock?.id === block.id ? '#0d2744' : '#21262d',
+                border: selectedBlock?.id === block.id ? '1px solid #58a6ff' : '1px solid #30363d',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>{block.emoji}</span>
+              <span style={{ flex: 1, color: '#e6edf3', fontSize: '0.9rem', fontWeight: 600 }}>{block.name}</span>
+              <button
+                onClick={e => { e.stopPropagation(); handleRemoveBlock(block.id); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#8b949e',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {/* Config panel */}
       <div style={{
         flex: 1,
@@ -296,14 +372,21 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
         gap: 8,
       }}>
         {selectedBlock ? (
-          <>
-            <div style={{ color: '#e6edf3', fontWeight: 700, fontSize: '1rem' }}>
-              {selectedBlock.emoji} {selectedBlock.name}
-            </div>
-            <div style={{ color: '#8b949e', fontSize: '0.85rem' }}>
-              Inget att konfigurera ännu
-            </div>
-          </>
+          selectedBlock.type === 'color-picker' ? (
+            <ColorPickerBlock
+              config={blockConfigs[selectedBlock.id] || { color: '#6c3bbd' }}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : (
+            <>
+              <div style={{ color: '#e6edf3', fontWeight: 700, fontSize: '1rem' }}>
+                {selectedBlock.emoji} {selectedBlock.name}
+              </div>
+              <div style={{ color: '#8b949e', fontSize: '0.85rem' }}>
+                Inget att konfigurera ännu
+              </div>
+            </>
+          )
         ) : (
           <div style={{ color: '#8b949e', fontSize: '0.9rem', marginTop: 8 }}>
             Välj ett block
