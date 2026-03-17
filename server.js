@@ -1,11 +1,14 @@
 import express from "express";
 import { spawn } from "child_process";
 import { readdirSync, statSync, readFileSync, copyFileSync, existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static("public"));
+app.use(express.static(join(__dirname, "client/dist")));
 
 const WORKSPACE = process.env.WORKSPACE || "/workspace";
 const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
@@ -191,6 +194,12 @@ function toolLabel(name, input) {
   if (name === "Read")  return `Läser ${file}...`;
   return null;
 }
+
+// SPA fallback — serve index.html for non-API routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/preview")) return next();
+  res.sendFile(join(__dirname, "client/dist/index.html"));
+});
 
 const PORT = process.env.PORT || 3456;
 app.listen(PORT, () => {

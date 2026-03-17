@@ -8,13 +8,16 @@ RUN mkdir -p /workspace /app
 
 WORKDIR /app
 
-# Copy server files
+# Copy server files and install server dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
-COPY public/ ./public/
 COPY CLAUDE.md /workspace/CLAUDE.md
+
+# Build Vite client
+COPY client/ ./client/
+RUN npm run build
 
 EXPOSE 3456
 
