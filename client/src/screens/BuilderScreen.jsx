@@ -4,6 +4,7 @@ import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
 import DrumsBlock from '../blocks/drums/DrumsBlock.jsx';
 import SynthBlock from '../blocks/synth/SynthBlock.jsx';
+import VoiceBlock from '../blocks/voice/VoiceBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -17,7 +18,8 @@ const CATEGORY_EMOJI = {
 const ALL_BLOCKS = [
   { id: 'color-picker', name: 'Färg', emoji: '🎨', type: 'color-picker' },
   { id: 'drums', name: 'Trummor', emoji: '🥁', type: 'drums', categories: ['musik'] },
-  { id: 'synth', name: 'Synth',   emoji: '🎹', type: 'synth', categories: ['musik'] },
+  { id: 'synth',  name: 'Synth',  emoji: '🎹', type: 'synth',  categories: ['musik'] },
+  { id: 'voice',  name: 'Röst',  emoji: '🎤', type: 'voice',  categories: ['musik'] },
 ];
 
 function useIsLandscape() {
@@ -390,6 +392,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'synth' ? (
             <SynthBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'voice' ? (
+            <VoiceBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
