@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
+import DrumsBlock from '../blocks/drums/DrumsBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -12,8 +13,9 @@ const CATEGORY_EMOJI = {
   berattelse: '📖',
 };
 
-const AVAILABLE_BLOCKS = [
+const ALL_BLOCKS = [
   { id: 'color-picker', name: 'Färg', emoji: '🎨', type: 'color-picker' },
+  { id: 'drums', name: 'Trummor', emoji: '🥁', type: 'drums', categories: ['musik'] },
 ];
 
 function useIsLandscape() {
@@ -44,6 +46,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
 
   const cat = category || 'musik';
   const catEmoji = CATEGORY_EMOJI[cat] || '🎵';
+  const AVAILABLE_BLOCKS = ALL_BLOCKS.filter(b => !b.categories || b.categories.includes(cat));
 
   useEffect(() => {
     if (initialProjectId) {
@@ -376,6 +379,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           selectedBlock.type === 'color-picker' ? (
             <ColorPickerBlock
               config={blockConfigs[selectedBlock.id] || { color: '#6c3bbd' }}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'drums' ? (
+            <DrumsBlock
+              config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
           ) : (
