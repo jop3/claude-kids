@@ -1,10 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
+import HomeScreen from './screens/HomeScreen.jsx';
+import MyStuffScreen from './screens/MyStuffScreen.jsx';
+import BuilderScreen from './screens/BuilderScreen.jsx';
+import PlayScreen from './screens/PlayScreen.jsx';
+import NamePickerScreen from './screens/NamePickerScreen.jsx';
+
+const SCREENS = {
+  home: HomeScreen,
+  myStuff: MyStuffScreen,
+  builder: BuilderScreen,
+  play: PlayScreen,
+  namePicker: NamePickerScreen,
+};
 
 export default function App() {
+  const [screen, setScreen] = useState('home');
+  const Screen = SCREENS[screen] || HomeScreen;
+
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0f0f1a',
+      background: '#1a1a2e',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -12,8 +28,7 @@ export default function App() {
       fontFamily: 'sans-serif',
       color: '#fff',
     }}>
-      <h1 style={{ fontSize: '3rem', margin: 0 }}>ClaudeKids</h1>
-      <p style={{ color: '#888', marginTop: '1rem' }}>Phase 0 — scaffolding</p>
+      <Screen navigate={setScreen} />
     </div>
   );
 }
