@@ -11,6 +11,7 @@ import ArrangerBlock from '../blocks/arranger/ArrangerBlock.jsx';
 import WaveformBlock from '../blocks/waveform/WaveformBlock.jsx';
 import CanvasDrawBlock from '../blocks/canvas-draw/CanvasDrawBlock.jsx';
 import PixelEditorBlock from '../blocks/pixel-editor/PixelEditorBlock.jsx';
+import SpritePickerBlock from '../blocks/sprite-picker/SpritePickerBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -31,6 +32,7 @@ const ALL_BLOCKS = [
   { id: 'waveform', name: 'Vågor',    emoji: '〰️',  type: 'waveform', categories: ['musik'] },
   { id: 'canvas-draw', name: 'Rita', emoji: '🎨', type: 'canvas-draw', categories: ['ritprogram'] },
   { id: 'pixel-editor', name: 'Pixelkonst', emoji: '🖼️', type: 'pixel-editor', categories: ['ritprogram'] },
+  { id: 'sprite-picker', name: 'Figurer', emoji: '🐱', type: 'sprite-picker', categories: ['ritprogram'] },
 ];
 
 function useIsLandscape() {
@@ -453,6 +455,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'pixel-editor' ? (
             <PixelEditorBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'sprite-picker' ? (
+            <SpritePickerBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
