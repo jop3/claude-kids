@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getProject, saveProject } from '../lib/projectStore.js';
+import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 
 const CATEGORY_EMOJI = {
   musik: '🎵',
@@ -27,34 +27,79 @@ function useIsLandscape() {
   return isLandscape;
 }
 
-export default function BuilderScreen({ navigate, category, projectId }) {
+export default function BuilderScreen({ navigate, category, projectId: initialProjectId }) {
   const isLandscape = useIsLandscape();
   const [projectName, setProjectName] = useState('Mitt projekt');
   const [addedBlocks, setAddedBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
+  const [currentProjectId, setCurrentProjectId] = useState(initialProjectId || null);
+  const [toast, setToast] = useState(null);
   const nameRef = useRef(null);
+  const toastTimerRef = useRef(null);
 
   const cat = category || 'musik';
   const catEmoji = CATEGORY_EMOJI[cat] || '🎵';
 
   useEffect(() => {
-    if (projectId) {
-      const proj = getProject(projectId);
+    if (initialProjectId) {
+      const proj = getProject(initialProjectId);
       if (proj) {
         setProjectName(proj.name || 'Mitt projekt');
+        setCurrentProjectId(proj.id);
+        if (Array.isArray(proj.blocks)) {
+          const mapped = proj.blocks.map(b =>
+            DUMMY_BLOCKS.find(d => d.id === b.id) || b
+          );
+          setAddedBlocks(mapped);
+        }
       }
     }
-  }, [projectId]);
+  }, [initialProjectId]);
+
+  function showToast(msg) {
+    setToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2000);
+  }
+
+  function buildProject(name, id) {
+    const now = new Date().toISOString();
+    const existing = id ? getProject(id) : null;
+    return {
+      id: id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)),
+      version: '1.0',
+      type: cat,
+      name,
+      theme: 'default',
+      colorPalette: [],
+      thumbnail: null,
+      created: existing?.created || now,
+      modified: now,
+      blocks: addedBlocks.map(b => ({ id: b.id, name: b.name, emoji: b.emoji })),
+      playgroundState: {},
+    };
+  }
 
   function handleSave() {
     const name = nameRef.current ? nameRef.current.innerText.trim() : projectName;
-    const project = {
-      id: projectId || Date.now().toString(),
-      name,
-      category: cat,
-      updatedAt: new Date().toISOString(),
-    };
+    const project = buildProject(name, currentProjectId);
     saveProject(project);
+    setCurrentProjectId(project.id);
+    showToast('✅ Sparat!');
+    return project;
+  }
+
+  function handleDela() {
+    if (!currentProjectId) {
+      showToast('Spara först!');
+      return;
+    }
+    exportProject(currentProjectId);
+  }
+
+  function handleSpela() {
+    const project = handleSave();
+    navigate('play', { projectId: project.id });
   }
 
   function handleBlockChipClick(block) {
@@ -244,7 +289,7 @@ export default function BuilderScreen({ navigate, category, projectId }) {
       flexShrink: 0,
     }}>
       <button
-        disabled
+        onClick={handleSpela}
         style={{
           flex: 1,
           padding: '14px',
@@ -252,15 +297,15 @@ export default function BuilderScreen({ navigate, category, projectId }) {
           fontWeight: 700,
           borderRadius: 12,
           border: 'none',
-          background: '#30363d',
-          color: '#6e7681',
-          cursor: 'not-allowed',
+          background: '#1f6feb',
+          color: '#fff',
+          cursor: 'pointer',
         }}
       >
         ▶ Spela
       </button>
       <button
-        disabled
+        onClick={handleDela}
         style={{
           flex: 1,
           padding: '14px',
@@ -268,9 +313,9 @@ export default function BuilderScreen({ navigate, category, projectId }) {
           fontWeight: 700,
           borderRadius: 12,
           border: 'none',
-          background: '#30363d',
-          color: '#6e7681',
-          cursor: 'not-allowed',
+          background: currentProjectId ? '#388bfd' : '#30363d',
+          color: currentProjectId ? '#fff' : '#6e7681',
+          cursor: 'pointer',
         }}
       >
         📤 Dela
@@ -286,7 +331,27 @@ export default function BuilderScreen({ navigate, category, projectId }) {
       height: '100vh',
       overflow: 'hidden',
       background: '#0d1117',
+      position: 'relative',
     }}>
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#238636',
+          color: '#fff',
+          padding: '10px 24px',
+          borderRadius: 24,
+          fontWeight: 700,
+          fontSize: '1rem',
+          zIndex: 9999,
+          pointerEvents: 'none',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        }}>
+          {toast}
+        </div>
+      )}
       {topBar}
       <div style={{
         flex: 1,

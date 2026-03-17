@@ -28,3 +28,32 @@ export function deleteProject(id) {
 export function getProject(id) {
   return getProjects().find(p => p.id === id) || null;
 }
+
+export function exportProject(id) {
+  const project = getProject(id);
+  if (!project) return;
+  const json = JSON.stringify(project, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${project.name || 'projekt'}.claudekids`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function importProject(jsonString) {
+  let project;
+  try {
+    project = JSON.parse(jsonString);
+  } catch {
+    throw new Error('Ogiltig fil');
+  }
+  if (!project.id || !project.type || !project.name || !Array.isArray(project.blocks)) {
+    throw new Error('Projektet saknar obligatoriska fält');
+  }
+  saveProject(project);
+  return project;
+}
