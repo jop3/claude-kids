@@ -15,7 +15,13 @@ const SCREENS = {
 
 export default function App() {
   const [screen, setScreen] = useState('home');
+  const [screenParams, setScreenParams] = useState({});
   const Screen = SCREENS[screen] || HomeScreen;
+
+  function navigate(screenName, params = {}) {
+    setScreenParams(params);
+    setScreen(screenName);
+  }
 
   return (
     <div style={{
@@ -28,7 +34,7 @@ export default function App() {
       fontFamily: 'sans-serif',
       color: '#fff',
     }}>
-      <Screen navigate={setScreen} />
+      <Screen navigate={navigate} {...screenParams} />
     </div>
   );
 }

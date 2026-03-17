@@ -1,24 +1,92 @@
 import React from 'react';
 
-const btn = {
-  minHeight: 48,
-  padding: '12px 32px',
-  fontSize: '1.2rem',
-  border: 'none',
-  borderRadius: 12,
-  cursor: 'pointer',
-  background: '#4f46e5',
-  color: '#fff',
-  width: 220,
-};
+const CATEGORIES = [
+  { id: 'musik',      name: 'Musik Studio',  emoji: '🎵', bg: '#6c3bbd' },
+  { id: 'spel',       name: 'Spel',          emoji: '🎮', bg: '#2d7dd2' },
+  { id: 'ritprogram', name: 'Ritprogram',    emoji: '🎨', bg: '#e84855' },
+  { id: 'animation',  name: 'Animation',     emoji: '🌀', bg: '#f18f01' },
+  { id: 'hemsida',    name: 'Min Hemsida',   emoji: '🌐', bg: '#3bb273' },
+  { id: 'filmstudio', name: 'Filmstudio',    emoji: '🎬', bg: '#c33c54' },
+  { id: 'kortspel',   name: 'Kortspel',      emoji: '🃏', bg: '#5c6bc0' },
+  { id: 'bradspel',   name: 'Brädspel',      emoji: '🎲', bg: '#8d6748' },
+  { id: 'larospel',   name: 'Lärospel',      emoji: '🧠', bg: '#00897b' },
+  { id: 'rostlab',    name: 'Röstlab',       emoji: '🎤', bg: '#e53935' },
+];
 
 export default function HomeScreen({ navigate }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <h1 style={{ fontSize: '3rem', margin: '0 0 24px' }}>ClaudeKids</h1>
-      <button style={btn} onClick={() => navigate('builder')}>Musik</button>
-      <button style={btn} onClick={() => navigate('myStuff')}>My Stuff</button>
-      <button style={btn} onClick={() => navigate('builder')}>Builder</button>
+    <div style={{ width: '100%', maxWidth: 900, padding: '24px 16px', boxSizing: 'border-box' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 32 }}>
+        <h1 style={{ fontSize: '2rem', margin: 0, textAlign: 'center', color: '#fff' }}>
+          ClaudeKids ✨
+        </h1>
+        <button
+          onClick={() => navigate('myStuff')}
+          style={{
+            position: 'absolute',
+            right: 0,
+            background: 'rgba(255,255,255,0.15)',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Mina Saker 📁
+        </button>
+      </div>
+
+      {/* Category grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        gap: 16,
+      }}>
+        {CATEGORIES.map(cat => (
+          <CategoryCard key={cat.id} cat={cat} navigate={navigate} />
+        ))}
+      </div>
     </div>
+  );
+}
+
+function CategoryCard({ cat, navigate }) {
+  const [pressed, setPressed] = React.useState(false);
+
+  return (
+    <button
+      onClick={() => navigate('builder', { category: cat.id })}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      style={{
+        minHeight: 120,
+        background: cat.bg,
+        border: 'none',
+        borderRadius: 16,
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+        transform: pressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'transform 0.1s ease',
+        padding: 12,
+      }}
+    >
+      <span style={{ fontSize: 48, lineHeight: 1 }}>{cat.emoji}</span>
+      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
+        {cat.name}
+      </span>
+    </button>
   );
 }
