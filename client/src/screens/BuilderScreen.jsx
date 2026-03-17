@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
+import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
   musik: '🎵',
@@ -238,6 +239,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
 
   const colorPickerBlock = addedBlocks.find(b => b.type === 'color-picker');
   const colorPickerConfig = colorPickerBlock ? (blockConfigs[colorPickerBlock.id] || { color: '#6c3bbd' }) : null;
+  const currentBgColor = colorPickerConfig ? colorPickerConfig.color : undefined;
 
   const previewArea = (
     <div style={{
@@ -250,14 +252,13 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       gap: 16,
       minHeight: 0,
       overflow: 'hidden',
+      position: 'relative',
     }}>
-      {colorPickerConfig ? (
-        <ColorPickerPreview config={colorPickerConfig} />
-      ) : (
-        <>
-          <div style={{ fontSize: '4rem' }}>{catEmoji}</div>
-          <div style={{ color: '#8b949e', fontSize: '1rem', letterSpacing: 1 }}>Förhandsgranskning</div>
-        </>
+      <Playground category={cat} theme="default" color={currentBgColor} />
+      {colorPickerConfig && (
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.5, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ColorPickerPreview config={colorPickerConfig} />
+        </div>
       )}
     </div>
   );
