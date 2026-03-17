@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
+import { exportToWav } from '../lib/wavExport.js';
 import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
 import DrumsBlock from '../blocks/drums/DrumsBlock.jsx';
@@ -147,6 +148,21 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       return;
     }
     exportProject(currentProjectId);
+  }
+
+  async function handleExportWav() {
+    const project = buildProject(
+      nameRef.current ? nameRef.current.innerText.trim() : projectName,
+      currentProjectId
+    );
+    showToast('Exporterar...');
+    try {
+      await exportToWav(project, 8);
+      showToast('Nedladdat!');
+    } catch (err) {
+      console.error('WAV export failed:', err);
+      showToast('Kunde inte exportera');
+    }
   }
 
   function handleSpela() {
@@ -478,6 +494,22 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
         }}
       >
         📤 Dela
+      </button>
+      <button
+        onClick={handleExportWav}
+        style={{
+          flex: 1,
+          padding: '14px',
+          fontSize: '1rem',
+          fontWeight: 700,
+          borderRadius: 12,
+          border: 'none',
+          background: '#6e40c9',
+          color: '#fff',
+          cursor: 'pointer',
+        }}
+      >
+        ⬇ WAV
       </button>
     </div>
   );
