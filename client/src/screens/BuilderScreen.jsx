@@ -12,6 +12,7 @@ import WaveformBlock from '../blocks/waveform/WaveformBlock.jsx';
 import CanvasDrawBlock from '../blocks/canvas-draw/CanvasDrawBlock.jsx';
 import PixelEditorBlock from '../blocks/pixel-editor/PixelEditorBlock.jsx';
 import SpritePickerBlock from '../blocks/sprite-picker/SpritePickerBlock.jsx';
+import BackgroundPickerBlock from '../blocks/background-picker/BackgroundPickerBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -33,6 +34,7 @@ const ALL_BLOCKS = [
   { id: 'canvas-draw', name: 'Rita', emoji: '🎨', type: 'canvas-draw', categories: ['ritprogram'] },
   { id: 'pixel-editor', name: 'Pixelkonst', emoji: '🖼️', type: 'pixel-editor', categories: ['ritprogram'] },
   { id: 'sprite-picker', name: 'Figurer', emoji: '🐱', type: 'sprite-picker', categories: ['ritprogram'] },
+  { id: 'background-picker', name: 'Bakgrund', emoji: '🌄', type: 'background-picker', categories: ['ritprogram', 'musik'] },
 ];
 
 function useIsLandscape() {
@@ -279,6 +281,9 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const drumsBlock = addedBlocks.find(b => b.type === 'drums');
   const drumsBpm = drumsBlock ? (blockConfigs[drumsBlock.id]?.bpm || 120) : 120;
 
+  const backgroundPickerBlock = addedBlocks.find(b => b.type === 'background-picker');
+  const selectedTheme = backgroundPickerBlock ? (blockConfigs[backgroundPickerBlock.id]?.backgroundId || 'default') : 'default';
+
   const previewArea = (
     <div style={{
       flex: 1,
@@ -292,7 +297,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       overflow: 'hidden',
       position: 'relative',
     }}>
-      <Playground category={cat} theme="default" color={currentBgColor} bpm={drumsBpm} addedBlocks={addedBlocks} isPlaying={false} />
+      <Playground category={cat} theme={selectedTheme} color={currentBgColor} bpm={drumsBpm} addedBlocks={addedBlocks} isPlaying={false} />
       {colorPickerConfig && (
         <div style={{ position: 'absolute', inset: 0, opacity: 0.5, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ColorPickerPreview config={colorPickerConfig} />
@@ -460,6 +465,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'sprite-picker' ? (
             <SpritePickerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'background-picker' ? (
+            <BackgroundPickerBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
