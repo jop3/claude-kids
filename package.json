@@ -5,7 +5,9 @@
   "description": "ClaudeKids - Barn skapar med AI",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "client:dev": "cd client && npm install && npm run dev",
+    "client:build": "cd client && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
