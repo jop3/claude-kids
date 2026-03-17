@@ -8,6 +8,7 @@ import SynthBlock from '../blocks/synth/SynthBlock.jsx';
 import VoiceBlock from '../blocks/voice/VoiceBlock.jsx';
 import MixerBlock from '../blocks/mixer/MixerBlock.jsx';
 import ArrangerBlock from '../blocks/arranger/ArrangerBlock.jsx';
+import WaveformBlock from '../blocks/waveform/WaveformBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -25,6 +26,7 @@ const ALL_BLOCKS = [
   { id: 'voice',  name: 'Röst',  emoji: '🎤', type: 'voice',  categories: ['musik'] },
   { id: 'mixer',    name: 'Mixer',    emoji: '🎚️', type: 'mixer',    categories: ['musik'] },
   { id: 'arranger', name: 'Arranger', emoji: '🎼',  type: 'arranger', categories: ['musik'] },
+  { id: 'waveform', name: 'Vågor',    emoji: '〰️',  type: 'waveform', categories: ['musik'] },
 ];
 
 function useIsLandscape() {
@@ -432,6 +434,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           ) : selectedBlock.type === 'arranger' ? (
             <ArrangerBlock
               addedBlocks={addedBlocks}
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'waveform' ? (
+            <WaveformBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />

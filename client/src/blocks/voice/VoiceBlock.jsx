@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { applyEffect } from './voiceEffects.js';
 
 const EFFECTS = [
@@ -23,11 +23,12 @@ export default function VoiceBlock({ config, onConfigChange }) {
   const [permDenied, setPermDenied]       = useState(false);
   const [applyingEffect, setApplyingEffect] = useState(false);
 
-  const mediaRecorderRef = useRef(null);
-  const chunksRef        = useRef([]);
-  const audioCtxRef      = useRef(null);
-  const rawBufferRef     = useRef(null); // decoded AudioBuffer of raw recording
-  const playbackRef      = useRef(null);
+  const mediaRecorderRef  = useRef(null);
+  const chunksRef         = useRef([]);
+  const audioCtxRef       = useRef(null);
+  const rawBufferRef      = useRef(null); // decoded AudioBuffer of raw recording
+  const playbackRef       = useRef(null);
+  const waveCanvasRef     = useRef(null);
 
   // On mount: if saved audioData exists, restore as blob URL
   useEffect(() => {
@@ -83,6 +84,53 @@ export default function VoiceBlock({ config, onConfigChange }) {
     })();
     return () => { cancelled = true; };
   }, [audioUrl, effect]);
+
+  // Draw static waveform of recorded audio onto the mini canvas
+  const drawStaticWaveform = useCallback(async (url) => {
+    const canvas = waveCanvasRef.current;
+    if (!canvas || !url) return;
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioContext();
+      }
+      let buffer = rawBufferRef.current;
+      if (!buffer) {
+        const resp = await fetch(url);
+        const arrayBuf = await resp.arrayBuffer();
+        buffer = await audioCtxRef.current.decodeAudioData(arrayBuf);
+        rawBufferRef.current = buffer;
+      }
+      const data = buffer.getChannelData(0);
+      const W = canvas.width;
+      const H = canvas.height;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, W, H);
+
+      const step = Math.max(1, Math.floor(data.length / W));
+      ctx.beginPath();
+      ctx.moveTo(0, H / 2);
+      for (let x = 0; x < W; x++) {
+        let min = 1, max = -1;
+        for (let j = 0; j < step; j++) {
+          const s = data[x * step + j] || 0;
+          if (s < min) min = s;
+          if (s > max) max = s;
+        }
+        const yTop    = H / 2 - max * (H / 2) * 0.9;
+        const yBottom = H / 2 - min * (H / 2) * 0.9;
+        ctx.fillStyle = '#4ecdc4';
+        ctx.fillRect(x, yTop, 1, Math.max(1, yBottom - yTop));
+      }
+    } catch (_) { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (audioUrl) {
+      drawStaticWaveform(audioUrl);
+    }
+  }, [audioUrl, drawStaticWaveform]);
 
   async function startRecording() {
     setPermDenied(false);
@@ -225,6 +273,17 @@ export default function VoiceBlock({ config, onConfigChange }) {
                 style={{ width: '100%', borderRadius: 8 }}
               />
             ) : null}
+            {/* Static waveform of recorded audio */}
+            {audioUrl && (
+              <div style={{ width: '100%', borderRadius: 6, overflow: 'hidden', marginTop: 4 }}>
+                <canvas
+                  ref={waveCanvasRef}
+                  width={300}
+                  height={60}
+                  style={{ display: 'block', width: '100%', height: 60, background: '#0d1117' }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Re-record button */}
