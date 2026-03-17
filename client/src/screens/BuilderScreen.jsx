@@ -13,6 +13,7 @@ import CanvasDrawBlock from '../blocks/canvas-draw/CanvasDrawBlock.jsx';
 import PixelEditorBlock from '../blocks/pixel-editor/PixelEditorBlock.jsx';
 import SpritePickerBlock from '../blocks/sprite-picker/SpritePickerBlock.jsx';
 import BackgroundPickerBlock from '../blocks/background-picker/BackgroundPickerBlock.jsx';
+import ParticleFxBlock from '../blocks/particle-fx/ParticleFxBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -35,6 +36,7 @@ const ALL_BLOCKS = [
   { id: 'pixel-editor', name: 'Pixelkonst', emoji: '🖼️', type: 'pixel-editor', categories: ['ritprogram'] },
   { id: 'sprite-picker', name: 'Figurer', emoji: '🐱', type: 'sprite-picker', categories: ['ritprogram'] },
   { id: 'background-picker', name: 'Bakgrund', emoji: '🌄', type: 'background-picker', categories: ['ritprogram', 'musik'] },
+  { id: 'particle-fx', name: 'Effekter', emoji: '✨', type: 'particle-fx', categories: ['ritprogram', 'musik', 'spel', 'animation', 'berattelse', 'konst'] },
 ];
 
 function useIsLandscape() {
@@ -470,6 +472,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'background-picker' ? (
             <BackgroundPickerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'particle-fx' ? (
+            <ParticleFxBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
