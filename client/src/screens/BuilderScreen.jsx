@@ -252,6 +252,9 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const colorPickerConfig = colorPickerBlock ? (blockConfigs[colorPickerBlock.id] || { color: '#6c3bbd' }) : null;
   const currentBgColor = colorPickerConfig ? colorPickerConfig.color : undefined;
 
+  const drumsBlock = addedBlocks.find(b => b.type === 'drums');
+  const drumsBpm = drumsBlock ? (blockConfigs[drumsBlock.id]?.bpm || 120) : 120;
+
   const previewArea = (
     <div style={{
       flex: 1,
@@ -265,7 +268,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       overflow: 'hidden',
       position: 'relative',
     }}>
-      <Playground category={cat} theme="default" color={currentBgColor} />
+      <Playground category={cat} theme="default" color={currentBgColor} bpm={drumsBpm} addedBlocks={addedBlocks} isPlaying={false} />
       {colorPickerConfig && (
         <div style={{ position: 'absolute', inset: 0, opacity: 0.5, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ColorPickerPreview config={colorPickerConfig} />

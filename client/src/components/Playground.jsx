@@ -19,9 +19,18 @@ function hexToRgb(hex) {
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-export default function Playground({ category, theme = 'default', color }) {
+const NOTE_SYMBOLS = ['♩', '♪', '♫', '♬'];
+const NOTE_COLORS = ['#a78bfa', '#f472b6', '#4ecdc4', '#f59e0b', '#818cf8'];
+
+export default function Playground({ category, theme = 'default', color, bpm = 120, addedBlocks = [], isPlaying = false }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
+
+  // Keep live props accessible in animation loop without restarting
+  const propsRef = useRef({ color, bpm, addedBlocks, isPlaying });
+  useEffect(() => {
+    propsRef.current = { color, bpm, addedBlocks, isPlaying };
+  }, [color, bpm, addedBlocks, isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -62,6 +71,20 @@ export default function Playground({ category, theme = 'default', color }) {
         { x: 0.65, y: 0.35, w: 0.12 },
       ];
 
+      // Floating music notes for musik category
+      const floatingNotes = Array.from({ length: 8 }, () => ({
+        x: 0.3 + Math.random() * 0.4,
+        y: 0.5 + Math.random() * 0.3,
+        vy: 0,
+        alpha: 0,
+        size: 16 + Math.random() * 16,
+        symbol: NOTE_SYMBOLS[Math.floor(Math.random() * NOTE_SYMBOLS.length)],
+        colorIdx: Math.floor(Math.random() * NOTE_COLORS.length),
+        drift: (Math.random() - 0.5) * 0.0008,
+        active: false,
+        spawnAt: Math.random() * 3,
+      }));
+
       stateRef.current = {
         t: 0,
         charX: 0.2,
@@ -70,6 +93,8 @@ export default function Playground({ category, theme = 'default', color }) {
         notes,
         splashes,
         platforms,
+        floatingNotes,
+        lastNoteSpawn: 0,
         currentBg: null,
         targetBg: null,
       };
@@ -87,11 +112,14 @@ export default function Playground({ category, theme = 'default', color }) {
       }
     }
 
-    function drawSmiley(ctx, cx, cy, r, bounceY) {
+    function drawSmiley(cx, cy, r, bounceY, tiltAngle = 0) {
       const y = cy + bounceY;
+      ctx.save();
+      ctx.translate(cx, y);
+      ctx.rotate(tiltAngle);
       // Body
       ctx.beginPath();
-      ctx.arc(cx, y, r, 0, Math.PI * 2);
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fillStyle = '#ffe066';
       ctx.fill();
       ctx.strokeStyle = '#c8a800';
@@ -99,17 +127,212 @@ export default function Playground({ category, theme = 'default', color }) {
       ctx.stroke();
       // Eyes
       ctx.fillStyle = '#333';
-      ctx.beginPath(); ctx.arc(cx - r * 0.35, y - r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + r * 0.35, y - r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-r * 0.35, -r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc( r * 0.35, -r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.fill();
       // Smile
       ctx.beginPath();
-      ctx.arc(cx, y + r * 0.05, r * 0.5, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.arc(0, r * 0.05, r * 0.5, 0.15 * Math.PI, 0.85 * Math.PI);
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 2.5;
       ctx.stroke();
+      ctx.restore();
     }
 
-    function drawMusik(t, W, H) {
+    function drawDancingCharacter(t, cx, cy, r, speedMult) {
+      const bounceY = 10 * Math.sin(t * 3 * speedMult);
+      const tilt = 0.18 * Math.sin(t * 2.5 * speedMult);
+      const armAngle = 0.6 * Math.sin(t * 3 * speedMult);
+
+      const by = cy + bounceY;
+
+      // Left arm
+      ctx.save();
+      ctx.translate(cx - r, by);
+      ctx.rotate(Math.PI * 0.5 + armAngle);
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, r * 1.2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Right arm
+      ctx.save();
+      ctx.translate(cx + r, by);
+      ctx.rotate(-Math.PI * 0.5 - armAngle);
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, r * 1.2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Head with tilt
+      drawSmiley(cx, cy, r, bounceY, tilt);
+    }
+
+    function spawnFloatingNote(t, W, H, cx, cy) {
+      const n = state.floatingNotes.find(n => !n.active);
+      if (!n) return;
+      n.active = true;
+      // Spawn near the character
+      n.x = (cx / W) + (Math.random() - 0.5) * 0.15;
+      n.y = (cy / H) - 0.05;
+      n.vy = -(0.0012 + Math.random() * 0.001);
+      n.alpha = 0.9;
+      n.size = 16 + Math.random() * 16;
+      n.symbol = NOTE_SYMBOLS[Math.floor(Math.random() * NOTE_SYMBOLS.length)];
+      n.colorIdx = Math.floor(Math.random() * NOTE_COLORS.length);
+      n.drift = (Math.random() - 0.5) * 0.001;
+    }
+
+    function drawFloatingNotes(t, W, H) {
+      state.floatingNotes.forEach(n => {
+        if (!n.active) return;
+        n.y += n.vy;
+        n.x += n.drift;
+        n.alpha -= 0.004;
+        if (n.alpha <= 0 || n.y < -0.1) {
+          n.active = false;
+          return;
+        }
+        ctx.globalAlpha = n.alpha;
+        ctx.fillStyle = NOTE_COLORS[n.colorIdx];
+        ctx.font = `bold ${n.size}px serif`;
+        ctx.fillText(n.symbol, n.x * W, n.y * H);
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBeatVisualizer(t, W, H, bpm, speedMult) {
+      const barCount = 8;
+      const barW = 14;
+      const gap = 8;
+      const totalW = barCount * (barW + gap) - gap;
+      const startX = (W - totalW) / 2;
+      const baseY = H - 18;
+      const bpmFreq = (bpm / 60) * speedMult;
+
+      for (let i = 0; i < barCount; i++) {
+        const phase = (i / barCount) * Math.PI * 2;
+        const barH = 10 + 30 * (0.5 + 0.5 * Math.sin(t * bpmFreq * Math.PI * 2 + phase));
+        const x = startX + i * (barW + gap);
+        const y = baseY - barH;
+
+        const grad = ctx.createLinearGradient(x, baseY, x, y);
+        grad.addColorStop(0, '#4ecdc4');
+        grad.addColorStop(1, '#6c3bbd');
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, barH, 3);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawDrumIcon(x, y, t) {
+      const bounce = 4 * Math.sin(t * 3.5 + 1.2);
+      ctx.save();
+      ctx.translate(x, y + bounce);
+      ctx.globalAlpha = 0.55;
+      // Drum body
+      ctx.fillStyle = '#c8a800';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#8a7000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Top ellipse
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath();
+      ctx.ellipse(0, -12, 18, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Drumsticks
+      const stickAngle = 0.3 * Math.sin(t * 5);
+      ctx.strokeStyle = '#a0522d';
+      ctx.lineWidth = 2.5;
+      ctx.save();
+      ctx.rotate(-0.5 + stickAngle);
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(14, -28); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.rotate(0.5 - stickAngle);
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(-14, -28); ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function drawSynthIcon(x, y, t) {
+      const float = 5 * Math.sin(t * 1.8 + 0.5);
+      ctx.save();
+      ctx.translate(x, y + float);
+      ctx.globalAlpha = 0.55;
+      // Body
+      ctx.fillStyle = '#1a1a4e';
+      ctx.strokeStyle = '#4040a0';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(-28, -10, 56, 22, 3);
+      ctx.fill();
+      ctx.stroke();
+      // White keys
+      const keyW = 7, keyH = 16, keyGap = 1;
+      for (let k = 0; k < 5; k++) {
+        ctx.fillStyle = '#e6edf3';
+        ctx.beginPath();
+        ctx.roundRect(-25 + k * (keyW + keyGap), -8, keyW, keyH, 1);
+        ctx.fill();
+      }
+      // Black keys
+      const blackPos = [0, 1, 3, 4];
+      blackPos.forEach(k => {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.roundRect(-25 + k * (keyW + keyGap) + 4, -8, 5, 10, 1);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawMicIcon(x, y, t) {
+      const float = 5 * Math.sin(t * 2.1 + 1.0);
+      ctx.save();
+      ctx.translate(x, y + float);
+      ctx.globalAlpha = 0.55;
+      // Mic head
+      ctx.fillStyle = '#888';
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(-7, -20, 14, 18, 7);
+      ctx.fill();
+      ctx.stroke();
+      // Mic body
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.rect(-3, -2, 6, 14);
+      ctx.fill();
+      // Stand
+      ctx.strokeStyle = '#777';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, -2, 12, 0, Math.PI);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, 10); ctx.lineTo(0, 18);
+      ctx.moveTo(-8, 18); ctx.lineTo(8, 18);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawMusik(t, W, H, bpm, addedBlocks, isPlaying) {
+      const speedMult = isPlaying ? 1.4 : 1.0;
+
       // Sky
       ctx.fillStyle = '#0a0a1a';
       ctx.fillRect(0, 0, W, H);
@@ -125,21 +348,34 @@ export default function Playground({ category, theme = 'default', color }) {
       });
       ctx.globalAlpha = 1;
 
-      // Floating notes
-      state.notes.forEach(n => {
-        n.y += n.vy;
-        if (n.y < -0.05) n.y = 1.05;
-        const wobble = 0.03 * Math.sin(t * 2 + n.phase);
-        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 1.5 + n.phase);
-        ctx.fillStyle = '#a78bfa';
-        ctx.font = `${n.size}px serif`;
-        ctx.fillText('♪', (n.x + wobble) * W, n.y * H);
-      });
-      ctx.globalAlpha = 1;
+      const cx = W * 0.5;
+      const cy = H * 0.55;
+      const r = 28;
 
-      // Character bouncing
-      const bounceY = 8 * Math.sin(t * 2);
-      drawSmiley(ctx, W * 0.5, H * 0.6, 28, bounceY);
+      // Floating instrument icons in background
+      const hasDrums = addedBlocks.some(b => b.type === 'drums');
+      const hasSynth = addedBlocks.some(b => b.type === 'synth');
+      const hasVoice = addedBlocks.some(b => b.type === 'voice');
+
+      if (hasDrums) drawDrumIcon(W * 0.18, H * 0.62, t);
+      if (hasSynth) drawSynthIcon(W * 0.82, H * 0.35, t);
+      if (hasVoice) drawMicIcon(W * 0.78, H * 0.65, t);
+
+      // Spawn floating notes periodically
+      const noteInterval = 0.8 / speedMult;
+      if (t - state.lastNoteSpawn > noteInterval) {
+        spawnFloatingNote(t, W, H, cx, cy);
+        state.lastNoteSpawn = t;
+      }
+
+      // Draw floating notes (behind character)
+      drawFloatingNotes(t, W, H);
+
+      // Dancing character
+      drawDancingCharacter(t, cx, cy, r, speedMult);
+
+      // Beat visualizer at bottom
+      drawBeatVisualizer(t, W, H, bpm, speedMult);
     }
 
     function drawSpel(t, W, H) {
@@ -171,10 +407,11 @@ export default function Playground({ category, theme = 'default', color }) {
       if (state.charX > 0.85) { state.charX = 0.85; state.charVX = -Math.abs(state.charVX); }
       if (state.charX < 0.1)  { state.charX = 0.1;  state.charVX =  Math.abs(state.charVX); }
       const runBounce = -3 * Math.abs(Math.sin(t * 8));
-      drawSmiley(ctx, state.charX * W, H * 0.75, 22, runBounce);
+      drawSmiley(state.charX * W, H * 0.75, 22, runBounce, 0);
     }
 
     function drawRitprogram(t, W, H) {
+      const { color } = propsRef.current;
       // Colorful bg
       ctx.fillStyle = '#1a0a2e';
       ctx.fillRect(0, 0, W, H);
@@ -193,7 +430,7 @@ export default function Playground({ category, theme = 'default', color }) {
       // Character with paintbrush
       const bounceY = 5 * Math.sin(t * 1.5);
       const cx = W * 0.45, cy = H * 0.55;
-      drawSmiley(ctx, cx, cy, 26, bounceY);
+      drawSmiley(cx, cy, 26, bounceY, 0);
 
       // Paintbrush arm
       const by = cy + bounceY;
@@ -243,7 +480,7 @@ export default function Playground({ category, theme = 'default', color }) {
       ctx.stroke();
 
       // Small smiley mic in center
-      drawSmiley(ctx, cx, cy, 22, 0);
+      drawSmiley(cx, cy, 22, 0, 0);
     }
 
     function drawDefault(t, W, H) {
@@ -262,10 +499,11 @@ export default function Playground({ category, theme = 'default', color }) {
       ctx.globalAlpha = 1;
 
       const bounceY = 10 * Math.sin(t * 1.8);
-      drawSmiley(ctx, W * 0.5, H * 0.55, 30, bounceY);
+      drawSmiley(W * 0.5, H * 0.55, 30, bounceY, 0);
     }
 
     function applyColorTint(t, W, H) {
+      const { color } = propsRef.current;
       if (!color) return;
       const rgb = hexToRgb(color);
       if (!rgb) return;
@@ -294,8 +532,9 @@ export default function Playground({ category, theme = 'default', color }) {
       state.t = ts / 1000;
       const t = state.t;
       const cat = category || 'default';
+      const { bpm, addedBlocks, isPlaying } = propsRef.current;
 
-      if (cat === 'musik')      drawMusik(t, W, H);
+      if (cat === 'musik')      drawMusik(t, W, H, bpm, addedBlocks, isPlaying);
       else if (cat === 'spel')  drawSpel(t, W, H);
       else if (cat === 'ritprogram' || cat === 'konst') drawRitprogram(t, W, H);
       else if (cat === 'rostlab') drawRostlab(t, W, H);
@@ -315,13 +554,8 @@ export default function Playground({ category, theme = 'default', color }) {
       running = false;
       cancelAnimationFrame(rafId);
     };
-  // Re-run only when category or theme changes; color is read live from closure via prop ref trick
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, theme]);
-
-  // Keep color accessible in the running loop without restarting it
-  const colorRef = useRef(color);
-  useEffect(() => { colorRef.current = color; }, [color]);
 
   return (
     <canvas
