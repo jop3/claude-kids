@@ -79,10 +79,20 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'kortspel':
+      if (answers.speltyp === 'memory') {
+        return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt spelnamn på svenska (max 3 ord):
+- Tema: ${answers.tema}
+- Speltyp: Memory
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Djurminnet"}`;
+      }
       return `Du är Kompisen! Skapa ett komplett kortspel i HTML och spara som /workspace/${name}.html
 
 Spelet ska vara:
-- Speltyp: ${answers.speltyp} (memory=vänd par, snap=slå ner matchande kort, toptrumps=jämför värden, gofish=fråga efter par)
+- Speltyp: ${answers.speltyp} (snap=slå ner matchande kort, toptrumps=jämför värden, gofish=fråga efter par)
 - Tema: ${answers.tema} (alla kort har ikoner/emojis med detta tema)
 - Svårighet: ${answers.svarighet} (lätt=8 par/få kort, lagom=12 par, svårt=16 par/fler kort)
 

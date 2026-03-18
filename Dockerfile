@@ -13,6 +13,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
+COPY server/ ./server/
 COPY CLAUDE.md /workspace/CLAUDE.md
 
 # Build Vite client
