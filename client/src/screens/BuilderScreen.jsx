@@ -23,6 +23,9 @@ import VisualEffectsBlock from '../blocks/visual-effects/VisualEffectsBlock.jsx'
 import BackgroundScrollerBlock from '../blocks/background-scroller/BackgroundScrollerBlock.jsx';
 import GameLoopBlock from '../blocks/game-loop/GameLoopBlock.jsx';
 import InputHandlerBlock from '../blocks/input-handler/InputHandlerBlock.jsx';
+import PlatformerCtrlBlock from '../blocks/platformer-ctrl/PlatformerCtrlBlock.jsx';
+import TopdownCtrlBlock from '../blocks/topdown-ctrl/TopdownCtrlBlock.jsx';
+import TilemapBlock from '../blocks/tilemap/TilemapBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -52,6 +55,9 @@ const ALL_BLOCKS = [
   { id: 'background-scroller', name: 'Bakgrundsrullning', emoji: '🌄', type: 'background-scroller', categories: ['animation'] },
   { id: 'game-loop', name: 'Spelmotor', emoji: '⚙️', type: 'game-loop', categories: ['spel'] },
   { id: 'input-handler', name: 'Kontroller', emoji: '🕹️', type: 'input-handler', categories: ['spel'] },
+  { id: 'platformer-ctrl', name: 'Plattformsspel', emoji: '🏃', type: 'platformer-ctrl', categories: ['spel'] },
+  { id: 'topdown-ctrl', name: 'Uppifrån-spel', emoji: '🗺️', type: 'topdown-ctrl', categories: ['spel'] },
+  { id: 'tilemap', name: 'Bandesign', emoji: '🗺️', type: 'tilemap', categories: ['spel'] },
 ];
 
 function useIsLandscape() {
@@ -596,6 +602,21 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'input-handler' ? (
             <InputHandlerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'platformer-ctrl' ? (
+            <PlatformerCtrlBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'topdown-ctrl' ? (
+            <TopdownCtrlBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'tilemap' ? (
+            <TilemapBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
