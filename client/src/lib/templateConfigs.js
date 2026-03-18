@@ -96,6 +96,128 @@ export function getRunnerConfig(answers, title) {
   };
 }
 
+export function getHemsidaConfig(answers, title) {
+  const AVATAR_EMOJIS = {
+    ninja: '🥷', robot: '🤖', katt: '🐱', dinosaurie: '🦕',
+    superhjälte: '🦸', magiker: '🧙', haxan: '🧙‍♀️', bjorn: '🐻',
+    enhornin: '🦄', pirat: '🏴‍☠️', alien: '👽', sjojungfru: '🧜',
+  };
+  const FAV_EMOJIS = {
+    musik: '🎵', sport: '⚽', djur: '🐾', mat: '🍕',
+    spel: '🎮', bocker: '📚', film: '🎬', dans: '💃',
+  };
+  const FAV_LABELS = {
+    musik: 'Musik', sport: 'Sport', djur: 'Djur', mat: 'Mat',
+    spel: 'Spel', bocker: 'Böcker', film: 'Film', dans: 'Dans',
+  };
+
+  const STIL_THEMES = {
+    cool: {
+      bg: '#0d0d1a', primary: '#00e5ff', text: '#e0e0e0',
+      cardBg: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,229,255,0.2)',
+      headerBg: 'linear-gradient(135deg,#0d0d2b,#1a1a3e)',
+      favCardBg: 'rgba(0,229,255,0.08)', inputBg: 'rgba(255,255,255,0.05)',
+      radius: '16px', font: 'monospace',
+      titleShadow: '0 0 20px #00e5ff88', subtitleStyle: 'normal',
+      badgeText: '#000', primaryShadow: '#00e5ff66',
+      headerExtra: 'display:none',
+      styleCss: 'h1{letter-spacing:0.1em;text-transform:uppercase}',
+    },
+    sot: {
+      bg: '#fff5f8', primary: '#ff69b4', text: '#4a2040',
+      cardBg: '#fff', border: '2px solid #ffb6d966',
+      headerBg: 'linear-gradient(135deg,#ffe4f0,#ffd6ee)',
+      favCardBg: '#fff0f5', inputBg: '#fff',
+      radius: '24px', font: '"Comic Sans MS", cursive',
+      titleShadow: '0 2px 8px #ff69b444', subtitleStyle: 'italic',
+      badgeText: '#fff', primaryShadow: '#ff69b466',
+      headerExtra: 'display:none',
+      styleCss: 'body{background:linear-gradient(180deg,#fff5f8,#ffedf5)}',
+    },
+    spooky: {
+      bg: '#080810', primary: '#b000ff', text: '#cccccc',
+      cardBg: 'rgba(176,0,255,0.07)', border: '1px solid rgba(176,0,255,0.25)',
+      headerBg: 'linear-gradient(135deg,#0d0010,#1a0030)',
+      favCardBg: 'rgba(176,0,255,0.1)', inputBg: 'rgba(255,255,255,0.04)',
+      radius: '8px', font: 'Georgia, serif',
+      titleShadow: '0 0 24px #b000ff99', subtitleStyle: 'italic',
+      badgeText: '#fff', primaryShadow: '#b000ff66',
+      headerExtra: 'display:none',
+      styleCss: 'h1{letter-spacing:0.06em} .section{box-shadow:0 0 20px rgba(176,0,255,0.1)}',
+    },
+    futuristisk: {
+      bg: '#020c14', primary: '#00ff88', text: '#a0ffcc',
+      cardBg: 'rgba(0,255,136,0.05)', border: '1px solid rgba(0,255,136,0.2)',
+      headerBg: 'linear-gradient(135deg,#020c14,#041a24)',
+      favCardBg: 'rgba(0,255,136,0.08)', inputBg: 'rgba(0,255,136,0.04)',
+      radius: '4px', font: '"Courier New", monospace',
+      titleShadow: '0 0 16px #00ff8888', subtitleStyle: 'normal',
+      badgeText: '#000', primaryShadow: '#00ff8866',
+      headerExtra: 'display:none',
+      styleCss: 'body{background-image:repeating-linear-gradient(0deg,rgba(0,255,136,0.03) 0px,transparent 1px,transparent 24px)} h1{text-transform:uppercase;letter-spacing:0.12em}',
+    },
+    naturlig: {
+      bg: '#f5f0e8', primary: '#4caf50', text: '#2e3a28',
+      cardBg: '#fff', border: '1px solid #a5d6a766',
+      headerBg: 'linear-gradient(135deg,#e8f5e9,#dcedc8)',
+      favCardBg: '#f1f8e9', inputBg: '#fff',
+      radius: '20px', font: 'Georgia, serif',
+      titleShadow: '0 2px 8px rgba(76,175,80,0.3)', subtitleStyle: 'italic',
+      badgeText: '#fff', primaryShadow: '#4caf5066',
+      headerExtra: 'display:none',
+      styleCss: '',
+    },
+    fargglad: {
+      bg: '#fff', primary: '#ff4081', text: '#222',
+      cardBg: '#fff', border: '2px solid #ff408133',
+      headerBg: 'linear-gradient(90deg,#ff4081,#7c4dff,#00b0ff,#00e676)',
+      favCardBg: '#f8f8ff', inputBg: '#fff',
+      radius: '18px', font: 'Arial Rounded MT Bold, Arial, sans-serif',
+      titleShadow: '0 2px 12px rgba(0,0,0,0.2)', subtitleStyle: 'normal',
+      badgeText: '#fff', primaryShadow: '#ff408166',
+      headerExtra: 'display:none',
+      styleCss: 'h1{color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.3)} .subtitle{color:rgba(255,255,255,0.85)}',
+    },
+  };
+
+  const favorites = Array.isArray(answers.favoriter) ? answers.favoriter : ['musik', 'spel', 'djur'];
+  const stilKey = (answers.stil || 'cool').toLowerCase();
+  const theme = STIL_THEMES[stilKey] || STIL_THEMES.cool;
+  const avatarKey = (answers.avatar || 'robot').toLowerCase();
+  const avatarEmoji = Object.entries(AVATAR_EMOJIS).find(([k]) => avatarKey.includes(k))?.[1] || '🤖';
+
+  const fav1 = favorites[0] || 'musik';
+  const fav2 = favorites[1] || 'spel';
+  const fav3 = favorites[2] || 'djur';
+
+  return {
+    TITLE:          title || 'Min Hemsida',
+    AVATAR_EMOJI:   avatarEmoji,
+    PRIMARY:        theme.primary,
+    BG:             theme.bg,
+    TEXT_COLOR:     theme.text,
+    CARD_BG:        theme.cardBg,
+    BORDER_STYLE:   theme.border,
+    RADIUS:         theme.radius,
+    FONT:           theme.font,
+    HEADER_BG:      theme.headerBg,
+    HEADER_EXTRA:   theme.headerExtra,
+    FAV_CARD_BG:    theme.favCardBg,
+    INPUT_BG:       theme.inputBg,
+    TITLE_SHADOW:   theme.titleShadow,
+    SUBTITLE_STYLE: theme.subtitleStyle,
+    BADGE_TEXT:     theme.badgeText,
+    PRIMARY_SHADOW: theme.primaryShadow,
+    STYLE_CSS:      theme.styleCss,
+    FAV_1_EMOJI:    FAV_EMOJIS[fav1] || '🎵',
+    FAV_1_LABEL:    FAV_LABELS[fav1] || fav1,
+    FAV_2_EMOJI:    FAV_EMOJIS[fav2] || '🎮',
+    FAV_2_LABEL:    FAV_LABELS[fav2] || fav2,
+    FAV_3_EMOJI:    FAV_EMOJIS[fav3] || '🐾',
+    FAV_3_LABEL:    FAV_LABELS[fav3] || fav3,
+  };
+}
+
 export function getAnimationConfig(answers, title) {
   const CHAR_EMOJIS = {
     ninja: '🥷', robot: '🤖', katt: '🐱', dinosaurie: '🦕', enhornin: '🦄', pirat: '🏴‍☠️',

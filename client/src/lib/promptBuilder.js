@@ -211,6 +211,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'hemsida':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett personligt hemsidenamn på svenska (max 3 ord, kan vara ett egennamn eller smeknamn):
+- Stil: ${answers.stil}
+- Avatar: ${answers.avatar}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Alexs Hemsida"}`;
+
+    case 'hemsida_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa en komplett personlig hemsida i HTML och spara som /workspace/${name}.html
 
 Hemsidan ska ha stilen:
