@@ -70,6 +70,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const [blockConfigs, setBlockConfigs] = useState({});
   const [currentProjectId, setCurrentProjectId] = useState(initialProjectId || null);
   const [toast, setToast] = useState(null);
+  const [celebrate, setCelebrate] = useState(false);
   const [autoSavePending, setAutoSavePending] = useState(!!initialName && !initialProjectId);
   const nameRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -161,6 +162,8 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
     saveProject(project);
     setCurrentProjectId(project.id);
     showToast('Sparat!');
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 2000);
     return project;
   }
 
@@ -325,7 +328,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       overflow: 'hidden',
       position: 'relative',
     }}>
-      <Playground category={cat} theme={selectedTheme} color={currentBgColor} bpm={drumsBpm} addedBlocks={addedBlocks} isPlaying={false} />
+      <Playground category={cat} theme={selectedTheme} color={currentBgColor} bpm={drumsBpm} addedBlocks={addedBlocks} isPlaying={false} celebrate={celebrate} />
       {colorPickerConfig && (
         <div style={{ position: 'absolute', inset: 0, opacity: 0.5, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ColorPickerPreview config={colorPickerConfig} />

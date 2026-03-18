@@ -24,15 +24,15 @@ const NOTE_COLORS = ['#a78bfa', '#f472b6', '#4ecdc4', '#f59e0b', '#818cf8'];
 
 const ART_SPLASH_COLORS = ['#e94560','#f18f01','#3bb273','#2d7dd2','#6c3bbd','#ff6b6b','#ffe66d','#4ecdc4'];
 
-export default function Playground({ category, theme = 'default', color, bpm = 120, addedBlocks = [], isPlaying = false }) {
+export default function Playground({ category, theme = 'default', color, bpm = 120, addedBlocks = [], isPlaying = false, celebrate = false }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
 
   // Keep live props accessible in animation loop without restarting
-  const propsRef = useRef({ color, bpm, addedBlocks, isPlaying });
+  const propsRef = useRef({ color, bpm, addedBlocks, isPlaying, celebrate });
   useEffect(() => {
-    propsRef.current = { color, bpm, addedBlocks, isPlaying };
-  }, [color, bpm, addedBlocks, isPlaying]);
+    propsRef.current = { color, bpm, addedBlocks, isPlaying, celebrate };
+  }, [color, bpm, addedBlocks, isPlaying, celebrate]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -104,6 +104,24 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       const pixelGrid = Array.from({ length: PIXEL_COLS * PIXEL_ROWS }, () => null);
       const pastelColors = ['#ffadad','#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff','#fffffc'];
 
+      // Animation category state
+      const animStars = Array.from({ length: 20 }, () => ({
+        x: Math.random(),
+        y: Math.random() * 0.75,
+        r: 0.5 + Math.random() * 1.5,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.8 + Math.random() * 2,
+      }));
+
+      const animConfetti = [];
+      const animCelebration = { active: false, startT: 0, particles: [] };
+
+      // Spotlight sweep state
+      const spotlights = [
+        { side: 'left',  sweepPhase: 0 },
+        { side: 'right', sweepPhase: Math.PI },
+      ];
+
       stateRef.current = {
         t: 0,
         charX: 0.2,
@@ -127,6 +145,13 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         lastStrokeTime: 0,
         artSpriteWave: 0,
         artSparkles: [],
+        // animation category
+        animStars,
+        animConfetti,
+        animCelebration,
+        spotlights,
+        animTimelinePhase: 0, // 0=walk-left,1=stop,2=jump,3=spin,4=walk-right
+        animPhaseStart: 0,
       };
     }
 
@@ -761,6 +786,365 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       drawSmiley(W * 0.5, H * 0.55, 30, bounceY, 0);
     }
 
+    // ---- ANIMATION CATEGORY ----
+
+    function drawStageCharacter(t, cx, cy, r, phase, mode, glowActive) {
+      // mode: 'bounce-wave' | 'walk-left' | 'stop' | 'jump' | 'spin' | 'walk-right'
+      let bounceY = 0, tiltAngle = 0, armAngle = 0, extraOffsetX = 0;
+
+      if (mode === 'bounce-wave') {
+        bounceY = 8 * Math.sin(t * 2.5 + phase);
+        tiltAngle = 0.12 * Math.sin(t * 2 + phase);
+        armAngle = 0.7 * Math.sin(t * 2.5 + phase);
+      } else if (mode === 'walk-left') {
+        bounceY = -4 * Math.abs(Math.sin(t * 5 + phase));
+        armAngle = 0.8 * Math.sin(t * 5 + phase);
+        tiltAngle = -0.08;
+      } else if (mode === 'walk-right') {
+        bounceY = -4 * Math.abs(Math.sin(t * 5 + phase));
+        armAngle = 0.8 * Math.sin(t * 5 + phase);
+        tiltAngle = 0.08;
+      } else if (mode === 'stop') {
+        bounceY = 0;
+        armAngle = 0;
+        tiltAngle = 0.15 * Math.sin(t * 1.5 + phase);
+      } else if (mode === 'jump') {
+        bounceY = -30 * Math.abs(Math.sin(t * 3 + phase));
+        armAngle = 1.2;
+        tiltAngle = 0;
+      } else if (mode === 'spin') {
+        tiltAngle = t * 6 + phase;
+        bounceY = -5 * Math.abs(Math.sin(t * 4 + phase));
+        armAngle = 1.0;
+      }
+
+      const by = cy + bounceY;
+
+      // Glow effect
+      if (glowActive) {
+        const glowAlpha = 0.3 + 0.25 * Math.sin(t * 4 + phase);
+        const grd = ctx.createRadialGradient(cx, by, r * 0.5, cx, by, r * 2.5);
+        grd.addColorStop(0, `rgba(255,220,50,${glowAlpha})`);
+        grd.addColorStop(1, 'rgba(255,220,50,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(cx, by, r * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Left arm
+      ctx.save();
+      ctx.translate(cx - r, by);
+      ctx.rotate(Math.PI * 0.5 + armAngle);
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, r * 1.2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Right arm (waving)
+      ctx.save();
+      ctx.translate(cx + r, by);
+      ctx.rotate(-Math.PI * 0.5 - armAngle * 0.8);
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, r * 1.2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Body
+      ctx.save();
+      ctx.translate(cx, by + r * 0.9);
+      ctx.rotate(tiltAngle * 0.3);
+      ctx.fillStyle = '#a0c4ff';
+      ctx.beginPath();
+      ctx.roundRect(-r * 0.6, 0, r * 1.2, r * 1.4, 4);
+      ctx.fill();
+      ctx.restore();
+
+      // Head
+      drawSmiley(cx, cy, r, bounceY, tiltAngle);
+    }
+
+    function getTimelineMode(t, state) {
+      // Cycle: walk-left(2s) → stop(1s) → jump(1s) → spin(1s) → walk-right(2s) → repeat
+      const CYCLE = 7;
+      const elapsed = (t - state.animPhaseStart) % CYCLE;
+      if (elapsed < 2)   return 'walk-left';
+      if (elapsed < 3)   return 'stop';
+      if (elapsed < 4)   return 'jump';
+      if (elapsed < 5)   return 'spin';
+      return 'walk-right';
+    }
+
+    function drawSpotlight(W, H, side, sweepPhase) {
+      const tipY = 0;
+      const tipX = side === 'left' ? 0 : W;
+      // Sweep angle: center ~50–70deg down, oscillates ±15deg
+      const baseAngle = side === 'left' ? 0.45 : Math.PI - 0.45;
+      const sweep = 0.18 * Math.sin(sweepPhase);
+      const angle = baseAngle + sweep;
+
+      const length = H * 1.2;
+      const spreadHalf = 0.25; // cone half-angle in radians
+
+      const ax = tipX + Math.cos(angle - spreadHalf) * length;
+      const ay = tipY + Math.sin(angle - spreadHalf) * length;
+      const bx = tipX + Math.cos(angle + spreadHalf) * length;
+      const by2 = tipY + Math.sin(angle + spreadHalf) * length;
+
+      ctx.save();
+      ctx.globalAlpha = 0.07;
+      const grad = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, length);
+      grad.addColorStop(0, 'rgba(255,255,220,1)');
+      grad.addColorStop(1, 'rgba(255,255,220,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(ax, ay);
+      ctx.lineTo(bx, by2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawCurtains(t, W, H) {
+      const curtainW = W * 0.10;
+      const sway = 4 * Math.sin(t * 0.7);
+
+      // Left curtain
+      ctx.save();
+      ctx.translate(sway, 0);
+      ctx.fillStyle = '#5a0a14';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(curtainW, 0);
+      ctx.lineTo(curtainW + 8, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+      // Curtain folds
+      for (let i = 1; i < 4; i++) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(curtainW * i / 4, 0);
+        ctx.lineTo(curtainW * i / 4 + 4, H);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Right curtain
+      ctx.save();
+      ctx.translate(-sway, 0);
+      ctx.fillStyle = '#5a0a14';
+      ctx.beginPath();
+      ctx.moveTo(W, 0);
+      ctx.lineTo(W - curtainW, 0);
+      ctx.lineTo(W - curtainW - 8, H);
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+      for (let i = 1; i < 4; i++) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(W - curtainW * i / 4, 0);
+        ctx.lineTo(W - curtainW * i / 4 - 4, H);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function spawnConfetti(state, W, H) {
+      const CONF_COLORS = ['#e94560','#f18f01','#ffe066','#4ecdc4','#a78bfa','#f472b6','#3bb273'];
+      for (let i = 0; i < 8; i++) {
+        state.animConfetti.push({
+          x: Math.random() * W,
+          y: -10,
+          vx: (Math.random() - 0.5) * 2,
+          vy: 1.5 + Math.random() * 2,
+          rot: Math.random() * Math.PI * 2,
+          rotV: (Math.random() - 0.5) * 0.15,
+          w: 6 + Math.random() * 6,
+          h: 4 + Math.random() * 4,
+          color: CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)],
+        });
+      }
+      if (state.animConfetti.length > 200) state.animConfetti.splice(0, state.animConfetti.length - 200);
+    }
+
+    function drawConfetti(state, W, H) {
+      state.animConfetti = state.animConfetti.filter(c => {
+        c.x += c.vx;
+        c.y += c.vy;
+        c.rot += c.rotV;
+        if (c.y > H + 10) return false;
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+        ctx.restore();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawCelebrationBurst(t, W, H, state) {
+      const cel = state.animCelebration;
+      if (!cel.active) return;
+      const age = t - cel.startT;
+      if (age > 2.0) {
+        cel.active = false;
+        cel.particles = [];
+        return;
+      }
+      // Rainbow arc
+      const rainbowAlpha = Math.max(0, 1 - age / 2.0) * 0.5;
+      const cx = W / 2, cy = H * 0.8;
+      const RAINBOW = ['#e94560','#f18f01','#ffe066','#3bb273','#2d7dd2','#6c3bbd'];
+      RAINBOW.forEach((col, i) => {
+        ctx.globalAlpha = rainbowAlpha;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.arc(cx, cy, H * 0.25 + i * 8, Math.PI, 0);
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      // Burst particles
+      cel.particles = cel.particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.1;
+        p.alpha -= 0.02;
+        if (p.alpha <= 0) return false;
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.font = `${p.size}px serif`;
+        ctx.fillText('★', p.x, p.y);
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      // Spawn more particles early in burst
+      if (age < 0.5 && cel.particles.length < 40) {
+        const COLORS = ['#ffe066','#f472b6','#a78bfa','#4ecdc4','#f18f01','#e94560'];
+        for (let i = 0; i < 4; i++) {
+          cel.particles.push({
+            x: W / 2 + (Math.random() - 0.5) * W * 0.4,
+            y: H * 0.5,
+            vx: (Math.random() - 0.5) * 6,
+            vy: -(2 + Math.random() * 5),
+            alpha: 1,
+            size: 14 + Math.random() * 10,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          });
+        }
+      }
+    }
+
+    function drawAnimation(t, W, H) {
+      const { addedBlocks, isPlaying, celebrate } = propsRef.current;
+
+      const hasCharBuilder = addedBlocks.some(b => b.type === 'character-builder');
+      const hasTimeline   = addedBlocks.some(b => b.type === 'animation-timeline');
+      const hasVFX        = addedBlocks.some(b => b.type === 'visual-effects');
+
+      // BPM-like speed multiplier (120bpm baseline)
+      const bpmSpeed = isPlaying ? 1.6 : 1.0;
+
+      // --- Background: dark blue sky ---
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#0a0520');
+      bgGrad.addColorStop(0.75, '#1a0a30');
+      bgGrad.addColorStop(1, '#2a0a10');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // --- Twinkling stars (sky area, above stage) ---
+      state.animStars.forEach(s => {
+        const alpha = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(s.x * W, s.y * H * 0.78, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      // --- Spotlights (drawn before stage so they appear behind curtains/floor) ---
+      state.spotlights[0].sweepPhase += 0.012;
+      state.spotlights[1].sweepPhase += 0.012;
+      drawSpotlight(W, H, 'left',  state.spotlights[0].sweepPhase);
+      drawSpotlight(W, H, 'right', state.spotlights[1].sweepPhase);
+
+      // --- Stage floor: wooden planks at bottom 20% ---
+      const stageY = H * 0.80;
+      const stageH = H * 0.20;
+      const PLANK_H = Math.max(6, Math.floor(stageH / 5));
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#5a3010' : '#6b3a14';
+        ctx.fillRect(0, stageY + i * PLANK_H, W, PLANK_H);
+      }
+      // Stage edge highlight
+      ctx.fillStyle = '#8b5a2b';
+      ctx.fillRect(0, stageY, W, 3);
+
+      // --- Curtains ---
+      drawCurtains(t, W, H);
+
+      // --- Characters ---
+      const stageCharY = stageY - 35;
+      const mainR = hasCharBuilder ? 30 : 24;
+      const sideR = Math.round(mainR * 0.78);
+
+      // Determine movement mode
+      let mode = 'bounce-wave';
+      if (hasTimeline) {
+        mode = getTimelineMode(t * bpmSpeed, state);
+      }
+
+      // Confetti when playing
+      if (isPlaying && hasTimeline && Math.random() < 0.15) {
+        spawnConfetti(state, W, H);
+      }
+
+      // Celebration burst trigger
+      if (celebrate && !state.animCelebration.active) {
+        state.animCelebration.active = true;
+        state.animCelebration.startT = t;
+        state.animCelebration.particles = [];
+        spawnConfetti(state, W, H);
+        spawnConfetti(state, W, H);
+        spawnConfetti(state, W, H);
+      }
+
+      // Main character (center-left of stage)
+      const mainX = W * 0.42;
+      drawStageCharacter(t * bpmSpeed, mainX, stageCharY, mainR, 0, mode, hasVFX);
+
+      // Sidekick (slightly right, phase offset 0.3s)
+      const sideX = mainX + mainR * 2 + sideR * 2 + 14;
+      const sidePhase = 0.3 * bpmSpeed;
+      drawStageCharacter(t * bpmSpeed, sideX, stageCharY + 4, sideR, sidePhase, mode, hasVFX);
+
+      // Confetti
+      drawConfetti(state, W, H);
+
+      // Celebration burst
+      drawCelebrationBurst(t, W, H, state);
+    }
+
+    // ---- END ANIMATION CATEGORY ----
+
     function applyColorTint(t, W, H) {
       const { color } = propsRef.current;
       if (!color) return;
@@ -797,6 +1181,7 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       else if (cat === 'spel')  drawSpel(t, W, H);
       else if (cat === 'ritprogram' || cat === 'konst') drawRitprogram(t, W, H);
       else if (cat === 'rostlab') drawRostlab(t, W, H);
+      else if (cat === 'animation') drawAnimation(t, W, H);
       else                       drawDefault(t, W, H);
 
       // Theme ground bar (only for non-spel which draws its own)
