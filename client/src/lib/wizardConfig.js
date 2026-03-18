@@ -278,6 +278,8 @@ export const WIZARD_CONFIG = {
           { id: 'sport', label: 'Sport', emoji: '⚽' },
           { id: 'dinosaurier', label: 'Dinosaurier', emoji: '🦕' },
           { id: 'superhjältar', label: 'Superhjältar', emoji: '🦸' },
+          { id: 'pirater', label: 'Pirater', emoji: '☠️' },
+          { id: 'framtiden', label: 'Framtiden', emoji: '🤖' },
         ],
       },
       {
