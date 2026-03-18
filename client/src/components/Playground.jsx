@@ -1185,39 +1185,240 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     }
 
     function drawRostlab(t, W, H) {
-      ctx.fillStyle = '#050510';
+      const { addedBlocks, isPlaying } = propsRef.current;
+      const rs = state;
+
+      // Initialize rostlab-specific state once
+      if (!rs.rostCreatures) {
+        rs.rostCreatures = [];
+        rs.rostLastCreature = 0;
+        rs.rostFloatTexts = [];
+        rs.rostLastText = 0;
+        rs.rostRings = [];
+        rs.rostLastRing = 0;
+      }
+
+      const hasVoiceText  = addedBlocks.some(b => b.type === 'voice-text');
+      const hasLoopRec    = addedBlocks.some(b => b.type === 'loop-recorder');
+
+      // Background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#050510');
+      bgGrad.addColorStop(1, '#10061a');
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, W, H);
 
-      const cx = W / 2, cy = H / 2;
+      const cx = W / 2, cy = H * 0.42;
 
-      // Radiating sound rings
-      for (let i = 0; i < 5; i++) {
-        const phase = (t * 0.8 + i * 0.4) % 1;
-        const radius = phase * Math.min(W, H) * 0.45;
-        const alpha = (1 - phase) * 0.5;
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = '#7c3aed';
-        ctx.lineWidth = 2 + (1 - phase) * 3;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.stroke();
+      // ---- Circular waveform background (loop-recorder) ----
+      if (hasLoopRec) {
+        const spokes = 16;
+        const innerR = W * 0.18, outerR = W * 0.28;
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < spokes; i++) {
+          const angle = (i / spokes) * Math.PI * 2 + t * 0.3;
+          const len = innerR + (outerR - innerR) * (0.5 + 0.5 * Math.sin(t * 2 + i * 0.8));
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(angle) * innerR, cy + Math.sin(angle) * innerR);
+          ctx.lineTo(cx + Math.cos(angle) * len,    cy + Math.sin(angle) * len);
+          ctx.stroke();
+        }
+        ctx.restore();
       }
+
+      // ---- Spawn sound rings every 0.5s ----
+      if (t - rs.rostLastRing > 0.5) {
+        rs.rostLastRing = t;
+        rs.rostRings.push({ born: t, maxR: 20 + Math.random() * 60 });
+      }
+      // Draw + age rings
+      rs.rostRings = rs.rostRings.filter(ring => {
+        const age = t - ring.born;
+        const life = 1.4;
+        if (age > life) return false;
+        const phase = age / life;
+        const r = 20 + phase * ring.maxR;
+        const alpha = (1 - phase) * 0.55;
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 1.5 + (1 - phase) * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        return true;
+      });
       ctx.globalAlpha = 1;
 
-      // Waveform bar
-      ctx.strokeStyle = '#a78bfa';
+      // ---- Stylized microphone ----
+      const micX = cx, micY = cy;
+      const micTilt = 0.12 * Math.sin(t * 1.2);
+      const micGlow = isPlaying ? (0.4 + 0.3 * Math.sin(t * 5)) : 0.15;
+      ctx.save();
+      ctx.translate(micX, micY);
+      ctx.rotate(micTilt);
+      // Glow
+      if (isPlaying) {
+        const grd = ctx.createRadialGradient(0, 0, 5, 0, 0, 40);
+        grd.addColorStop(0, `rgba(124,58,237,${micGlow})`);
+        grd.addColorStop(1, 'rgba(124,58,237,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(0, 0, 40, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Mic head (circle)
+      ctx.fillStyle = '#3a3a4a';
+      ctx.strokeStyle = '#6c3bbd';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      const waveW = W * 0.6, waveX = W * 0.2, waveY = H * 0.72;
-      ctx.moveTo(waveX, waveY);
-      for (let x = 0; x <= waveW; x += 3) {
-        const amp = 18 * Math.sin(x * 0.07 + t * 4);
-        ctx.lineTo(waveX + x, waveY + amp);
-      }
+      ctx.arc(0, -10, 14, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
+      // Grille lines
+      ctx.strokeStyle = '#8877cc';
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) {
+        const gx = i * 4;
+        const gy = Math.sqrt(Math.max(0, 14 * 14 - gx * gx));
+        ctx.beginPath();
+        ctx.moveTo(gx, -10 - gy);
+        ctx.lineTo(gx, -10 + gy);
+        ctx.stroke();
+      }
+      // Mic body (rectangle)
+      ctx.fillStyle = '#2a2a38';
+      ctx.strokeStyle = '#6c3bbd';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-6, 2, 12, 22, 2);
+      ctx.fill();
+      ctx.stroke();
+      // Stand arc
+      ctx.strokeStyle = '#6c3bbd';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 22, 12, 0, Math.PI);
+      ctx.stroke();
+      // Stand post
+      ctx.beginPath();
+      ctx.moveTo(0, 34);
+      ctx.lineTo(0, 42);
+      ctx.moveTo(-10, 42);
+      ctx.lineTo(10, 42);
+      ctx.stroke();
+      ctx.restore();
 
-      // Small smiley mic in center
-      drawSmiley(cx, cy, 22, 0, 0);
+      // ---- Voice creature generator — spawn every 4s, max 5 ----
+      if (t - rs.rostLastCreature > 4.0 && rs.rostCreatures.length < 5) {
+        rs.rostLastCreature = t;
+        const pastels = ['#ffadad','#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff'];
+        const spawnX = 0.1 + Math.random() * 0.8;
+        const spawnY = 0.5 + Math.random() * 0.3;
+        const pts = 8 + Math.floor(Math.random() * 5);
+        rs.rostCreatures.push({
+          x: spawnX * W,
+          y: spawnY * H,
+          baseR: 14 + Math.random() * 14,
+          color: pastels[Math.floor(Math.random() * pastels.length)],
+          phase: Math.random() * Math.PI * 2,
+          wiggleSpeed: 1.5 + Math.random() * 2,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -(0.2 + Math.random() * 0.3),
+          alpha: 0,
+          born: t,
+          pts,
+          radii: Array.from({ length: pts }, () => 0.7 + Math.random() * 0.5),
+        });
+      }
+      rs.rostCreatures = rs.rostCreatures.filter(c => {
+        const age = t - c.born;
+        // Fade in over 0.5s, alive for 6s, fade out 0.5s
+        if (age < 0.5) c.alpha = age / 0.5;
+        else if (age > 5.5) c.alpha = 1 - (age - 5.5) / 0.5;
+        else c.alpha = 1;
+        if (age > 6) return false;
+
+        c.x += c.vx;
+        c.y += c.vy * 0.4;
+        // Bounce off edges
+        if (c.x < 20 || c.x > W - 20) c.vx *= -1;
+
+        ctx.save();
+        ctx.globalAlpha = c.alpha * 0.85;
+        ctx.translate(c.x, c.y);
+        const wiggle = t * c.wiggleSpeed + c.phase;
+        ctx.beginPath();
+        for (let i = 0; i <= c.pts; i++) {
+          const angle = (i / c.pts) * Math.PI * 2;
+          const r = c.baseR * c.radii[i % c.pts] * (1 + 0.2 * Math.sin(wiggle + i * 1.3));
+          const px2 = Math.cos(angle) * r;
+          const py2 = Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(px2, py2);
+          else ctx.lineTo(px2, py2);
+        }
+        ctx.closePath();
+        ctx.fillStyle = c.color;
+        ctx.fill();
+        ctx.restore();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      // ---- Floating text snippets (voice-text block) ----
+      if (hasVoiceText) {
+        if (t - rs.rostLastText > 2.0) {
+          rs.rostLastText = t;
+          const words = ['Hello!', 'Hej!', '🎵', 'Wow!', 'Cool!', 'Hallå!', 'Kul!'];
+          rs.rostFloatTexts.push({
+            text: words[Math.floor(Math.random() * words.length)],
+            x: (0.2 + Math.random() * 0.6) * W,
+            y: (0.5 + Math.random() * 0.2) * H,
+            vy: -(0.5 + Math.random() * 0.4),
+            alpha: 1,
+            born: t,
+            size: 14 + Math.random() * 10,
+          });
+        }
+        rs.rostFloatTexts = rs.rostFloatTexts.filter(ft => {
+          const age = t - ft.born;
+          if (age > 3) return false;
+          ft.y += ft.vy * 0.5;
+          ft.alpha = 1 - age / 3;
+          ctx.globalAlpha = ft.alpha;
+          ctx.fillStyle = '#a78bfa';
+          ctx.font = `bold ${ft.size}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(ft.text, ft.x, ft.y);
+          return true;
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // ---- 12 organic frequency bars at bottom ----
+      const barCount = 12;
+      const barW = Math.max(6, W * 0.04);
+      const gap = (W - barCount * barW) / (barCount + 1);
+      const baseY = H * 0.88;
+      for (let i = 0; i < barCount; i++) {
+        const phase = (i / barCount) * Math.PI * 2;
+        const barH = 8 + 28 * (0.5 + 0.5 * Math.sin(t * 2.5 + phase)) * (0.6 + 0.4 * Math.sin(t * 1.3 + i * 0.7));
+        const x = gap + i * (barW + gap);
+        const y = baseY - barH;
+        const hue = 260 + (i / barCount) * 80;
+        const grad = ctx.createLinearGradient(x, baseY, x, y);
+        grad.addColorStop(0, `hsla(${hue},80%,55%,0.9)`);
+        grad.addColorStop(1, `hsla(${hue + 40},80%,75%,0.6)`);
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, barH, barW / 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
 
     function drawDefault(t, W, H) {

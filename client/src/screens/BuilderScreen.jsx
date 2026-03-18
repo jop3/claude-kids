@@ -61,6 +61,10 @@ import MathGeneratorBlock from '../blocks/math-generator/MathGeneratorBlock.jsx'
 import ScoreTrackerBlock from '../blocks/score-tracker/ScoreTrackerBlock.jsx';
 import FeedbackMsgBlock from '../blocks/feedback-msg/FeedbackMsgBlock.jsx';
 import TimerChallengeBlock from '../blocks/timer-challenge/TimerChallengeBlock.jsx';
+import RostlabBlock from '../blocks/rostlab/RostlabBlock.jsx';
+import LoopRecorderBlock from '../blocks/rostlab/LoopRecorderBlock.jsx';
+import VoiceLayersBlock from '../blocks/rostlab/VoiceLayersBlock.jsx';
+import VoiceTextBlock from '../blocks/rostlab/VoiceTextBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -73,6 +77,7 @@ const CATEGORY_EMOJI = {
   kortspel: '🃏',
   bradspel: '♟️',
   larospel: '🎓',
+  rostlab: '🎤',
 };
 
 const ALL_BLOCKS = [
@@ -132,6 +137,10 @@ const ALL_BLOCKS = [
   { id: 'score-tracker', name: 'Poangrakare', emoji: '⭐', type: 'score-tracker', categories: ['larospel'] },
   { id: 'feedback-msg', name: 'Aterkopling', emoji: '💬', type: 'feedback-msg', categories: ['larospel'] },
   { id: 'timer-challenge', name: 'Tidsbegransning', emoji: '⏱️', type: 'timer-challenge', categories: ['larospel'] },
+  { id: 'rostlab-studio',  name: 'Röststudio',    emoji: '🎤', type: 'rostlab-studio',  categories: ['rostlab'] },
+  { id: 'loop-recorder',   name: 'Loop',          emoji: '🔄', type: 'loop-recorder',   categories: ['rostlab'] },
+  { id: 'voice-layers',    name: 'Spår',          emoji: '🎚️', type: 'voice-layers',    categories: ['rostlab'] },
+  { id: 'voice-text',      name: 'Röst till text', emoji: '🎙️', type: 'voice-text',     categories: ['rostlab'] },
 ];
 
 function useIsLandscape() {
@@ -866,6 +875,29 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'timer-challenge' ? (
             <TimerChallengeBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'rostlab-studio' ? (
+            <RostlabBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+              addedBlocks={addedBlocks}
+            />
+          ) : selectedBlock.type === 'loop-recorder' ? (
+            <LoopRecorderBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+              addedBlocks={addedBlocks}
+            />
+          ) : selectedBlock.type === 'voice-layers' ? (
+            <VoiceLayersBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+              addedBlocks={addedBlocks}
+            />
+          ) : selectedBlock.type === 'voice-text' ? (
+            <VoiceTextBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
