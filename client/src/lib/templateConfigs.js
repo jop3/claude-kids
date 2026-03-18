@@ -30,6 +30,7 @@ export function getSpelConfig(answers, title) {
   const char  = CHARACTERS[answers.karaktar] || CHARACTERS['Ninja🥷'];
   const enemy = ENEMIES[answers.fiende] || ENEMIES['Monster👹'];
   const diff  = parseInt(answers.svarighet) || 5;
+  const isObby = (answers.speltyp || '').toLowerCase().includes('obby');
 
   return {
     TITLE:          title || 'Mitt Spel',
@@ -41,7 +42,7 @@ export function getSpelConfig(answers, title) {
     PLAYER_COLOR:   char.color,
     PLAYER_SHAPE:   char.shape,
     ENEMY_COLOR:    enemy.color,
-    ENEMY_ENABLED:  enemy.enabled,
+    ENEMY_ENABLED:  isObby ? false : enemy.enabled,
     ENEMY_SPEED:    (1 + diff * 0.3).toFixed(1),
     GRAVITY:        (0.4 + diff * 0.025).toFixed(3),
     JUMP_FORCE:     (14 - diff * 0.3).toFixed(1),
@@ -83,12 +84,14 @@ export function getMemoryConfig(answers, title) {
     'Superhjältar🦸':   { bg: ['#1a0030','#2d0050'], cardBack: '#4a148c', cardFront: '#f3e5f5', matched: '#7b1fa2', accent: '#ce93d8', theme: 'superhjältar' },
   };
 
-  const diff = parseInt(answers.svarighet) || 2;
-  const tema = answers.tema || '';
-  const themeData = Object.entries(MEMORY_THEMES).find(([k]) => tema.includes(k.replace(/[^\w]/g,'')))
-    ?.[1] || MEMORY_THEMES['Djur🐾'];
+  const svMap = { latt: 1, lagom: 2, svart: 3 };
+  const diff = svMap[answers.svarighet] ?? parseInt(answers.svarighet) ?? 2;
+  const tema = (answers.tema || '').toLowerCase();
+  const themeData = Object.entries(MEMORY_THEMES).find(([k]) =>
+    tema.includes(k.replace(/[^\w]/g,'').toLowerCase())
+  )?.[1] || MEMORY_THEMES['Djur🐾'];
 
-  const pairs = diff === 1 ? 6 : diff === 2 ? 8 : 12;
+  const pairs = diff === 1 ? 6 : diff === 3 ? 12 : 8;
 
   return {
     TITLE:         title || 'Memory',
