@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getStateAtTime, EASING_FUNCTIONS } from '../../lib/animationEngine.js';
 import { TWEEN_PRESETS } from '../../lib/tweenPresets.js';
+import { captureAnimationFrames, exportAnimationAsGif } from '../../lib/gifExport.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const LABEL_WIDTH = 120; // px — object list column
@@ -113,6 +114,8 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
   const [selectedKfId, setSelectedKfId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+
+  const [gifStatus, setGifStatus] = useState(null); // null | 'encoding' | 'done'
 
   const rafRef = useRef(null);
   const startWallRef = useRef(null);
@@ -233,6 +236,51 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
       return { ...o, keyframes: merged };
     });
     updateObjects(newObjects);
+  }
+
+  // ── GIF export ──
+
+  async function handleExportGif() {
+    const hasKeyframes = syncedObjects.some(o => o.keyframes && o.keyframes.length > 0);
+    if (!hasKeyframes) return;
+
+    setGifStatus('encoding');
+    try {
+      const fps = 12;
+      const renderFn = (timeMs, _canvas, ctx) => {
+        ctx.fillStyle = '#1a2332';
+        ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        for (const obj of syncedObjects) {
+          if (!obj.visible || !obj.keyframes || obj.keyframes.length === 0) continue;
+          const state = getStateAtTime(obj.keyframes, timeMs);
+          const cx = PREVIEW_SIZE / 2 + (state.x ?? 0);
+          const cy = PREVIEW_SIZE / 2 + (state.y ?? 0);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity ?? 1));
+          ctx.translate(cx, cy);
+          ctx.rotate(((state.rotation ?? 0) * Math.PI) / 180);
+          ctx.scale(state.scaleX ?? 1, state.scaleY ?? 1);
+          const r = 24;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fillStyle = '#58a6ff';
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = '16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(obj.emoji || '?', 0, 0);
+          ctx.restore();
+        }
+      };
+      const frames = captureAnimationFrames(renderFn, duration, fps, PREVIEW_SIZE, PREVIEW_SIZE);
+      await exportAnimationAsGif(frames, PREVIEW_SIZE, PREVIEW_SIZE, 'animation.gif', fps);
+      setGifStatus('done');
+      setTimeout(() => setGifStatus(null), 2500);
+    } catch (err) {
+      console.error('GIF export failed:', err);
+      setGifStatus(null);
+    }
   }
 
   // ── duration change ──
@@ -367,6 +415,26 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
               ↩
             </button>
           </div>
+          {/* GIF export */}
+          <button
+            onClick={handleExportGif}
+            disabled={gifStatus === 'encoding' || !syncedObjects.some(o => o.keyframes && o.keyframes.length > 0)}
+            style={{
+              marginTop: 8,
+              width: '100%',
+              padding: '8px',
+              borderRadius: 8,
+              border: 'none',
+              background: gifStatus === 'done' ? '#238636' : gifStatus === 'encoding' ? '#21262d' : '#6e40c9',
+              color: gifStatus === 'encoding' ? '#6e7681' : '#fff',
+              fontWeight: 700,
+              cursor: gifStatus === 'encoding' || !syncedObjects.some(o => o.keyframes && o.keyframes.length > 0) ? 'not-allowed' : 'pointer',
+              fontSize: '0.85rem',
+              opacity: !syncedObjects.some(o => o.keyframes && o.keyframes.length > 0) ? 0.5 : 1,
+            }}
+          >
+            {gifStatus === 'encoding' ? 'Skapar GIF...' : gifStatus === 'done' ? '✅ GIF nedladdat!' : '⬇️ Exportera GIF'}
+          </button>
         </div>
 
         {/* Duration selector */}

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { exportPixelGridAsPng } from '../../lib/pngExport.js';
+import { exportAnimationAsGif } from '../../lib/gifExport.js';
 
 const CANVAS_SIZE = 320;
 const MAX_FRAMES = 8;
@@ -126,6 +127,7 @@ export default function PixelEditorBlock({ config, onConfigChange }) {
   const [activeFrame, setActiveFrame] = useState(initActiveFrame);
   const [fps, setFps] = useState(initFps);
   const [activeColor, setActiveColor] = useState('#ff0000');
+  const [gifStatus, setGifStatus] = useState(null); // null | 'encoding' | 'done'
   const [tool, setTool] = useState('pencil');
   const [symmetry, setSymmetry] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -343,6 +345,40 @@ export default function PixelEditorBlock({ config, onConfigChange }) {
   function handleFpsChange(f) {
     setFps(f);
     syncConfig(frames, gridSize, activeFrame, f);
+  }
+
+  async function handleExportGif() {
+    if (frames.length === 0) return;
+    setGifStatus('encoding');
+    try {
+      const scale = 4;
+      const cellPx = gridSize * scale;
+      // Build canvas frames
+      const canvasFrames = frames.map(grid => {
+        const c = document.createElement('canvas');
+        c.width = cellPx;
+        c.height = cellPx;
+        const tc = c.getContext('2d');
+        tc.fillStyle = '#1a1a1a';
+        tc.fillRect(0, 0, cellPx, cellPx);
+        for (let r = 0; r < gridSize; r++) {
+          for (let col = 0; col < gridSize; col++) {
+            const color = grid[r] && grid[r][col];
+            if (color) {
+              tc.fillStyle = color;
+              tc.fillRect(col * scale, r * scale, scale, scale);
+            }
+          }
+        }
+        return c;
+      });
+      await exportAnimationAsGif(canvasFrames, cellPx, cellPx, 'pixelkonst.gif', fps);
+      setGifStatus('done');
+      setTimeout(() => setGifStatus(null), 2500);
+    } catch (err) {
+      console.error('GIF export failed:', err);
+      setGifStatus(null);
+    }
   }
 
   const btnBase = {
@@ -573,19 +609,19 @@ export default function PixelEditorBlock({ config, onConfigChange }) {
           &#x2B07; Exportera PNG
         </button>
         <button
-          disabled
-          title="Kommer snart!"
+          onClick={handleExportGif}
+          disabled={gifStatus === 'encoding'}
+          title="Ladda ner som animerad GIF"
           style={{
             ...btnBase,
             flex: 1,
-            background: '#21262d',
-            color: '#6e7681',
-            border: '2px solid #30363d',
-            cursor: 'not-allowed',
-            opacity: 0.6,
+            background: gifStatus === 'done' ? '#238636' : gifStatus === 'encoding' ? '#21262d' : '#4a1d96',
+            color: gifStatus === 'encoding' ? '#6e7681' : '#e6edf3',
+            border: `2px solid ${gifStatus === 'done' ? '#238636' : gifStatus === 'encoding' ? '#30363d' : '#7c3aed'}`,
+            cursor: gifStatus === 'encoding' ? 'not-allowed' : 'pointer',
           }}
         >
-          &#x1F3AC; GIF
+          {gifStatus === 'encoding' ? 'Skapar...' : gifStatus === 'done' ? '✅ GIF klar!' : '🎬 GIF'}
         </button>
       </div>
 

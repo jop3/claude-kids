@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 import { exportToWav } from '../lib/wavExport.js';
 import { exportCanvasAsPng, exportPixelGridAsPng } from '../lib/pngExport.js';
+import { captureAnimationFrames, exportAnimationAsGif } from '../lib/gifExport.js';
+import { getStateAtTime as getAnimStateAtTime } from '../lib/animationEngine.js';
 import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
 import DrumsBlock from '../blocks/drums/DrumsBlock.jsx';
@@ -72,6 +74,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const [toast, setToast] = useState(null);
   const [celebrate, setCelebrate] = useState(false);
   const [autoSavePending, setAutoSavePending] = useState(!!initialName && !initialProjectId);
+  const [gifExporting, setGifExporting] = useState(false);
   const nameRef = useRef(null);
   const toastTimerRef = useRef(null);
   const canvasDrawRef = useRef(null);
@@ -203,6 +206,56 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       const frames = cfg.frames || [];
       const gridSize = cfg.gridSize || 16;
       exportPixelGridAsPng(frames, gridSize, 'pixelkonst.png', 4);
+    }
+  }
+
+  async function handleExportGif() {
+    const animBlock = addedBlocks.find(b => b.type === 'animation-timeline');
+    if (!animBlock) return;
+    const cfg = blockConfigs[animBlock.id] || {};
+    const objects = cfg.objects || [];
+    const duration = cfg.duration ?? 5000;
+    const hasKeyframes = objects.some(o => o.keyframes && o.keyframes.length > 0);
+    if (!hasKeyframes) { showToast('Lagg till animationer forst!'); return; }
+
+    setGifExporting(true);
+    showToast('Skapar GIF...');
+    try {
+      const PREVIEW_SIZE = 200;
+      const fps = 12;
+      const renderFn = (timeMs, _canvas, ctx) => {
+        ctx.fillStyle = '#1a2332';
+        ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        for (const obj of objects) {
+          if (!obj.visible || !obj.keyframes || obj.keyframes.length === 0) continue;
+          const state = getAnimStateAtTime(obj.keyframes, timeMs);
+          const cx = PREVIEW_SIZE / 2 + (state.x ?? 0);
+          const cy = PREVIEW_SIZE / 2 + (state.y ?? 0);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity ?? 1));
+          ctx.translate(cx, cy);
+          ctx.rotate(((state.rotation ?? 0) * Math.PI) / 180);
+          ctx.scale(state.scaleX ?? 1, state.scaleY ?? 1);
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.fillStyle = '#58a6ff';
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = '16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(obj.emoji || '?', 0, 0);
+          ctx.restore();
+        }
+      };
+      const frames = captureAnimationFrames(renderFn, duration, fps, PREVIEW_SIZE, PREVIEW_SIZE);
+      await exportAnimationAsGif(frames, PREVIEW_SIZE, PREVIEW_SIZE, 'animation.gif', fps);
+      showToast('GIF nedladdat!');
+    } catch (err) {
+      console.error('GIF export error:', err);
+      showToast('Kunde inte exportera GIF');
+    } finally {
+      setGifExporting(false);
     }
   }
 
@@ -624,6 +677,25 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           }}
         >
           PNG
+        </button>
+      )}
+      {cat === 'animation' && addedBlocks.some(b => b.type === 'animation-timeline') && (
+        <button
+          onClick={handleExportGif}
+          disabled={gifExporting}
+          style={{
+            flex: 1,
+            padding: '14px',
+            fontSize: '1rem',
+            fontWeight: 700,
+            borderRadius: 12,
+            border: 'none',
+            background: gifExporting ? '#21262d' : '#4a1d96',
+            color: gifExporting ? '#6e7681' : '#e9d5ff',
+            cursor: gifExporting ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {gifExporting ? '...' : '🎬 GIF'}
         </button>
       )}
     </div>
