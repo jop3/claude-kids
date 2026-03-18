@@ -41,6 +41,7 @@ import SceneSystemBlock from '../blocks/scene-system/SceneSystemBlock.jsx';
 import FontPickerBlock from '../blocks/font-picker/FontPickerBlock.jsx';
 import TextFxBlock from '../blocks/text-fx/TextFxBlock.jsx';
 import FilmstudioBlock from '../blocks/filmstudio/FilmstudioBlock.jsx';
+import HomepageBuilderScreen from './HomepageBuilderScreen.jsx';
 import CardCreatorBlock from '../blocks/card-creator/CardCreatorBlock.jsx';
 import CardDeckBlock from '../blocks/card-deck/CardDeckBlock.jsx';
 import CardHandBlock from '../blocks/card-hand/CardHandBlock.jsx';
@@ -158,6 +159,14 @@ function useIsLandscape() {
 const DEFAULT_NAME = 'Nytt projekt';
 
 export default function BuilderScreen({ navigate, category, projectId: initialProjectId, name: initialName }) {
+  // Route hemsida category to its own dedicated screen
+  if (category === 'hemsida') {
+    return <HomepageBuilderScreen navigate={navigate} category={category} projectId={initialProjectId} name={initialName} />;
+  }
+  return <BuilderScreenInner navigate={navigate} category={category} projectId={initialProjectId} name={initialName} />;
+}
+
+function BuilderScreenInner({ navigate, category, projectId: initialProjectId, name: initialName }) {
   const isLandscape = useIsLandscape();
   const [projectName, setProjectName] = useState(initialName || DEFAULT_NAME);
   const [addedBlocks, setAddedBlocks] = useState([]);

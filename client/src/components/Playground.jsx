@@ -2608,6 +2608,217 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     }
     // ---- END LAROSPEL CATEGORY ----
 
+    // ---- HEMSIDA CATEGORY ----
+    function drawHemsida(t, W, H) {
+      const hs = state;
+      if (!hs.hemInit) {
+        hs.hemInit = true;
+        hs.hemCharX = 0.15;
+        hs.hemCharDir = 1;
+        hs.hemItems = [];
+        hs.hemConfetti = Array.from({ length: 40 }, () => ({
+          x: Math.random(), y: -0.1 - Math.random() * 0.3,
+          vx: (Math.random() - 0.5) * 0.004,
+          vy: 0.003 + Math.random() * 0.005,
+          color: ['#e94560','#f18f01','#3bb273','#2d7dd2','#6c3bbd','#ff6b6b','#ffe66d'][Math.floor(Math.random() * 7)],
+          size: 4 + Math.random() * 6,
+          rot: Math.random() * Math.PI * 2,
+          active: false,
+        }));
+        hs.hemCelebrating = false;
+        hs.hemLastBlockCount = 0;
+        hs.hemCelebStart = 0;
+      }
+
+      const { addedBlocks, celebrate } = propsRef.current;
+      const blockCount = addedBlocks.length;
+
+      // Trigger items/celebrate when blocks are added
+      if (blockCount > hs.hemLastBlockCount) {
+        const newItemEmojis = ['🖼️', '📚', '🎵', '🏆', '❤️', '⭐', '🌈', '🎨'];
+        for (let i = hs.hemLastBlockCount; i < blockCount; i++) {
+          hs.hemItems.push({
+            x: 0.15 + Math.random() * 0.7,
+            y: 0.5 + Math.random() * 0.2,
+            emoji: newItemEmojis[i % newItemEmojis.length],
+            scale: 0,
+            targetScale: 1,
+            born: t,
+          });
+        }
+        hs.hemLastBlockCount = blockCount;
+      }
+
+      if (celebrate && !hs.hemCelebrating) {
+        hs.hemCelebrating = true;
+        hs.hemCelebStart = t;
+        hs.hemConfetti.forEach(c => {
+          c.x = Math.random();
+          c.y = -0.1 - Math.random() * 0.4;
+          c.vx = (Math.random() - 0.5) * 0.005;
+          c.vy = 0.004 + Math.random() * 0.006;
+          c.active = true;
+        });
+      }
+      if (hs.hemCelebrating && t - hs.hemCelebStart > 2.5) {
+        hs.hemCelebrating = false;
+        hs.hemConfetti.forEach(c => { c.active = false; });
+      }
+
+      // Cozy room background
+      const wallGrad = ctx.createLinearGradient(0, 0, 0, H * 0.82);
+      wallGrad.addColorStop(0, '#f5e6d3');
+      wallGrad.addColorStop(1, '#eedcc7');
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(0, 0, W, H * 0.82);
+
+      // Wood floor
+      ctx.fillStyle = '#c4894a';
+      ctx.fillRect(0, H * 0.82, W, H * 0.18);
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#b8763d' : '#c4894a';
+        ctx.fillRect(i * (W / 8), H * 0.82, W / 8, H * 0.18);
+      }
+      // Floor divider
+      ctx.strokeStyle = '#a0622e';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, H * 0.82); ctx.lineTo(W, H * 0.82); ctx.stroke();
+
+      // Wall stripe / wallpaper pattern
+      ctx.globalAlpha = 0.06;
+      for (let i = 0; i < 20; i++) {
+        ctx.fillStyle = '#888';
+        ctx.fillRect(i * (W / 20), 0, 2, H * 0.82);
+      }
+      ctx.globalAlpha = 1;
+
+      // Window (back wall)
+      const winX = W * 0.65, winY = H * 0.05, winW = W * 0.28, winH = H * 0.35;
+      ctx.fillStyle = '#87ceeb';
+      ctx.beginPath(); ctx.roundRect(winX, winY, winW, winH, 6); ctx.fill();
+      // Sky outside window
+      const skyGrad = ctx.createLinearGradient(winX, winY, winX, winY + winH);
+      skyGrad.addColorStop(0, '#87ceeb');
+      skyGrad.addColorStop(1, '#e0f0ff');
+      ctx.fillStyle = skyGrad;
+      ctx.beginPath(); ctx.roundRect(winX, winY, winW, winH, 6); ctx.fill();
+      // Sun in window
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath(); ctx.arc(winX + winW * 0.75, winY + winH * 0.28, winH * 0.14, 0, Math.PI * 2); ctx.fill();
+      // Window frame
+      ctx.strokeStyle = '#8B6914';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.roundRect(winX, winY, winW, winH, 6); ctx.stroke();
+      // Curtains
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.moveTo(winX - 2, winY - 2);
+      ctx.quadraticCurveTo(winX + winW * 0.18, winY + winH * 0.5, winX + winW * 0.12, winY + winH + 2);
+      ctx.lineTo(winX - 2, winY + winH + 2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.moveTo(winX + winW + 2, winY - 2);
+      ctx.quadraticCurveTo(winX + winW * 0.82, winY + winH * 0.5, winX + winW * 0.88, winY + winH + 2);
+      ctx.lineTo(winX + winW + 2, winY + winH + 2);
+      ctx.closePath(); ctx.fill();
+      // Curtain rod
+      ctx.strokeStyle = '#b5651d';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(winX - 12, winY - 3); ctx.lineTo(winX + winW + 12, winY - 3); ctx.stroke();
+      ctx.fillStyle = '#b5651d';
+      ctx.beginPath(); ctx.arc(winX - 12, winY - 3, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(winX + winW + 12, winY - 3, 4, 0, Math.PI * 2); ctx.fill();
+
+      // Items placed on the wall / floor as blocks are added
+      hs.hemItems.forEach(item => {
+        const age = t - item.born;
+        const sc = Math.min(1, item.scale + 0.08);
+        item.scale = sc;
+        const bounce = Math.abs(Math.sin(age * 4)) * 0.05 * Math.max(0, 1 - age * 0.3);
+        const finalSc = sc * (1 + bounce);
+        ctx.save();
+        ctx.translate(item.x * W, item.y * H);
+        ctx.scale(finalSc, finalSc);
+        ctx.font = `${Math.round(W * 0.045)}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.emoji, 0, 0);
+        ctx.restore();
+      });
+
+      // Character (stick figure) walking around
+      hs.hemCharX += 0.003 * hs.hemCharDir;
+      if (hs.hemCharX > 0.75) { hs.hemCharX = 0.75; hs.hemCharDir = -1; }
+      if (hs.hemCharX < 0.1) { hs.hemCharX = 0.1; hs.hemCharDir = 1; }
+      const cX = hs.hemCharX * W;
+      const cY = H * 0.76;
+      const cH = H * 0.14;
+      const legSwing = Math.sin(t * 4) * 0.3;
+      ctx.strokeStyle = '#5b3a29';
+      ctx.lineWidth = Math.max(2, W * 0.006);
+      ctx.lineCap = 'round';
+      // Head
+      ctx.fillStyle = '#fcd5a0';
+      ctx.beginPath(); ctx.arc(cX, cY - cH * 0.85, cH * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#c4894a'; ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.strokeStyle = '#5b3a29'; ctx.lineWidth = Math.max(2, W * 0.006);
+      // Body
+      ctx.beginPath(); ctx.moveTo(cX, cY - cH * 0.66); ctx.lineTo(cX, cY - cH * 0.2); ctx.stroke();
+      // Arms
+      ctx.beginPath();
+      ctx.moveTo(cX, cY - cH * 0.55);
+      ctx.lineTo(cX + Math.cos(legSwing + 1) * cH * 0.3, cY - cH * 0.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cX, cY - cH * 0.55);
+      ctx.lineTo(cX - Math.cos(legSwing + 1) * cH * 0.3, cY - cH * 0.3);
+      ctx.stroke();
+      // Legs
+      ctx.beginPath();
+      ctx.moveTo(cX, cY - cH * 0.2);
+      ctx.lineTo(cX + Math.sin(legSwing) * cH * 0.3, cY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cX, cY - cH * 0.2);
+      ctx.lineTo(cX - Math.sin(legSwing) * cH * 0.3, cY);
+      ctx.stroke();
+
+      // Confetti on celebrate
+      hs.hemConfetti.forEach(c => {
+        if (!c.active) return;
+        c.x += c.vx;
+        c.y += c.vy;
+        c.rot += 0.05;
+        if (c.y > 1.1) c.active = false;
+        ctx.save();
+        ctx.translate(c.x * W, c.y * H);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.6);
+        ctx.restore();
+      });
+
+      // Celebrate text
+      if (hs.hemCelebrating) {
+        const age = t - hs.hemCelebStart;
+        const alpha = Math.min(1, age * 3) * Math.max(0, 1 - (age - 1.8) * 2);
+        ctx.globalAlpha = alpha;
+        ctx.font = `bold ${Math.round(W * 0.065)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#6c3bbd';
+        ctx.shadowBlur = 10;
+        const bounce2 = Math.sin(age * 8) * 3;
+        ctx.fillText('MIN HEMSIDA! 🏠', W / 2, H * 0.45 + bounce2);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+    }
+    // ---- END HEMSIDA CATEGORY ----
+
     function applyColorTint(t, W, H) {
       const { color } = propsRef.current;
       if (!color) return;
@@ -2649,6 +2860,7 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       else if (cat === 'kortspel') drawKortspel(t, W, H);
       else if (cat === 'bradspel') drawBradspel(t, W, H);
       else if (cat === 'larospel') drawLarospel(t, W, H);
+      else if (cat === 'hemsida') drawHemsida(t, W, H);
       else                       drawDefault(t, W, H);
 
       // Theme ground bar (only for non-spel which draws its own)
