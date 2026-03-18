@@ -45,6 +45,7 @@ export default function App() {
       onConfirm: (pickedName) => {
         if (returnTo === 'saveResult') {
           const proj = createProject(rest.category, rest.answers, rest.file, pickedName);
+          if (rest.thumb) proj.thumb = rest.thumb;
           saveProject(proj);
           navigate('myStuff');
         } else if (returnTo === 'builder') {

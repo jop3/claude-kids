@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getMemoryConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1282,6 +1282,12 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
   const catLabel = wizConfig.label ?? category;
   const catEmoji = wizConfig.emoji ?? '⚙️';
 
+  function getThumb() {
+    const canvas = canvasRef.current;
+    if (!canvas) return '';
+    try { return canvas.toDataURL('image/jpeg', 0.6); } catch { return ''; }
+  }
+
   // Generation via SSE
   useEffect(() => {
     const controller = new AbortController();
@@ -1335,13 +1341,34 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                   });
                   const renderData = await renderResp.json();
                   if (renderData.file) {
-                    navigate('result', { category, answers, file: renderData.file });
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
                   } else {
                     navigate('result', { category, answers, error: true });
                   }
                   return;
                 }
-                navigate('result', { category, answers, file: detectedFile });
+                if (category === 'kortspel' && answers?.speltyp === 'memory') {
+                  let title = 'Memory';
+                  try {
+                    const parsed = JSON.parse(accText.trim());
+                    if (parsed.title) title = parsed.title;
+                  } catch {}
+                  const config = getMemoryConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'memory', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                navigate('result', { category, answers, file: detectedFile, thumb: getThumb() });
                 return;
               }
               if (obj.type === 'error') {

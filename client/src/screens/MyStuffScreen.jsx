@@ -95,8 +95,16 @@ function ProjectCard({ project, navigate, onDeleted }) {
       onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
     >
-      {/* Category emoji */}
-      <div style={{ fontSize: 40, lineHeight: 1 }}>{emoji}</div>
+      {/* Thumbnail or emoji */}
+      {project.thumb ? (
+        <img
+          src={project.thumb}
+          alt=""
+          style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 12, marginBottom: 4 }}
+        />
+      ) : (
+        <div style={{ fontSize: 40, lineHeight: 1 }}>{emoji}</div>
+      )}
 
       {/* Project name */}
       <div style={{
