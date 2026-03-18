@@ -22,6 +22,8 @@ function lerp(a, b, t) { return a + (b - a) * t; }
 const NOTE_SYMBOLS = ['♩', '♪', '♫', '♬'];
 const NOTE_COLORS = ['#a78bfa', '#f472b6', '#4ecdc4', '#f59e0b', '#818cf8'];
 
+const ART_SPLASH_COLORS = ['#e94560','#f18f01','#3bb273','#2d7dd2','#6c3bbd','#ff6b6b','#ffe66d','#4ecdc4'];
+
 export default function Playground({ category, theme = 'default', color, bpm = 120, addedBlocks = [], isPlaying = false }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -85,6 +87,23 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         spawnAt: Math.random() * 3,
       }));
 
+      // Art / ritprogram state
+      const artPaintStrokes = [];
+      const artSplashes = [];
+      const artDrops = Array.from({ length: 12 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: 4 + Math.random() * 4,
+        color: ART_SPLASH_COLORS[Math.floor(Math.random() * ART_SPLASH_COLORS.length)],
+        vy: 0.0008 + Math.random() * 0.0006,
+        drift: (Math.random() - 0.5) * 0.0003,
+        alpha: 0.6 + Math.random() * 0.4,
+      }));
+      const PIXEL_COLS = 8;
+      const PIXEL_ROWS = 6;
+      const pixelGrid = Array.from({ length: PIXEL_COLS * PIXEL_ROWS }, () => null);
+      const pastelColors = ['#ffadad','#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff','#fffffc'];
+
       stateRef.current = {
         t: 0,
         charX: 0.2,
@@ -97,6 +116,17 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         lastNoteSpawn: 0,
         currentBg: null,
         targetBg: null,
+        // art
+        artPaintStrokes,
+        artSplashes,
+        artDrops,
+        pixelGrid,
+        pastelColors,
+        lastSplashTime: 0,
+        lastPixelFill: 0,
+        lastStrokeTime: 0,
+        artSpriteWave: 0,
+        artSparkles: [],
       };
     }
 
@@ -411,40 +441,269 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     }
 
     function drawRitprogram(t, W, H) {
-      const { color } = propsRef.current;
-      // Colorful bg
-      ctx.fillStyle = '#1a0a2e';
+      const { color, addedBlocks } = propsRef.current;
+
+      // Background
+      ctx.fillStyle = '#fdf6e3';
       ctx.fillRect(0, 0, W, H);
 
-      // Floating paint splashes
-      state.splashes.forEach(s => {
-        const pulse = 1 + s.pulsate * Math.sin(t * 1.5 + s.phase);
-        ctx.globalAlpha = 0.35;
-        ctx.fillStyle = `hsl(${s.hue}, 80%, 60%)`;
+      // --- Pixel grid materializing in background ---
+      const PCOLS = 8, PROWS = 6;
+      const cellW = Math.floor(W * 0.55 / PCOLS);
+      const cellH = Math.floor(H * 0.55 / PROWS);
+      const gridX = W * 0.05;
+      const gridY = H * 0.08;
+
+      // Fill one cell per second
+      if (t - state.lastPixelFill > 1.0) {
+        state.lastPixelFill = t;
+        const empty = state.pixelGrid.map((c, i) => c === null ? i : -1).filter(i => i >= 0);
+        if (empty.length === 0) {
+          // Reset
+          for (let i = 0; i < state.pixelGrid.length; i++) state.pixelGrid[i] = null;
+        } else {
+          const pick = empty[Math.floor(Math.random() * empty.length)];
+          state.pixelGrid[pick] = state.pastelColors[Math.floor(Math.random() * state.pastelColors.length)];
+        }
+      }
+      for (let row = 0; row < PROWS; row++) {
+        for (let col = 0; col < PCOLS; col++) {
+          const c = state.pixelGrid[row * PCOLS + col];
+          const px = gridX + col * (cellW + 1);
+          const py = gridY + row * (cellH + 1);
+          if (c) {
+            ctx.fillStyle = c;
+            ctx.globalAlpha = 0.55;
+            ctx.fillRect(px, py, cellW, cellH);
+          }
+          ctx.globalAlpha = 0.12;
+          ctx.strokeStyle = '#888';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(px, py, cellW, cellH);
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // --- Canvas texture (parchment rectangle center-right) ---
+      const canvX = W * 0.55, canvY = H * 0.12, canvW = W * 0.38, canvH = H * 0.65;
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#fffbe8';
+      ctx.strokeStyle = '#d4b896';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(canvX, canvY, canvW, canvH, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // --- Paint strokes accumulate on the ground ---
+      if (t - state.lastStrokeTime > 0.6) {
+        state.lastStrokeTime = t;
+        const cx0 = W * 0.3 + (Math.random() - 0.5) * W * 0.25;
+        const groundY = H * 0.84;
+        state.artPaintStrokes.push({
+          x: cx0, y: groundY,
+          len: 12 + Math.random() * 20,
+          angle: (Math.random() - 0.5) * 0.8,
+          color: ART_SPLASH_COLORS[Math.floor(Math.random() * ART_SPLASH_COLORS.length)],
+          w: 3 + Math.random() * 4,
+        });
+        if (state.artPaintStrokes.length > 30) state.artPaintStrokes.shift();
+      }
+      state.artPaintStrokes.forEach(s => {
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.angle);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = s.w;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.75;
         ctx.beginPath();
-        ctx.arc(s.x * W, s.y * H, s.r * pulse, 0, Math.PI * 2);
+        ctx.moveTo(-s.len / 2, 0);
+        ctx.lineTo(s.len / 2, 0);
+        ctx.stroke();
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+
+      // --- Color splashes: spawn every 2s, grow then fade ---
+      if (t - state.lastSplashTime > 2.0 && state.artSplashes.length < 8) {
+        state.lastSplashTime = t;
+        state.artSplashes.push({
+          x: W * (0.1 + Math.random() * 0.8),
+          y: H * (0.3 + Math.random() * 0.5),
+          color: ART_SPLASH_COLORS[Math.floor(Math.random() * ART_SPLASH_COLORS.length)],
+          born: t,
+        });
+      }
+      state.artSplashes = state.artSplashes.filter(s => {
+        const age = t - s.born;
+        if (age > 1.0) return false;
+        let r, alpha;
+        if (age < 0.5) {
+          r = 5 + (age / 0.5) * 20;
+          alpha = 0.7;
+        } else {
+          r = 25;
+          alpha = 0.7 * (1 - (age - 0.5) / 0.5);
+        }
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      // --- Floating paint drops from top ---
+      state.artDrops.forEach(d => {
+        d.y += d.vy;
+        d.x += d.drift;
+        if (d.y > 1.05) {
+          d.y = -0.05;
+          d.x = Math.random();
+          d.color = ART_SPLASH_COLORS[Math.floor(Math.random() * ART_SPLASH_COLORS.length)];
+        }
+        const fadeStart = 0.75;
+        const alpha = d.y > fadeStart ? d.alpha * (1 - (d.y - fadeStart) / 0.3) : d.alpha;
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.fillStyle = d.color;
+        ctx.beginPath();
+        ctx.arc(d.x * W, d.y * H, d.r, 0, Math.PI * 2);
         ctx.fill();
       });
       ctx.globalAlpha = 1;
 
-      // Character with paintbrush
-      const bounceY = 5 * Math.sin(t * 1.5);
-      const cx = W * 0.45, cy = H * 0.55;
-      drawSmiley(cx, cy, 26, bounceY, 0);
+      // --- addedBlocks reactions ---
+      const hasSprite = addedBlocks.some(b => b.type === 'sprite-picker');
+      const hasParticle = addedBlocks.some(b => b.type === 'particle-fx');
 
-      // Paintbrush arm
-      const by = cy + bounceY;
-      ctx.strokeStyle = '#e6edf3';
+      // Sprite silhouette waves at bottom-left if sprite-picker added
+      if (hasSprite) {
+        const sx = W * 0.12, sy = H * 0.72;
+        const wave = Math.sin(t * 3) * 0.15;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.globalAlpha = 0.7;
+        // Head
+        ctx.fillStyle = '#ffadad';
+        ctx.beginPath();
+        ctx.arc(0, -18, 10, 0, Math.PI * 2);
+        ctx.fill();
+        // Body
+        ctx.fillStyle = '#a0c4ff';
+        ctx.beginPath();
+        ctx.roundRect(-8, -8, 16, 22, 4);
+        ctx.fill();
+        // Waving arm
+        ctx.save();
+        ctx.translate(8, -5);
+        ctx.rotate(-0.4 + wave * 3);
+        ctx.fillStyle = '#ffadad';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 5, 16, 3);
+        ctx.fill();
+        ctx.restore();
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+
+      // Sparkles rain from top if particle-fx added
+      if (hasParticle) {
+        // Spawn new sparkles
+        if (state.artSparkles.length < 20 && Math.random() < 0.3) {
+          state.artSparkles.push({
+            x: Math.random() * W,
+            y: 0,
+            vy: 1 + Math.random() * 2,
+            alpha: 1,
+            size: 10 + Math.random() * 8,
+            rot: Math.random() * Math.PI * 2,
+            color: ART_SPLASH_COLORS[Math.floor(Math.random() * ART_SPLASH_COLORS.length)],
+          });
+        }
+        state.artSparkles = state.artSparkles.filter(sp => {
+          sp.y += sp.vy;
+          sp.alpha -= 0.01;
+          sp.rot += 0.05;
+          if (sp.alpha <= 0 || sp.y > H) return false;
+          ctx.save();
+          ctx.translate(sp.x, sp.y);
+          ctx.rotate(sp.rot);
+          ctx.globalAlpha = sp.alpha;
+          ctx.fillStyle = sp.color;
+          ctx.font = `${sp.size}px serif`;
+          ctx.fillText('✨', -sp.size / 2, sp.size / 2);
+          ctx.restore();
+          return true;
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // --- Paintbrush character ---
+      const charCx = W * 0.32, charCy = H * 0.62;
+      const armSwing = 0.7 * Math.sin(t * 2.0); // painting rhythm
+      const bounceY = 4 * Math.sin(t * 2.0);
+      const by = charCy + bounceY;
+
+      // Left arm (simple)
+      ctx.save();
+      ctx.translate(charCx - 26, by);
+      ctx.rotate(Math.PI * 0.5 + 0.3 * Math.sin(t * 1.5));
+      ctx.strokeStyle = '#ffe066';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(cx + 26, by);
-      ctx.lineTo(cx + 58, by - 20);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 28);
       ctx.stroke();
-      // Brush tip with color
-      ctx.fillStyle = color || '#f0a030';
+      ctx.restore();
+
+      // Right arm holding paintbrush — moves up/down
+      const brushAngle = -0.5 + armSwing * 0.5;
+      const armLen = 30;
+      const brushTipX = charCx + 26 + Math.cos(brushAngle) * armLen;
+      const brushTipY = by + Math.sin(brushAngle) * armLen;
+
+      // Arm line
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.ellipse(cx + 62, by - 23, 7, 4, -0.4, 0, Math.PI * 2);
+      ctx.moveTo(charCx + 26, by);
+      ctx.lineTo(brushTipX, brushTipY);
+      ctx.stroke();
+
+      // Paintbrush handle (rectangle)
+      ctx.save();
+      ctx.translate(brushTipX, brushTipY);
+      ctx.rotate(brushAngle + Math.PI * 0.1);
+      ctx.fillStyle = '#a0522d';
+      ctx.beginPath();
+      ctx.roundRect(-3, -22, 6, 22, 2);
       ctx.fill();
+      // Brush ferrule
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(-4, -24, 8, 5);
+      // Brush bristles
+      ctx.fillStyle = color || '#e94560';
+      ctx.beginPath();
+      ctx.ellipse(0, -30, 5, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Head
+      drawSmiley(charCx, charCy, 26, bounceY, 0.08 * Math.sin(t * 2.0));
+
+      // Ground line
+      ctx.strokeStyle = '#c8a800';
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.85);
+      ctx.lineTo(W, H * 0.85);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     function drawRostlab(t, W, H) {
