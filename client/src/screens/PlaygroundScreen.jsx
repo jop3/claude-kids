@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1321,11 +1321,16 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     const parsed = JSON.parse(accText.trim());
                     if (parsed.title) title = parsed.title;
                   } catch {}
-                  const config = getSpelConfig(answers ?? {}, title);
+                  const speltyp = answers?.speltyp ?? '';
+                  const isRunner = speltyp.toLowerCase().includes('runner');
+                  const config = isRunner
+                    ? getRunnerConfig(answers ?? {}, title)
+                    : getSpelConfig(answers ?? {}, title);
+                  const templateName = isRunner ? 'runner' : 'platform';
                   const renderResp = await fetch('/api/render-template', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ templateName: 'platform', config }),
+                    body: JSON.stringify({ templateName, config }),
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();
