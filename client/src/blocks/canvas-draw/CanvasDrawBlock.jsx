@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { floodFill } from './floodFill.js';
+import { exportCanvasAsPng } from '../../lib/pngExport.js';
 
 const TOOLS = [
   { id: 'round',  label: 'Rund',    emoji: '\uD83D\uDD8C\uFE0F' },
@@ -22,12 +23,19 @@ const CANVAS_W = 480;
 const CANVAS_H = 360;
 const LAYER_COUNT = 3;
 
-export default function CanvasDrawBlock({ config, onConfigChange }) {
+const CanvasDrawBlock = forwardRef(function CanvasDrawBlock({ config, onConfigChange, projectName }, ref) {
   const [tool, setTool] = useState('round');
   const [brushSize, setBrushSize] = useState(10);
   const [color, setColor] = useState('#e94560');
   const [activeLayer, setActiveLayer] = useState(0);
   const [layerOpacity, setLayerOpacity] = useState([100, 100, 100]);
+  const [exportToast, setExportToast] = useState(false);
+  const exportToastTimer = useRef(null);
+
+  // Expose exportPng for parent components
+  useImperativeHandle(ref, () => ({
+    exportPng,
+  }));
 
   // Refs for the 3 canvas layers
   const canvasRefs = [useRef(null), useRef(null), useRef(null)];
@@ -94,7 +102,7 @@ export default function CanvasDrawBlock({ config, onConfigChange }) {
   }
 
   function exportPng() {
-    // Flatten all layers onto a temp canvas
+    // Build an offscreen canvas with layer opacity applied before compositing
     const tmp = document.createElement('canvas');
     tmp.width = CANVAS_W;
     tmp.height = CANVAS_H;
@@ -108,11 +116,12 @@ export default function CanvasDrawBlock({ config, onConfigChange }) {
       tc.drawImage(c, 0, 0);
     }
     tc.globalAlpha = 1;
-    const url = tmp.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ritning.png';
-    a.click();
+    const filename = (projectName ? projectName + '_ritning' : 'ritning') + '.png';
+    exportCanvasAsPng([tmp], filename);
+    // Show toast
+    if (exportToastTimer.current) clearTimeout(exportToastTimer.current);
+    setExportToast(true);
+    exportToastTimer.current = setTimeout(() => setExportToast(false), 2000);
   }
 
   function getCanvasPos(e) {
@@ -258,7 +267,26 @@ export default function CanvasDrawBlock({ config, onConfigChange }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, color: '#e6edf3' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, color: '#e6edf3', position: 'relative' }}>
+      {exportToast && (
+        <div style={{
+          position: 'absolute',
+          top: 8,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#238636',
+          color: '#fff',
+          padding: '6px 18px',
+          borderRadius: 20,
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          zIndex: 999,
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          Laddar ner!
+        </div>
+      )}
       {/* Canvas area */}
       <div style={{
         position: 'relative',
@@ -421,4 +449,6 @@ export default function CanvasDrawBlock({ config, onConfigChange }) {
       </div>
     </div>
   );
-}
+});
+
+export default CanvasDrawBlock;

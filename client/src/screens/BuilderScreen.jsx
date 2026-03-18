@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 import { exportToWav } from '../lib/wavExport.js';
+import { exportCanvasAsPng, exportPixelGridAsPng } from '../lib/pngExport.js';
 import ColorPickerBlock from '../blocks/ColorPickerBlock.jsx';
 import ColorPickerPreview from '../blocks/ColorPickerPreview.jsx';
 import DrumsBlock from '../blocks/drums/DrumsBlock.jsx';
@@ -64,6 +65,7 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
   const [autoSavePending, setAutoSavePending] = useState(!!initialName && !initialProjectId);
   const nameRef = useRef(null);
   const toastTimerRef = useRef(null);
+  const canvasDrawRef = useRef(null);
 
   const cat = category || 'musik';
   const catEmoji = CATEGORY_EMOJI[cat] || '🎵';
@@ -174,6 +176,22 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
     } catch (err) {
       console.error('WAV export failed:', err);
       showToast('Kunde inte exportera');
+    }
+  }
+
+  function handleExportPng() {
+    const canvasDrawBlock = addedBlocks.find(b => b.type === 'canvas-draw');
+    const pixelEditorBlock = addedBlocks.find(b => b.type === 'pixel-editor');
+
+    if (canvasDrawBlock && canvasDrawRef.current) {
+      canvasDrawRef.current.exportPng();
+      return;
+    }
+    if (pixelEditorBlock) {
+      const cfg = blockConfigs[pixelEditorBlock.id] || {};
+      const frames = cfg.frames || [];
+      const gridSize = cfg.gridSize || 16;
+      exportPixelGridAsPng(frames, gridSize, 'pixelkonst.png', 4);
     }
   }
 
@@ -457,8 +475,10 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'canvas-draw' ? (
             <CanvasDrawBlock
+              ref={canvasDrawRef}
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+              projectName={projectName}
             />
           ) : selectedBlock.type === 'pixel-editor' ? (
             <PixelEditorBlock
@@ -556,6 +576,24 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
       >
         ⬇ WAV
       </button>
+      {cat === 'ritprogram' && (addedBlocks.some(b => b.type === 'canvas-draw') || addedBlocks.some(b => b.type === 'pixel-editor')) && (
+        <button
+          onClick={handleExportPng}
+          style={{
+            flex: 1,
+            padding: '14px',
+            fontSize: '1rem',
+            fontWeight: 700,
+            borderRadius: 12,
+            border: 'none',
+            background: '#1a3a2a',
+            color: '#7bff7b',
+            cursor: 'pointer',
+          }}
+        >
+          PNG
+        </button>
+      )}
     </div>
   );
 

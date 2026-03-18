@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { exportPixelGridAsPng } from '../../lib/pngExport.js';
 
 const CANVAS_SIZE = 320;
 const MAX_FRAMES = 8;
@@ -554,6 +555,38 @@ export default function PixelEditorBlock({ config, onConfigChange }) {
             +
           </button>
         )}
+      </div>
+
+      {/* Export buttons */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 2 }}>
+        <button
+          onClick={() => exportPixelGridAsPng(frames, gridSize, 'pixelkonst.png', 4)}
+          style={{
+            ...btnBase,
+            flex: 1,
+            background: '#1a2d1a',
+            color: '#7bff7b',
+            border: '2px solid #206e20',
+          }}
+          title="Ladda ner som PNG"
+        >
+          &#x2B07; Exportera PNG
+        </button>
+        <button
+          disabled
+          title="Kommer snart!"
+          style={{
+            ...btnBase,
+            flex: 1,
+            background: '#21262d',
+            color: '#6e7681',
+            border: '2px solid #30363d',
+            cursor: 'not-allowed',
+            opacity: 0.6,
+          }}
+        >
+          &#x1F3AC; GIF
+        </button>
       </div>
 
       {/* Animation controls */}
