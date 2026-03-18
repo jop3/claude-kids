@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: linear-gradient(135deg, {{BG_TOP}}, {{BG_BOT}});
+  min-height:100vh;
+  font-family:'Arial Rounded MT Bold', Arial, sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  overflow:hidden;
+}
+#header {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  padding:12px 20px; background:rgba(0,0,0,0.35);
+}
+.pill { background:rgba(0,0,0,0.45); border-radius:20px; padding:8px 16px;
+        color:#fff; font-size:1.1rem; font-weight:bold; }
+#board {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:16px; width:100%;
+}
+#grid {
+  display:grid;
+  gap:10px;
+}
+.card {
+  perspective: 800px;
+  cursor:pointer;
+}
+.card-inner {
+  position:relative;
+  width:100%; height:100%;
+  transition: transform 0.45s cubic-bezier(.4,2,.6,1);
+  transform-style: preserve-3d;
+}
+.card.flipped .card-inner,
+.card.matched .card-inner {
+  transform: rotateY(180deg);
+}
+.card-front, .card-back {
+  position:absolute; inset:0;
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.card-back {
+  background: {{CARD_BACK}};
+  border: 3px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  font-size:2rem;
+}
+.card-front {
+  transform: rotateY(180deg);
+  background: {{CARD_FRONT}};
+  border: 3px solid rgba(255,255,255,0.35);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  font-size:2.5rem;
+}
+.card.matched .card-front {
+  background: {{MATCHED_COLOR}};
+  border-color: rgba(255,255,255,0.6);
+  animation: matchPop 0.4s ease forwards;
+}
+@keyframes matchPop {
+  0%   { transform: rotateY(180deg) scale(1); }
+  40%  { transform: rotateY(180deg) scale(1.18); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
+.card.shake {
+  animation: shake 0.35s ease;
+}
+@keyframes shake {
+  0%,100% { transform:translateX(0); }
+  20%    { transform:translateX(-8px); }
+  60%    { transform:translateX(8px); }
+}
+/* Win overlay */
+#win {
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.75);
+  flex-direction:column; align-items:center; justify-content:center;
+  z-index:20;
+}
+#win h1 { font-size:3.5rem; color:#fff; text-shadow:0 0 30px {{ACCENT}}; margin-bottom:8px; }
+#win .stars { font-size:3rem; margin:12px 0; }
+#win p { color:#ddd; font-size:1.3rem; margin-bottom:28px; text-align:center; max-width:320px; }
+#win button {
+  font-size:1.3rem; font-weight:bold; padding:16px 48px;
+  border:none; border-radius:20px; cursor:pointer;
+  background:{{ACCENT}}; color:#fff;
+  box-shadow:0 4px 20px {{ACCENT}}88;
+  transition:transform 0.1s;
+}
+#win button:active { transform:scale(0.95); }
+/* Confetti */
+.confetto {
+  position:fixed; top:-10px; width:10px; height:10px;
+  border-radius:2px; pointer-events:none; z-index:25;
+  animation: fall linear forwards;
+}
+@keyframes fall {
+  to { transform: translateY(110vh) rotate(720deg); opacity:0; }
+}
+</style>
+</head>
+<body>
+<div id="header">
+  <div class="pill">🃏 <span id="pairs-left">0</span> kvar</div>
+  <div class="pill" id="title-pill">{{TITLE}}</div>
+  <div class="pill">🔁 <span id="moves">0</span> drag</div>
+</div>
+<div id="board">
+  <div id="grid"></div>
+</div>
+<div id="win">
+  <h1>🎉 Du vann!</h1>
+  <div class="stars" id="win-stars">⭐⭐⭐</div>
+  <p id="win-msg">Bra jobbat!</p>
+  <button onclick="newGame()">▶ Spela igen!</button>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const CFG = {
+  title:     '{{TITLE}}',
+  theme:     '{{THEME}}',
+  pairs:      parseInt('{{PAIRS}}')  || 8,
+  accent:    '{{ACCENT}}',
+};
+
+// ─── EMOJI SETS BY THEME ─────────────────────────────────────────────────────
+const THEMES = {
+  djur:    ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐙','🦋','🐬','🦄'],
+  rymden:  ['🚀','🌙','⭐','🪐','☄️','🛸','🌟','🔭','🌌','💫','🪨','🌍','🌏','🌠','🛰️','👽','🌒','🌑'],
+  mat:     ['🍕','🍔','🌮','🍦','🍩','🍓','🥐','🍣','🥑','🍉','🍟','🧁','🍪','🍫','🥨','🍇','🍑','🥞'],
+  sport:   ['⚽','🏀','🎾','🏈','🎱','🏓','⛷️','🚴','🏊','🤸','🥊','🏋️','⛸️','🎿','🏄','🥋','🎯','🎽'],
+  dinosaurier: ['🦕','🦖','🐉','🦴','🌿','🌋','🥚','💎','🦷','🌊','🏔️','🌴','🍖','🔮','🌑','🌾','🏝️','🌡️'],
+  superhjältar: ['🦸','🦹','🦄','⚡','🌟','🛡️','⚔️','🔥','💥','🎭','🦅','🕷️','❄️','🌊','🎯','💎','🔑','🎪'],
+};
+
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+let AC;
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(freq, dur, type='sine', vol=0.3) {
+  if (!AC) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+    o.start(); o.stop(AC.currentTime + dur);
+  } catch {}
+}
+function playFlip()  { beep(440, 0.07, 'sine', 0.2); }
+function playMatch() {
+  [523, 659, 784, 1047].forEach((f,i) => setTimeout(() => beep(f, 0.12, 'sine', 0.25), i*60));
+}
+function playMiss()  { beep(200, 0.15, 'sawtooth', 0.2); }
+function playWin()   {
+  [523,659,784,1047,1319].forEach((f,i) => setTimeout(() => beep(f, 0.2, 'sine', 0.3), i*80));
+}
+
+// ─── GAME STATE ──────────────────────────────────────────────────────────────
+let cards = [], flipped = [], moves = 0, matchedPairs = 0;
+let locked = false;
+
+function getEmojis() {
+  const themeKey = Object.keys(THEMES).find(k => CFG.theme.toLowerCase().includes(k)) || 'djur';
+  const pool = THEMES[themeKey];
+  // Shuffle and take CFG.pairs
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, CFG.pairs);
+}
+
+function newGame() {
+  document.getElementById('win').style.display = 'none';
+  flipped = []; moves = 0; matchedPairs = 0; locked = false;
+  document.getElementById('moves').textContent = '0';
+  document.getElementById('pairs-left').textContent = CFG.pairs;
+
+  const emojis = getEmojis();
+  const deck = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+  cards = deck.map((emoji, i) => ({ id: i, emoji, matched: false }));
+
+  renderGrid(deck.length);
+}
+
+function renderGrid(count) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  // Calculate grid dimensions to fit screen
+  const boardW = window.innerWidth - 32;
+  const boardH = window.innerHeight - 80;
+
+  let cols, rows;
+  if (count <= 12) {
+    cols = count <= 8 ? 4 : (count <= 10 ? 5 : 4);
+    rows = Math.ceil(count / cols);
+  } else if (count <= 20) {
+    cols = 5;
+    rows = Math.ceil(count / cols);
+  } else {
+    cols = 6;
+    rows = Math.ceil(count / cols);
+  }
+
+  const cardW = Math.floor(Math.min((boardW - (cols-1)*10) / cols, (boardH - (rows-1)*10) / rows, 120));
+  const cardH = cardW;
+
+  grid.style.gridTemplateColumns = `repeat(${cols}, ${cardW}px)`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, ${cardH}px)`;
+
+  // Adjust font sizes based on card size
+  document.querySelectorAll('.card-front, .card-back').forEach(el => {
+    el.style.fontSize = Math.floor(cardW * 0.5) + 'px';
+  });
+
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.id = card.id;
+    el.style.width  = cardW + 'px';
+    el.style.height = cardH + 'px';
+    el.innerHTML = `
+      <div class="card-inner">
+        <div class="card-back" style="font-size:${Math.floor(cardW*0.45)}px">🃏</div>
+        <div class="card-front" style="font-size:${Math.floor(cardW*0.5)}px">${card.emoji}</div>
+      </div>
+    `;
+    el.addEventListener('click', () => onCardClick(card.id, el));
+    grid.appendChild(el);
+  });
+}
+
+function onCardClick(id, el) {
+  initAudio();
+  const card = cards[id];
+  if (locked || card.matched || flipped.includes(id) || el.classList.contains('flipped')) return;
+
+  el.classList.add('flipped');
+  flipped.push(id);
+  playFlip();
+
+  if (flipped.length === 2) {
+    locked = true;
+    moves++;
+    document.getElementById('moves').textContent = moves;
+
+    const [id1, id2] = flipped;
+    const [c1, c2] = [cards[id1], cards[id2]];
+
+    if (c1.emoji === c2.emoji) {
+      // Match!
+      setTimeout(() => {
+        [id1, id2].forEach(fid => {
+          const el2 = document.querySelector(`[data-id="${fid}"]`);
+          el2.classList.add('matched');
+          cards[fid].matched = true;
+        });
+        matchedPairs++;
+        document.getElementById('pairs-left').textContent = CFG.pairs - matchedPairs;
+        playMatch();
+        flipped = [];
+        locked = false;
+        if (matchedPairs === CFG.pairs) setTimeout(showWin, 600);
+      }, 300);
+    } else {
+      // No match
+      setTimeout(() => {
+        [id1, id2].forEach(fid => {
+          const el2 = document.querySelector(`[data-id="${fid}"]`);
+          el2.classList.remove('flipped');
+          el2.classList.add('shake');
+          setTimeout(() => el2.classList.remove('shake'), 400);
+        });
+        playMiss();
+        flipped = [];
+        locked = false;
+      }, 900);
+    }
+  }
+}
+
+function showWin() {
+  playWin();
+  // Star rating: 3 stars ≤ pairs+2 moves, 2 stars ≤ pairs*2, else 1
+  const stars = moves <= CFG.pairs + 2 ? '⭐⭐⭐' : moves <= CFG.pairs * 2 ? '⭐⭐' : '⭐';
+  const msgs = {
+    '⭐⭐⭐': 'Perfekt minne! Du är ett geni! 🧠',
+    '⭐⭐':   'Jättebra jobbat! Nästan perfekt! 😄',
+    '⭐':     'Du klarade det! Prova igen för fler stjärnor! 💪',
+  };
+  document.getElementById('win-stars').textContent = stars;
+  document.getElementById('win-msg').textContent = msgs[stars];
+  document.getElementById('win').style.display = 'flex';
+  spawnConfetti();
+}
+
+// ─── CONFETTI ────────────────────────────────────────────────────────────────
+function spawnConfetti() {
+  const colors = ['#ff6b6b','#ffd700','#6bcf7f','#4ecdc4','#a29bfe','#fd79a8'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetto';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.width  = (8 + Math.random() * 8) + 'px';
+      el.style.height = (8 + Math.random() * 8) + 'px';
+      el.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 40);
+  }
+}
+
+// ─── START ───────────────────────────────────────────────────────────────────
+newGame();
+window.addEventListener('resize', () => {
+  if (cards.length) renderGrid(cards.length);
+});
+</script>
+</body>
+</html>

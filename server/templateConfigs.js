@@ -72,3 +72,33 @@ export function getRunnerConfig(answers, title) {
     MAX_SPEED:      (10 + diff * 0.5).toFixed(1),
   };
 }
+
+export function getMemoryConfig(answers, title) {
+  const MEMORY_THEMES = {
+    'Djur🐾':           { bg: ['#1a3a1a','#2a5a2a'], cardBack: '#2d6a2d', cardFront: '#ffffff', matched: '#4caf50', accent: '#8bc34a', theme: 'djur' },
+    'Rymden🚀':         { bg: ['#0d0d2b','#1a1a4e'], cardBack: '#1a237e', cardFront: '#e8eaf6', matched: '#3f51b5', accent: '#7986cb', theme: 'rymden' },
+    'Mat🍕':            { bg: ['#3e1a00','#6d2f00'], cardBack: '#bf360c', cardFront: '#fff8e1', matched: '#ff7043', accent: '#ffab40', theme: 'mat' },
+    'Sport⚽':          { bg: ['#1a1a2e','#16213e'], cardBack: '#0f3460', cardFront: '#e8f4f8', matched: '#e94560', accent: '#0f3460', theme: 'sport' },
+    'Dinosaurier🦕':    { bg: ['#1a2e1a','#2e4a2e'], cardBack: '#33691e', cardFront: '#f9fbe7', matched: '#7cb342', accent: '#c5e1a5', theme: 'dinosaurier' },
+    'Superhjältar🦸':   { bg: ['#1a0030','#2d0050'], cardBack: '#4a148c', cardFront: '#f3e5f5', matched: '#7b1fa2', accent: '#ce93d8', theme: 'superhjältar' },
+  };
+
+  const diff = parseInt(answers.svarighet) || 2;
+  const tema = answers.tema || '';
+  const themeData = Object.entries(MEMORY_THEMES).find(([k]) => tema.includes(k.replace(/[^\w]/g,'')))
+    ?.[1] || MEMORY_THEMES['Djur🐾'];
+
+  const pairs = diff === 1 ? 6 : diff === 2 ? 8 : 12;
+
+  return {
+    TITLE:         title || 'Memory',
+    BG_TOP:        themeData.bg[0],
+    BG_BOT:        themeData.bg[1],
+    CARD_BACK:     themeData.cardBack,
+    CARD_FRONT:    themeData.cardFront,
+    MATCHED_COLOR: themeData.matched,
+    ACCENT:        themeData.accent,
+    THEME:         themeData.theme,
+    PAIRS:         pairs,
+  };
+}
