@@ -91,9 +91,9 @@ const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 let W, H;
 function resize() {
-  // Use logical CSS pixels — works correctly at any zoom / DPR
-  W = document.documentElement.clientWidth;
-  H = document.documentElement.clientHeight;
+  // Use window.innerWidth/Height for the visible viewport size
+  W = window.innerWidth;
+  H = window.innerHeight;
   canvas.width  = W;
   canvas.height = H;
   canvas.style.width  = W + 'px';
@@ -188,7 +188,7 @@ function generateLevel(lvl) {
 }
 
 // ─── PLAYER ──────────────────────────────────────────────────────────────────
-let player, cam, levelData;
+let player, cam = { x: 0 }, levelData;
 let jumpPressed = false, canJump = false, jumpBuffer = 0, coyoteTime = 0;
 
 function initLevel(lvl) {
@@ -785,31 +785,34 @@ document.getElementById('start-btn').onclick = startGame;
 // ─── MAIN LOOP ────────────────────────────────────────────────────────────────
 let lastT = 0;
 function loop(t) {
+  requestAnimationFrame(loop); // schedule next frame first — loop never dies
   const dt = Math.min(t - lastT, 50); // cap dt to avoid spiral of death
   lastT = t;
 
-  if (state === 'playing') {
-    invincible = Math.max(0, invincible - dt);
-    updatePlayer(dt);
-    updateEnemies(dt);
-    updateCoins(t);
-    updateParticles(dt);
-    checkGoal();
-  }
+  try {
+    if (state === 'playing') {
+      invincible = Math.max(0, invincible - dt);
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateCoins(t);
+      updateParticles(dt);
+      checkGoal();
+    }
 
-  // Draw
-  drawBackground();
-  if (state !== 'title') {
-    levelData.platforms.forEach(drawPlatform);
-    levelData.coins.forEach(c => drawCoin(c, t));
-    levelData.enemies.forEach(drawEnemy);
-    drawGoal();
-    drawPlayer(t);
-    drawParticles();
-    if (state === 'levelup') drawLevelUp();
+    // Draw
+    drawBackground();
+    if (state !== 'title') {
+      levelData.platforms.forEach(drawPlatform);
+      levelData.coins.forEach(c => drawCoin(c, t));
+      levelData.enemies.forEach(drawEnemy);
+      drawGoal();
+      drawPlayer(t);
+      drawParticles();
+      if (state === 'levelup') drawLevelUp();
+    }
+  } catch(e) {
+    console.error('[loop]', e);
   }
-
-  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
