@@ -41,6 +41,14 @@ import SceneSystemBlock from '../blocks/scene-system/SceneSystemBlock.jsx';
 import FontPickerBlock from '../blocks/font-picker/FontPickerBlock.jsx';
 import TextFxBlock from '../blocks/text-fx/TextFxBlock.jsx';
 import FilmstudioBlock from '../blocks/filmstudio/FilmstudioBlock.jsx';
+import CardCreatorBlock from '../blocks/card-creator/CardCreatorBlock.jsx';
+import CardDeckBlock from '../blocks/card-deck/CardDeckBlock.jsx';
+import CardHandBlock from '../blocks/card-hand/CardHandBlock.jsx';
+import CardFlipBlock from '../blocks/card-flip/CardFlipBlock.jsx';
+import CardMatchBlock from '../blocks/card-match/CardMatchBlock.jsx';
+import CardCompareBlock from '../blocks/card-compare/CardCompareBlock.jsx';
+import BoardGridBlock from '../blocks/board-grid/BoardGridBlock.jsx';
+import BoardPathBlock from '../blocks/board-path/BoardPathBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -50,6 +58,8 @@ const CATEGORY_EMOJI = {
   animation: '✨',
   berattelse: '📖',
   filmstudio: '🎬',
+  kortspel: '🃏',
+  bradspel: '♟️',
 };
 
 const ALL_BLOCKS = [
@@ -89,6 +99,14 @@ const ALL_BLOCKS = [
   { id: 'font-picker', name: 'Typsnitt', emoji: '🔤', type: 'font-picker', categories: ['filmstudio'] },
   { id: 'text-fx', name: 'Texteffekter', emoji: '✨', type: 'text-fx', categories: ['filmstudio'] },
   { id: 'filmstudio', name: 'Filmstudio', emoji: '🎬', type: 'filmstudio', categories: ['filmstudio'] },
+  { id: 'card-creator', name: 'Kortdesign', emoji: '🃏', type: 'card-creator', categories: ['kortspel'] },
+  { id: 'card-deck', name: 'Kortlek', emoji: '🎴', type: 'card-deck', categories: ['kortspel'] },
+  { id: 'card-hand', name: 'Kortshand', emoji: '✋', type: 'card-hand', categories: ['kortspel'] },
+  { id: 'card-flip', name: 'Kortvandning', emoji: '🔄', type: 'card-flip', categories: ['kortspel'] },
+  { id: 'card-match', name: 'Memory', emoji: '🧠', type: 'card-match', categories: ['kortspel'] },
+  { id: 'card-compare', name: 'Top Trumps', emoji: '⚔️', type: 'card-compare', categories: ['kortspel'] },
+  { id: 'board-grid', name: 'Spelbrädets rutnät', emoji: '♟️', type: 'board-grid', categories: ['kortspel', 'bradspel'] },
+  { id: 'board-path', name: 'Spelstigen', emoji: '🎲', type: 'board-path', categories: ['kortspel', 'bradspel'] },
 ];
 
 function useIsLandscape() {
@@ -723,6 +741,46 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'filmstudio' ? (
             <FilmstudioBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-creator' ? (
+            <CardCreatorBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-deck' ? (
+            <CardDeckBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-hand' ? (
+            <CardHandBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-flip' ? (
+            <CardFlipBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-match' ? (
+            <CardMatchBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'card-compare' ? (
+            <CardCompareBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'board-grid' ? (
+            <BoardGridBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'board-path' ? (
+            <BoardPathBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
