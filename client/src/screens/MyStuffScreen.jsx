@@ -35,6 +35,7 @@ function formatSwedishDate(isoString) {
 
 function ProjectCard({ project, navigate, onDeleted }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const menuRef = useRef(null);
   const color = CAT_COLORS[project.category] || '#374151';
   const emoji = CAT_EMOJIS[project.category] || '🎨';
@@ -68,10 +69,18 @@ function ProjectCard({ project, navigate, onDeleted }) {
   function handleDelete(e) {
     e.stopPropagation();
     setMenuOpen(false);
-    if (window.confirm('Ta bort "' + project.name + '"?')) {
-      deleteProject(project.id);
-      onDeleted();
-    }
+    setConfirmDelete(true);
+  }
+
+  function handleConfirmDelete(e) {
+    e.stopPropagation();
+    deleteProject(project.id);
+    onDeleted();
+  }
+
+  function handleCancelDelete(e) {
+    e.stopPropagation();
+    setConfirmDelete(false);
   }
 
   return (
@@ -95,6 +104,44 @@ function ProjectCard({ project, navigate, onDeleted }) {
       onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
     >
+      {/* Inline delete confirmation overlay */}
+      {confirmDelete && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'absolute', inset: 0, borderRadius: 20,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 10, zIndex: 10, padding: 12,
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', color: '#fff', textAlign: 'center', fontWeight: 700 }}>
+            Ta bort?
+          </div>
+          <button
+            onClick={handleConfirmDelete}
+            style={{
+              width: '100%', padding: '10px 0', borderRadius: 12,
+              background: '#e53935', border: 'none',
+              color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer',
+            }}
+          >
+            🗑️ Ja, ta bort
+          </button>
+          <button
+            onClick={handleCancelDelete}
+            style={{
+              width: '100%', padding: '8px 0', borderRadius: 12,
+              background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Avbryt
+          </button>
+        </div>
+      )}
+
       {/* Thumbnail or emoji */}
       {project.thumb ? (
         <img
