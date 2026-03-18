@@ -32,6 +32,14 @@ import HealthBlock from '../blocks/health/HealthBlock.jsx';
 import TimerBlock from '../blocks/timer/TimerBlock.jsx';
 import PowerupBlock from '../blocks/powerup/PowerupBlock.jsx';
 import TriggerZoneBlock from '../blocks/trigger-zone/TriggerZoneBlock.jsx';
+import TypewriterBlock from '../blocks/typewriter/TypewriterBlock.jsx';
+import SpeechBubbleBlock from '../blocks/speech-bubble/SpeechBubbleBlock.jsx';
+import NarrationBoxBlock from '../blocks/narration-box/NarrationBoxBlock.jsx';
+import ChoiceButtonBlock from '../blocks/choice-button/ChoiceButtonBlock.jsx';
+import VariableBlock from '../blocks/variable/VariableBlock.jsx';
+import SceneSystemBlock from '../blocks/scene-system/SceneSystemBlock.jsx';
+import FontPickerBlock from '../blocks/font-picker/FontPickerBlock.jsx';
+import TextFxBlock from '../blocks/text-fx/TextFxBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -40,6 +48,7 @@ const CATEGORY_EMOJI = {
   konst: '🎨',
   animation: '✨',
   berattelse: '📖',
+  filmstudio: '🎬',
 };
 
 const ALL_BLOCKS = [
@@ -70,6 +79,14 @@ const ALL_BLOCKS = [
   { id: 'timer', name: 'Timer', emoji: '⏱️', type: 'timer', categories: ['spel'] },
   { id: 'powerup', name: 'Power-up', emoji: '⚡', type: 'powerup', categories: ['spel'] },
   { id: 'trigger-zone', name: 'Triggerzon', emoji: '🚪', type: 'trigger-zone', categories: ['spel'] },
+  { id: 'typewriter', name: 'Skrivmaskin', emoji: '⌨️', type: 'typewriter', categories: ['filmstudio'] },
+  { id: 'speech-bubble', name: 'Pratbubbla', emoji: '💬', type: 'speech-bubble', categories: ['filmstudio'] },
+  { id: 'narration-box', name: 'Berattarruta', emoji: '📜', type: 'narration-box', categories: ['filmstudio'] },
+  { id: 'choice-button', name: 'Valknapp', emoji: '🔀', type: 'choice-button', categories: ['filmstudio'] },
+  { id: 'variable', name: 'Variabel', emoji: '🔢', type: 'variable', categories: ['filmstudio'] },
+  { id: 'scene-system', name: 'Scensystem', emoji: '🗂️', type: 'scene-system', categories: ['filmstudio'] },
+  { id: 'font-picker', name: 'Typsnitt', emoji: '🔤', type: 'font-picker', categories: ['filmstudio'] },
+  { id: 'text-fx', name: 'Texteffekter', emoji: '✨', type: 'text-fx', categories: ['filmstudio'] },
 ];
 
 function useIsLandscape() {
@@ -659,6 +676,46 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'trigger-zone' ? (
             <TriggerZoneBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'typewriter' ? (
+            <TypewriterBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'speech-bubble' ? (
+            <SpeechBubbleBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'narration-box' ? (
+            <NarrationBoxBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'choice-button' ? (
+            <ChoiceButtonBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'variable' ? (
+            <VariableBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'scene-system' ? (
+            <SceneSystemBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'font-picker' ? (
+            <FontPickerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'text-fx' ? (
+            <TextFxBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
