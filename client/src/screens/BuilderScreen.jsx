@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { tap, success } from '../lib/haptics.js';
 import { playBlockAdd, playSuccess } from '../lib/sfx.js';
-import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
+import { getProject, saveProject } from '../lib/projectStore.js';
 import { exportToWav } from '../lib/wavExport.js';
 import { exportCanvasAsPng, exportPixelGridAsPng } from '../lib/pngExport.js';
 import { captureAnimationFrames, exportAnimationAsGif } from '../lib/gifExport.js';

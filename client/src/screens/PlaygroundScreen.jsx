@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
+import { getSpelConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1242,6 +1243,22 @@ const SCENES = {
   hemsida:    { init: initHemsida,    draw: drawHemsida },
 };
 
+// ─── Building animation styles ────────────────────────────────────────────────
+const buildingStyles = `
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes spinGear {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes fadeInTool {
+  0%   { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+`;
+
 // ─── Animated dots ────────────────────────────────────────────────────────────
 function AnimatedDots() {
   const [frame, setFrame] = React.useState(0);
@@ -1259,12 +1276,11 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
   const rafRef    = useRef(null);
   const lastRef   = useRef(null);
   const startRef  = useRef(null);
-  const progressRef = useRef(null); // DOM element for progress bar fill
   const abortRef  = useRef(null);
 
-  const config = WIZARD_CONFIG[category] ?? {};
-  const catLabel = config.label ?? category;
-  const catEmoji = config.emoji ?? '⚙️';
+  const wizConfig = WIZARD_CONFIG[category] ?? {};
+  const catLabel = wizConfig.label ?? category;
+  const catEmoji = wizConfig.emoji ?? '⚙️';
 
   // Generation via SSE
   useEffect(() => {
@@ -1274,6 +1290,7 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
     async function generate() {
       const prompt = buildPrompt(category, answers ?? {}, 'skapelse');
       let detectedFile = null;
+      let accText = '';
       try {
         const resp = await fetch('/api/chat', {
           method: 'POST',
@@ -1294,8 +1311,31 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
             if (!line.startsWith('data: ')) continue;
             try {
               const obj = JSON.parse(line.slice(6));
+              if (obj.type === 'text') accText += obj.text;
               if (obj.type === 'file') detectedFile = obj.file;
               if (obj.type === 'done') {
+                if (category === 'spel') {
+                  // Parse title from JSON response, then render template
+                  let title = 'Mitt Spel';
+                  try {
+                    const parsed = JSON.parse(accText.trim());
+                    if (parsed.title) title = parsed.title;
+                  } catch {}
+                  const config = getSpelConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'platform', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
                 navigate('result', { category, answers, file: detectedFile });
                 return;
               }
@@ -1349,14 +1389,6 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
       ctx.clearRect(0, 0, w, h);
       scene.draw(ctx, w, h, stateRef.current, dt, elapsed);
 
-      // progress bar (visual only, not tied to real progress)
-      if (progressRef.current) {
-        const prog = elapsed < 25
-          ? easeOut(elapsed / 25) * 90
-          : 90 + Math.sin(elapsed * 2) * 2;
-        progressRef.current.style.width = `${Math.min(prog, 92)}%`;
-      }
-
       rafRef.current = requestAnimationFrame(loop);
     }
 
@@ -1369,73 +1401,90 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
   }, [category]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
-      {/* Full-screen canvas */}
-      <canvas
-        ref={canvasRef}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
-      />
+    <>
+      <style>{buildingStyles}</style>
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
+        {/* Full-screen canvas */}
+        <canvas
+          ref={canvasRef}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+        />
 
-      {/* Back button */}
-      <button
-        onClick={() => { abortRef.current?.abort(); navigate('wizard', { category, answers }); }}
-        style={{
-          position: 'absolute', top: 16, left: 16,
-          background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: 10, color: '#fff', fontSize: '0.9rem', fontWeight: 600,
-          padding: '8px 16px', cursor: 'pointer', backdropFilter: 'blur(4px)',
-          zIndex: 10,
-        }}
-      >
-        ← Tillbaka
-      </button>
+        {/* Back button — always visible */}
+        <button
+          onClick={() => { abortRef.current?.abort(); navigate('wizard', { category, answers }); }}
+          style={{
+            position: 'absolute', top: 16, left: 16,
+            background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 10, color: '#fff', fontSize: '0.9rem', fontWeight: 600,
+            padding: '8px 16px', cursor: 'pointer', backdropFilter: 'blur(4px)',
+            zIndex: 10,
+          }}
+        >
+          ← Tillbaka
+        </button>
 
-      {/* Centered overlay */}
-      <div style={{
-        position: 'absolute', inset: 0, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 5,
-        pointerEvents: 'none',
-      }}>
+        {/* Centered building animation overlay */}
         <div style={{
-          background: 'rgba(0,0,0,0.60)',
-          backdropFilter: 'blur(12px)',
-          borderRadius: 24,
-          padding: '28px 40px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-          minWidth: 280, maxWidth: 360,
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          position: 'absolute', inset: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 5,
+          pointerEvents: 'none',
         }}>
-          {/* Category emoji */}
-          <div style={{ fontSize: 56, lineHeight: 1 }}>{catEmoji}</div>
-
-          {/* Title */}
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
-            Bygger ditt {catLabel}<AnimatedDots />
-          </div>
-
-          {/* Subtitle */}
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>
-            Magin händer nu — bara ett ögonblick!
-          </div>
-
-          {/* Progress bar */}
           <div style={{
-            width: '100%', height: 6, background: 'rgba(255,255,255,0.15)',
-            borderRadius: 3, overflow: 'hidden', marginTop: 8,
+            background: 'rgba(0,0,0,0.60)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: 24,
+            padding: '32px 44px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+            minWidth: 280, maxWidth: 360,
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+            position: 'relative',
           }}>
-            <div
-              ref={progressRef}
-              style={{
-                height: '100%', width: '0%',
-                background: `linear-gradient(90deg, ${config.color ?? '#7ec8e3'}, #fff)`,
-                borderRadius: 3,
-                transition: 'width 0.4s ease-out',
-              }}
-            />
+            {/* Slow-spinning gear behind emoji */}
+            <div style={{
+              position: 'absolute', fontSize: 96, opacity: 0.08,
+              animation: 'spinGear 8s linear infinite',
+              userSelect: 'none', pointerEvents: 'none',
+            }}>
+              ⚙️
+            </div>
+
+            {/* Bouncing category emoji */}
+            <div style={{
+              fontSize: 64, lineHeight: 1,
+              animation: 'bounce 1.2s ease-in-out infinite',
+              position: 'relative',
+            }}>
+              {catEmoji}
+            </div>
+
+            {/* Title */}
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
+              Bygger ditt {catLabel}...
+            </div>
+
+            {/* Tool icons appearing one by one */}
+            <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+              <span style={{
+                fontSize: 28,
+                opacity: 0,
+                animation: 'fadeInTool 0.4s ease forwards 1s',
+              }}>🔧</span>
+              <span style={{
+                fontSize: 28,
+                opacity: 0,
+                animation: 'fadeInTool 0.4s ease forwards 2s',
+              }}>⚙️</span>
+              <span style={{
+                fontSize: 28,
+                opacity: 0,
+                animation: 'fadeInTool 0.4s ease forwards 3s',
+              }}>✨</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

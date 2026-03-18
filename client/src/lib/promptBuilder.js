@@ -3,26 +3,15 @@ export function buildPrompt(category, answers, projectName) {
 
   switch (category) {
     case 'spel':
-      return `Du är Kompisen! Skapa ett komplett spelbart HTML5-spel och spara det som /workspace/${name}.html
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
 
-Spelet ska vara:
-- Typ: ${answers.speltyp} (plattform=hoppspel med plattformar, obby=hinderbana, runner=sidoscrollande, shooter=skjutspel, mystery=peka-och-klick, labyrint=navigera i labyrint)
-- Karaktär: ${answers.karaktar} (rita som gullig geometrisk figur i passande färg)
-- Värld: ${answers.varld} (bakgrund och färgtema: rymden=lila/stjärnor, djungeln=grönt, havet=blått/vågor, staden=grå/neon, drömvärlden=pastell/glitter, vulkanen=röd/orange)
-- Fiende: ${answers.fiende === 'inga' ? 'inga fiender, bara hinder' : answers.fiende + ' som rör sig på plattformarna'}
-- Svårighet: ${answers.svarighet}/10
+Baserat på dessa val, skapa ett roligt spelnamn på svenska (max 3 ord):
+- Speltyp: ${answers.speltyp}
+- Karaktär: ${answers.karaktar}
+- Värld: ${answers.varld}
 
-Tekniska krav (VIKTIGT):
-- EN komplett HTML-fil med all CSS och JavaScript inline
-- Spelaren styr med piltangenter/WASD, mellanslag eller upp-pil för hopp
-- Touch-kontroller på skärmen (d-pad vänster/höger/hopp) för surfplatta
-- Score-räknare högst upp, liv-system (3 liv), game over-skärm med restart
-- Minst 3 svårighetsgrader eller ökande hastighet
-- Snyggt med färgglada grafik ritad med Canvas 2D API
-- Kul ljud med Web Audio API (hopp-ljud, poäng-ljud, game over-ljud)
-- Fungerar helt offline, inga externa resurser
-
-Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
+Svara exakt så här (byt ut värdet för title):
+{"title": "Ninja i Rymden"}`;
 
     case 'musik':
       return `Du är Kompisen! Skapa en komplett interaktiv musikspelare i HTML och spara som /workspace/${name}.html

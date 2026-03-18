@@ -1,6 +1,6 @@
 import express from "express";
 import { spawn } from "child_process";
-import { readdirSync, statSync, readFileSync, copyFileSync, existsSync } from "fs";
+import { readdirSync, statSync, readFileSync, writeFileSync, copyFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -184,6 +184,28 @@ app.post("/api/chat", (req, res) => {
   }
 
   runAttempt(message);
+});
+
+app.post("/api/render-template", (req, res) => {
+  const { templateName, config } = req.body;
+  if (!templateName || !/^[a-z0-9-]+$/.test(templateName))
+    return res.status(400).json({ error: "Invalid template name" });
+
+  try {
+    let html = readFileSync(join(__dirname, "server/templates", templateName + ".html"), "utf8");
+    for (const [key, value] of Object.entries(config || {})) {
+      html = html.replaceAll("{{" + key + "}}", String(value));
+    }
+    const slug = (config.TITLE || templateName)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    const filename = slug + "-" + Date.now() + ".html";
+    writeFileSync(join(WORKSPACE, filename), html, "utf8");
+    res.json({ file: filename });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 function toolLabel(name, input) {
