@@ -16,6 +16,7 @@ import SpritePickerBlock from '../blocks/sprite-picker/SpritePickerBlock.jsx';
 import BackgroundPickerBlock from '../blocks/background-picker/BackgroundPickerBlock.jsx';
 import ParticleFxBlock from '../blocks/particle-fx/ParticleFxBlock.jsx';
 import CharacterBuilderBlock from '../blocks/character-builder/CharacterBuilderBlock.jsx';
+import AnimationTimelineBlock from '../blocks/animation-timeline/AnimationTimelineBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -40,6 +41,7 @@ const ALL_BLOCKS = [
   { id: 'background-picker', name: 'Bakgrund', emoji: '🌄', type: 'background-picker', categories: ['ritprogram', 'musik'] },
   { id: 'particle-fx', name: 'Effekter', emoji: '✨', type: 'particle-fx', categories: ['ritprogram', 'musik', 'spel', 'animation', 'berattelse', 'konst'] },
   { id: 'character-builder', name: 'Karaktar', emoji: '🧑', type: 'character-builder', categories: ['animation'] },
+  { id: 'animation-timeline', name: 'Animation', emoji: '🎬', type: 'animation-timeline', categories: ['animation'] },
 ];
 
 function useIsLandscape() {
@@ -504,6 +506,12 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'character-builder' ? (
             <CharacterBuilderBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'animation-timeline' ? (
+            <AnimationTimelineBlock
+              addedBlocks={addedBlocks}
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
