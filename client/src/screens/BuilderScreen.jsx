@@ -17,6 +17,8 @@ import BackgroundPickerBlock from '../blocks/background-picker/BackgroundPickerB
 import ParticleFxBlock from '../blocks/particle-fx/ParticleFxBlock.jsx';
 import CharacterBuilderBlock from '../blocks/character-builder/CharacterBuilderBlock.jsx';
 import AnimationTimelineBlock from '../blocks/animation-timeline/AnimationTimelineBlock.jsx';
+import VisualEffectsBlock from '../blocks/visual-effects/VisualEffectsBlock.jsx';
+import BackgroundScrollerBlock from '../blocks/background-scroller/BackgroundScrollerBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -42,6 +44,8 @@ const ALL_BLOCKS = [
   { id: 'particle-fx', name: 'Effekter', emoji: '✨', type: 'particle-fx', categories: ['ritprogram', 'musik', 'spel', 'animation', 'berattelse', 'konst'] },
   { id: 'character-builder', name: 'Karaktar', emoji: '🧑', type: 'character-builder', categories: ['animation'] },
   { id: 'animation-timeline', name: 'Animation', emoji: '🎬', type: 'animation-timeline', categories: ['animation'] },
+  { id: 'visual-effects', name: 'Effekter', emoji: '💥', type: 'visual-effects', categories: ['animation'] },
+  { id: 'background-scroller', name: 'Bakgrundsrullning', emoji: '🌄', type: 'background-scroller', categories: ['animation'] },
 ];
 
 function useIsLandscape() {
@@ -512,6 +516,16 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
           ) : selectedBlock.type === 'animation-timeline' ? (
             <AnimationTimelineBlock
               addedBlocks={addedBlocks}
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'visual-effects' ? (
+            <VisualEffectsBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'background-scroller' ? (
+            <BackgroundScrollerBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
