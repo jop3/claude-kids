@@ -1,34 +1,56 @@
 const WORLD_THEMES = {
-  'Rymden🚀':         { bg: ['#0d0d2b','#1a1a4e'], ground: '#2d1b69', platform: '#6c3bbd', accent: '#e94560', obstacle: '#6c3bbd' },
-  'Djungeln🌿':       { bg: ['#0d2b0d','#1a4e1a'], ground: '#2d4a1b', platform: '#3bb273', accent: '#f18f01', obstacle: '#5d4037' },
-  'Havet🌊':          { bg: ['#0d1b2b','#1a3a4e'], ground: '#1b3a69', platform: '#2d7dd2', accent: '#00d4ff', obstacle: '#0d47a1' },
-  'Staden🏙️':         { bg: ['#1a1a1a','#2d2d2d'], ground: '#3d3d3d', platform: '#5c6bc0', accent: '#ff6b6b', obstacle: '#424242' },
-  'Drömvärlden✨':    { bg: ['#2b0d4e','#4e1a6e'], ground: '#6a1b9a', platform: '#e040fb', accent: '#ffeb3b', obstacle: '#7b1fa2' },
-  'Vulkanen🌋':       { bg: ['#2b0d00','#4e1a00'], ground: '#6e2800', platform: '#e64a19', accent: '#ff6d00', obstacle: '#b71c1c' },
+  rymden:      { bg: ['#0d0d2b','#1a1a4e'], ground: '#2d1b69', platform: '#6c3bbd', accent: '#e94560', obstacle: '#6c3bbd' },
+  djungeln:    { bg: ['#0d2b0d','#1a4e1a'], ground: '#2d4a1b', platform: '#3bb273', accent: '#f18f01', obstacle: '#5d4037' },
+  havet:       { bg: ['#0d1b2b','#1a3a4e'], ground: '#1b3a69', platform: '#2d7dd2', accent: '#00d4ff', obstacle: '#0d47a1' },
+  staden:      { bg: ['#1a1a1a','#2d2d2d'], ground: '#3d3d3d', platform: '#5c6bc0', accent: '#ff6b6b', obstacle: '#424242' },
+  dromvarlden: { bg: ['#2b0d4e','#4e1a6e'], ground: '#6a1b9a', platform: '#e040fb', accent: '#ffeb3b', obstacle: '#7b1fa2' },
+  vulkanen:    { bg: ['#2b0d00','#4e1a00'], ground: '#6e2800', platform: '#e64a19', accent: '#ff6d00', obstacle: '#b71c1c' },
+  istiden:     { bg: ['#0d1b2b','#1a3a5e'], ground: '#1e3a5f', platform: '#4fc3f7', accent: '#e1f5fe', obstacle: '#0d47a1' },
+  skogen:      { bg: ['#0a1f0a','#1a3d1a'], ground: '#2e5d2e', platform: '#558b2f', accent: '#c8e6c9', obstacle: '#33691e' },
 };
 
 const CHARACTERS = {
-  'Ninja🥷':          { color: '#e94560', shape: 'ninja' },
-  'Robot🤖':          { color: '#78909c', shape: 'robot' },
-  'Dinosaurie🦕':     { color: '#66bb6a', shape: 'dino' },
-  'Enhörning🦄':      { color: '#ce93d8', shape: 'unicorn' },
-  'Rymdalien👽':      { color: '#80cbc4', shape: 'alien' },
-  'Pirat🏴‍☠️':          { color: '#8d6e63', shape: 'pirate' },
+  ninja:      { color: '#e94560', shape: 'ninja' },
+  robot:      { color: '#78909c', shape: 'robot' },
+  dinosaurie: { color: '#66bb6a', shape: 'dino' },
+  enhornin:   { color: '#ce93d8', shape: 'unicorn' },
+  rymdalien:  { color: '#80cbc4', shape: 'alien' },
+  pirat:      { color: '#8d6e63', shape: 'pirate' },
+  trollet:    { color: '#a5d6a7', shape: 'dino' },
+  vampyren:   { color: '#7e57c2', shape: 'ninja' },
 };
+
+function fuzzyWorld(varld) {
+  const key = (varld || '').toLowerCase().replace(/[^\w]/g, '');
+  return Object.entries(WORLD_THEMES).find(([k]) => key.includes(k) || k.includes(key))?.[1]
+    || WORLD_THEMES.rymden;
+}
+
+function fuzzyChar(karaktar) {
+  const key = (karaktar || '').toLowerCase().replace(/[^\w]/g, '');
+  return Object.entries(CHARACTERS).find(([k]) => key.includes(k) || k.includes(key))?.[1]
+    || CHARACTERS.ninja;
+}
 
 export function getSpelConfig(answers, title) {
   const ENEMIES = {
-    'Monster👹':  { color: '#e53935', enabled: true },
-    'Robotar🤖':  { color: '#607d8b', enabled: true },
-    'Fiskar🐟':   { color: '#29b6f6', enabled: true },
-    'Bomber💣':   { color: '#212121', enabled: true },
-    'Spöken👻':   { color: '#eeeeee', enabled: true },
-    'Inga❌':     { color: '#e53935', enabled: false },
+    monster:  { color: '#e53935', enabled: true },
+    robotar:  { color: '#607d8b', enabled: true },
+    fiskar:   { color: '#29b6f6', enabled: true },
+    bomber:   { color: '#212121', enabled: true },
+    spoken:   { color: '#eeeeee', enabled: true },
+    inga:     { color: '#e53935', enabled: false },
   };
 
-  const world = WORLD_THEMES[answers.varld] || WORLD_THEMES['Rymden🚀'];
-  const char  = CHARACTERS[answers.karaktar] || CHARACTERS['Ninja🥷'];
-  const enemy = ENEMIES[answers.fiende] || ENEMIES['Monster👹'];
+  function fuzzyEnemy(fiende) {
+    const key = (fiende || '').toLowerCase().replace(/[^\w]/g, '');
+    return Object.entries(ENEMIES).find(([k]) => key.includes(k) || k.includes(key))?.[1]
+      || ENEMIES.monster;
+  }
+
+  const world = fuzzyWorld(answers.varld);
+  const char  = fuzzyChar(answers.karaktar);
+  const enemy = fuzzyEnemy(answers.fiende);
   const diff  = parseInt(answers.svarighet) || 5;
   const isObby = (answers.speltyp || '').toLowerCase().includes('obby');
 
@@ -53,8 +75,8 @@ export function getSpelConfig(answers, title) {
 }
 
 export function getRunnerConfig(answers, title) {
-  const world = WORLD_THEMES[answers.varld] || WORLD_THEMES['Rymden🚀'];
-  const char  = CHARACTERS[answers.karaktar] || CHARACTERS['Ninja🥷'];
+  const world = fuzzyWorld(answers.varld);
+  const char  = fuzzyChar(answers.karaktar);
   const diff  = parseInt(answers.svarighet) || 5;
 
   return {

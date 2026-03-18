@@ -28,6 +28,8 @@ export const WIZARD_CONFIG = {
           { id: 'enhornin', label: 'Enhörning', emoji: '🦄' },
           { id: 'rymdalien', label: 'Rymdalien', emoji: '👽' },
           { id: 'pirat', label: 'Pirat', emoji: '🏴‍☠️' },
+          { id: 'trollet', label: 'Trollet', emoji: '🧌' },
+          { id: 'vampyren', label: 'Vampyren', emoji: '🧛' },
         ],
       },
       {
@@ -41,6 +43,8 @@ export const WIZARD_CONFIG = {
           { id: 'staden', label: 'Staden', emoji: '🏙️' },
           { id: 'dromvarlden', label: 'Drömvärlden', emoji: '✨' },
           { id: 'vulkanen', label: 'Vulkanen', emoji: '🌋' },
+          { id: 'istiden', label: 'Istiden', emoji: '❄️' },
+          { id: 'skogen', label: 'Skogen', emoji: '🌲' },
         ],
       },
       {
