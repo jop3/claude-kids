@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createProject, saveProject } from './lib/projectStore.js';
 import HomeScreen from './screens/HomeScreen.jsx';
 import MyStuffScreen from './screens/MyStuffScreen.jsx';
 import BuilderScreen from './screens/BuilderScreen.jsx';
@@ -42,7 +43,11 @@ export default function App() {
     screenProps.params = {
       ...rest,
       onConfirm: (pickedName) => {
-        if (returnTo === 'builder') {
+        if (returnTo === 'saveResult') {
+          const proj = createProject(rest.category, rest.answers, rest.file, pickedName);
+          saveProject(proj);
+          navigate('myStuff');
+        } else if (returnTo === 'builder') {
           navigate('builder', { ...rest, name: pickedName });
         } else {
           navigate(returnTo || 'home', { ...rest, name: pickedName });

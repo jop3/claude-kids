@@ -113,7 +113,7 @@ export default function ResultScreen({ category, answers, file, error, navigate 
           </button>
 
           <button
-            onClick={() => navigate('namePicker', { returnTo: 'result', category, answers, file })}
+            onClick={() => navigate('namePicker', { returnTo: 'saveResult', category, answers, file })}
             style={{
               padding: '14px 0', borderRadius: 16,
               background: 'linear-gradient(90deg, #6a1b9a, #ab47bc)',

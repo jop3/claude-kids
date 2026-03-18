@@ -1,26 +1,221 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProjects, deleteProject } from '../lib/projectStore.js';
 
-const CATEGORY_EMOJIS = {
-  spel: '🎮',
-  animation: '🎬',
-  konst: '🎨',
-  musik: '🎵',
-  story: '📖',
+const CAT_COLORS = {
+  musik: '#6c3bbd',
+  spel: '#2d7dd2',
+  ritprogram: '#e84855',
+  animation: '#f18f01',
+  hemsida: '#3bb273',
+  filmstudio: '#c33c54',
+  kortspel: '#5c6bc0',
+  bradspel: '#8d6748',
+  larospel: '#00897b',
+  rostlab: '#e53935',
 };
 
-const CATEGORY_COLORS = {
-  spel: '#7c3aed',
-  animation: '#db2777',
-  konst: '#d97706',
-  musik: '#059669',
-  story: '#2563eb',
+const CAT_EMOJIS = {
+  musik: '🎵',
+  spel: '🎮',
+  ritprogram: '🎨',
+  animation: '🎬',
+  hemsida: '🌐',
+  filmstudio: '🎥',
+  kortspel: '🃏',
+  bradspel: '🎲',
+  larospel: '📚',
+  rostlab: '🎤',
 };
 
 function formatSwedishDate(isoString) {
   const months = ['jan', 'feb', 'mars', 'apr', 'maj', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec'];
   const d = new Date(isoString);
   return `${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function ProjectCard({ project, navigate, onDeleted }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const color = CAT_COLORS[project.category] || '#374151';
+  const emoji = CAT_EMOJIS[project.category] || '🎨';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  function handleMenuToggle(e) {
+    e.stopPropagation();
+    setMenuOpen(v => !v);
+  }
+
+  function handleEdit(e) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    navigate('wizard', { category: project.category, answers: project.answers });
+  }
+
+  function handleDelete(e) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (window.confirm('Ta bort "' + project.name + '"?')) {
+      deleteProject(project.id);
+      onDeleted();
+    }
+  }
+
+  return (
+    <div
+      onClick={() => navigate('player', { file: project.file, projectId: project.id })}
+      style={{
+        background: color,
+        borderRadius: 20,
+        overflow: 'visible',
+        cursor: 'pointer',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+        transition: 'transform 0.15s',
+        position: 'relative',
+        userSelect: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px 12px 14px',
+        gap: 8,
+      }}
+      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+    >
+      {/* Category emoji */}
+      <div style={{ fontSize: 40, lineHeight: 1 }}>{emoji}</div>
+
+      {/* Project name */}
+      <div style={{
+        fontWeight: 800,
+        fontSize: '1rem',
+        color: '#fff',
+        textAlign: 'center',
+        width: '100%',
+        overflow: 'hidden',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        textOverflow: 'ellipsis',
+        lineHeight: 1.25,
+        minHeight: '2.5em',
+      }}>
+        {project.name}
+      </div>
+
+      {/* Bottom row */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginTop: 4,
+      }}>
+        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>
+          {project.category || 'skapelse'}
+        </span>
+        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>
+          {project.date ? formatSwedishDate(project.date) : ''}
+        </span>
+      </div>
+
+      {/* Menu button */}
+      <button
+        onClick={handleMenuToggle}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          background: 'rgba(0,0,0,0.35)',
+          border: 'none',
+          borderRadius: 8,
+          color: '#fff',
+          fontSize: '1rem',
+          width: 30,
+          height: 30,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          lineHeight: 1,
+          padding: 0,
+        }}
+        title="Alternativ"
+      >
+        ⋮
+      </button>
+
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute',
+            top: 42,
+            right: 8,
+            background: '#1a1a2e',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 12,
+            overflow: 'hidden',
+            zIndex: 100,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            minWidth: 140,
+          }}
+        >
+          <button
+            onClick={handleEdit}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '12px 16px',
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              textAlign: 'left',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            ✏️ Ändra
+          </button>
+          <button
+            onClick={handleDelete}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '12px 16px',
+              background: 'none',
+              border: 'none',
+              color: '#ff6b6b',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            🗑️ Ta bort
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function MyStuffScreen({ navigate }) {
@@ -30,133 +225,106 @@ export default function MyStuffScreen({ navigate }) {
     setProjects(getProjects());
   }, []);
 
-  function handleDelete(e, id) {
-    e.stopPropagation();
-    if (window.confirm('Ta bort det här projektet?')) {
-      deleteProject(id);
-      setProjects(getProjects());
-    }
-  }
-
-  function ProjectCard({ project }) {
-    const longPressTimer = useRef(null);
-    const emoji = CATEGORY_EMOJIS[project.type] || '🎨';
-    const color = CATEGORY_COLORS[project.type] || '#374151';
-
-    function startLongPress() {
-      longPressTimer.current = setTimeout(() => {
-        if (window.confirm('Ta bort det här projektet?')) {
-          deleteProject(project.id);
-          setProjects(getProjects());
-        }
-      }, 500);
-    }
-
-    function cancelLongPress() {
-      clearTimeout(longPressTimer.current);
-    }
-
-    return (
-      <div
-        onClick={() => navigate('builder', { projectId: project.id })}
-        onMouseDown={startLongPress}
-        onMouseUp={cancelLongPress}
-        onTouchStart={startLongPress}
-        onTouchEnd={cancelLongPress}
-        style={{
-          background: '#16213e',
-          borderRadius: 16,
-          overflow: 'hidden',
-          cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-          transition: 'transform 0.15s',
-          position: 'relative',
-          userSelect: 'none',
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; cancelLongPress(e); }}
-      >
-        {/* Thumbnail */}
-        <div style={{ width: '100%', aspectRatio: '16/9', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {project.thumbnail
-            ? <img src={project.thumbnail} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontSize: '3rem' }}>{emoji}</span>
-          }
-        </div>
-
-        {/* Info */}
-        <div style={{ padding: '10px 12px 12px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {project.name}
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#9ca3af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>{emoji} {project.type || 'skapelse'}</span>
-            <span>{project.modified ? formatSwedishDate(project.modified) : formatSwedishDate(project.created)}</span>
-          </div>
-        </div>
-
-        {/* Delete button */}
-        <button
-          onClick={e => handleDelete(e, project.id)}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            background: 'rgba(0,0,0,0.5)',
-            border: 'none',
-            borderRadius: 8,
-            color: '#fff',
-            fontSize: '0.75rem',
-            padding: '4px 7px',
-            cursor: 'pointer',
-            lineHeight: 1,
-          }}
-          title="Ta bort"
-        >
-          🗑
-        </button>
-      </div>
-    );
+  function refresh() {
+    setProjects(getProjects());
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 900, padding: '24px 20px', boxSizing: 'border-box' }}>
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      background: '#1a1a2e',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+    }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '20px 24px 16px',
+      }}>
         <button
           onClick={() => navigate('home')}
-          style={{ minHeight: 48, padding: '12px 24px', fontSize: '1rem', border: 'none', borderRadius: 12, cursor: 'pointer', background: '#374151', color: '#fff' }}
+          style={{
+            padding: '10px 20px',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: '1rem',
+            cursor: 'pointer',
+          }}
         >
-          ← Tillbaka
+          ← Hem
         </button>
-        <h1 style={{ fontSize: '1.8rem', margin: 0 }}>Mina saker</h1>
-        <button
-          onClick={() => navigate('home')}
-          style={{ minHeight: 48, padding: '12px 24px', fontSize: '1rem', border: 'none', borderRadius: 12, cursor: 'pointer', background: '#7c3aed', color: '#fff', fontWeight: 'bold' }}
-        >
-          + Ny skapelse
-        </button>
+        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
+          Mina Saker 📁
+        </h1>
+        {/* Spacer to center title */}
+        <div style={{ width: 100 }} />
       </div>
 
       {/* Content */}
-      {projects.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, marginTop: 80 }}>
-          <span style={{ fontSize: '5rem' }}>🎨</span>
-          <p style={{ fontSize: '1.4rem', color: '#9ca3af', margin: 0 }}>Ingen saker ännu!</p>
-          <button
-            onClick={() => navigate('home')}
-            style={{ minHeight: 56, padding: '14px 40px', fontSize: '1.2rem', border: 'none', borderRadius: 16, cursor: 'pointer', background: '#7c3aed', color: '#fff', fontWeight: 'bold', boxShadow: '0 4px 16px rgba(124,58,237,0.4)' }}
+      <div style={{ flex: 1, padding: '0 24px 32px', boxSizing: 'border-box' }}>
+        {projects.length === 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 20,
+            paddingTop: 80,
+          }}>
+            <div style={{ fontSize: 72 }}>📭</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', textAlign: 'center' }}>
+              Du har inte sparat något än!
+            </div>
+            <button
+              onClick={() => navigate('home')}
+              style={{
+                padding: '16px 40px',
+                background: 'linear-gradient(135deg, #6c3bbd, #ab47bc)',
+                border: 'none',
+                borderRadius: 16,
+                color: '#fff',
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(108,59,189,0.4)',
+              }}
+            >
+              Skapa något!
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 16,
+          }}
+            className="my-stuff-grid"
           >
-            Skapa något!
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
-          {projects.map(project => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-      )}
+            {projects.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                navigate={navigate}
+                onDeleted={refresh}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @media (min-width: 600px) {
+          .my-stuff-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
