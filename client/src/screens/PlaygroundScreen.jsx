@@ -245,21 +245,39 @@ function drawSpel(ctx, w, h, s, dt, t) {
 }
 
 // ─── Scene: musik ─────────────────────────────────────────────────────────────
+const INSTRUMENT_EMOJIS = {
+  piano: '🎹', gitarr: '🎸', trummor: '🥁', synth: '🎛️',
+  trumpet: '🎺', violin: '🎻', saxofon: '🎷', bas: '🎸',
+};
+
 function initMusik(answers) {
   const genre = answers?.genre ?? 'pop';
   const stamning = answers?.stamning ?? 'glad';
   const color = GENRE_COLORS[genre] ?? '#ff69b4';
+  const rawInstr = answers?.instrument ?? ['piano', 'trummor'];
+  const instruments = (Array.isArray(rawInstr) ? rawInstr : [rawInstr]).slice(0, 3);
+  const bpmBase = { pop:120, hiphop:90, rock:140, elektronisk:128, jazz:100, klassisk:80 };
+  const bpm = bpmBase[genre] ?? 120;
+  // floating instrument icons
+  const icons = instruments.map((instr, i) => ({
+    emoji: INSTRUMENT_EMOJIS[instr] ?? '🎵',
+    x: rand(0.15, 0.85),
+    y: rand(0.15, 0.75),
+    vx: rand(-0.03, 0.03),
+    vy: rand(-0.015, 0.015),
+    phase: i * 1.2,
+  }));
   return {
-    genre, stamning, color,
-    notes: Array.from({ length: 12 }, (_, i) => ({
-      x: rand(0.2, 0.8),
-      y: rand(0.3, 0.9),
-      vy: rand(0.3, 0.8),
-      size: rand(12, 22),
-      alpha: rand(0.4, 1),
-      phase: i * 0.5,
+    genre, stamning, color, bpm, instruments, icons,
+    notes: Array.from({ length: 8 }, (_, i) => ({
+      x: rand(0.1, 0.9),
+      y: rand(0.2, 0.85),
+      vy: rand(0.25, 0.65),
+      size: rand(14, 24),
+      alpha: rand(0.5, 1),
+      phase: i * 0.7,
     })),
-    bars: Array.from({ length: 12 }, (_, i) => ({ phase: i * 0.42 })),
+    bars: Array.from({ length: 8 }, (_, i) => ({ phase: i * 0.55 })),
     beatPhase: 0,
     stars: Array.from({ length: 30 }, () => ({ x: rand(0, 1), y: rand(0, 1), phase: Math.random() * Math.PI * 2 })),
   };
@@ -270,104 +288,88 @@ function drawMusik(ctx, w, h, s, dt, t) {
   ctx.fillStyle = '#0a0a14';
   ctx.fillRect(0, 0, w, h);
 
-  // tinted glow
-  const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.6);
-  glow.addColorStop(0, s.color + '22');
+  // tinted radial glow
+  const glow = ctx.createRadialGradient(w / 2, h * 0.5, 0, w / 2, h * 0.5, w * 0.7);
+  glow.addColorStop(0, s.color + '30');
   glow.addColorStop(1, 'transparent');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
 
-  // stars (mystisk/laskig)
-  if (s.stamning === 'mystisk' || s.stamning === 'laskig') {
-    s.stars.forEach(st => {
-      const a = 0.3 + 0.7 * Math.abs(Math.sin(t + st.phase));
-      ctx.fillStyle = `rgba(255,255,255,${a})`;
-      ctx.beginPath();
-      ctx.arc(st.x * w, st.y * h * 0.6, 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
-  // DJ figure
-  const cx = w / 2, cy = h * 0.45;
-  const pulse = 1 + 0.06 * Math.sin(t * 6);
+  // genre label — large, centered, glowing
+  const labelScale = 1 + 0.04 * Math.sin(t * 2);
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(pulse, pulse);
-  // body
+  ctx.translate(w / 2, h * 0.18);
+  ctx.scale(labelScale, labelScale);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(w * 0.11)}px sans-serif`;
+  ctx.shadowColor = s.color;
+  ctx.shadowBlur = 24;
   ctx.fillStyle = s.color;
-  ctx.fillRect(-18, -20, 36, 44);
-  // head
-  ctx.fillStyle = '#fdbcb4';
-  ctx.beginPath();
-  ctx.arc(0, -34, 18, 0, Math.PI * 2);
-  ctx.fill();
-  // headphones
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(0, -34, 22, Math.PI, 2 * Math.PI);
-  ctx.stroke();
-  ctx.fillStyle = '#333';
-  ctx.beginPath(); ctx.arc(-22, -34, 6, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(22, -34, 6, 0, Math.PI * 2); ctx.fill();
-  // arms (sway)
-  const armSway = Math.sin(t * 3) * 0.4;
-  ctx.strokeStyle = '#fdbcb4';
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(-18, -10);
-  ctx.lineTo(-36, 0 + armSway * 10);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(18, -10);
-  ctx.lineTo(36, 0 - armSway * 10);
-  ctx.stroke();
+  ctx.fillText(s.genre.toUpperCase(), 0, 0);
   ctx.restore();
+  ctx.shadowBlur = 0;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 
-  // turntable
-  ctx.fillStyle = '#222';
-  ctx.beginPath();
-  ctx.arc(cx, h * 0.72, 38, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = s.color + 'aa';
-  ctx.beginPath();
-  ctx.arc(cx, h * 0.72, 28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.save();
-  ctx.translate(cx, h * 0.72);
-  ctx.rotate(t * 3);
-  ctx.strokeStyle = '#ffffff44';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 4; i++) {
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(22 * Math.cos(i * Math.PI / 2), 22 * Math.sin(i * Math.PI / 2));
-    ctx.stroke();
-  }
-  ctx.restore();
+  // BPM counter — top-right corner
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.font = `bold ${Math.round(w * 0.055)}px monospace`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`${s.bpm} BPM`, w - 12, 28);
+  ctx.textAlign = 'left';
 
-  // floating notes
-  s.notes.forEach(n => {
-    n.y -= n.vy * dt;
-    if (n.y < -0.05) { n.y = 0.95; n.x = rand(0.15, 0.85); }
-    const alpha = n.alpha * (0.5 + 0.5 * Math.sin(t * 2 + n.phase));
+  // animated equalizer bars — 8 bars, genre color, bottom section
+  const barCount = 8;
+  const barW = Math.round(w * 0.055);
+  const barGap = Math.round(w * 0.022);
+  const barAreaW = barCount * (barW + barGap) - barGap;
+  const barX0 = (w - barAreaW) / 2;
+  const barMaxH = h * 0.28;
+  const barBaseY = h * 0.82;
+  s.bars.forEach((b, i) => {
+    const bh = barMaxH * (0.25 + 0.75 * Math.abs(Math.sin(t * (4 + i * 0.3) + b.phase)));
+    // bar glow
+    ctx.shadowColor = s.color;
+    ctx.shadowBlur = 12;
+    const alpha = 0.55 + 0.45 * Math.abs(Math.sin(t * 3 + b.phase));
     ctx.fillStyle = s.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-    ctx.font = `${n.size}px serif`;
-    ctx.fillText('♪', n.x * w, n.y * h);
+    ctx.fillRect(barX0 + i * (barW + barGap), barBaseY - bh, barW, bh);
+  });
+  ctx.shadowBlur = 0;
+
+  // bar baseline
+  ctx.fillStyle = s.color + '44';
+  ctx.fillRect(barX0 - 4, barBaseY, barAreaW + 8, 2);
+
+  // floating instrument icons
+  s.icons.forEach(ic => {
+    ic.x += ic.vx * dt;
+    ic.y += ic.vy * dt;
+    if (ic.x < 0.08 || ic.x > 0.92) ic.vx *= -1;
+    if (ic.y < 0.08 || ic.y > 0.72) ic.vy *= -1;
+    const emojiScale = 1 + 0.08 * Math.sin(t * 2 + ic.phase);
+    ctx.save();
+    ctx.translate(ic.x * w, ic.y * h);
+    ctx.scale(emojiScale, emojiScale);
+    ctx.font = `${Math.round(w * 0.09)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.85;
+    ctx.fillText(ic.emoji, 0, 0);
+    ctx.restore();
+    ctx.globalAlpha = 1;
   });
 
-  // beat bars
-  const barW = 14, barGap = 6, barsTotal = s.bars.length;
-  const barAreaW = barsTotal * (barW + barGap);
-  const barX0 = (w - barAreaW) / 2;
-  const barMaxH = 70;
-  s.bars.forEach((b, i) => {
-    const bh = barMaxH * (0.3 + 0.7 * Math.abs(Math.sin(t * 5 + b.phase)));
-    const alpha = 0.6 + 0.4 * Math.abs(Math.sin(t * 4 + b.phase));
+  // floating music notes
+  s.notes.forEach(n => {
+    n.y -= n.vy * dt * 0.035;
+    if (n.y < -0.05) { n.y = 0.92; n.x = rand(0.1, 0.9); }
+    const alpha = n.alpha * (0.4 + 0.6 * Math.abs(Math.sin(t * 1.8 + n.phase)));
     ctx.fillStyle = s.color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-    ctx.fillRect(barX0 + i * (barW + barGap), h - 16 - bh, barW, bh);
+    ctx.font = `${n.size}px serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText('♪', n.x * w, n.y * h);
   });
 }
 
@@ -1000,10 +1002,20 @@ function drawRostlab(ctx, w, h, s, dt, t) {
 }
 
 // ─── Scene: animation ─────────────────────────────────────────────────────────
+const ANIM_CHAR_EMOJIS = {
+  ninja: '🥷', robot: '🤖', katt: '🐱', dinosaurie: '🦕',
+  enhörning: '🦄', pirat: '🏴‍☠️', astronaut: '👨‍🚀', drake: '🐉',
+  haj: '🦈', häxa: '🧙', superhjälte: '🦸', enhornin: '🦄',
+};
+
 function initAnimation(answers) {
+  const karaktar = answers?.karaktar ?? 'ninja';
   const bakgrund = answers?.bakgrund ?? 'rymden';
   const rorelse = answers?.rorelse ?? 'hoppa';
   const effekter = answers?.effekter ?? 'stjarnor';
+  // fuzzy match character key
+  const charKey = Object.keys(ANIM_CHAR_EMOJIS).find(k => karaktar?.toLowerCase().includes(k)) ?? 'ninja';
+  const charEmoji = ANIM_CHAR_EMOJIS[charKey] ?? '🥷';
   const particles = Array.from({ length: 30 }, () => ({
     x: rand(0, 1), y: rand(0, 1),
     vx: rand(-0.4, 0.4), vy: rand(-0.6, -0.1),
@@ -1011,7 +1023,7 @@ function initAnimation(answers) {
     phase: Math.random() * Math.PI * 2,
     life: Math.random(),
   }));
-  return { bakgrund, rorelse, effekter, particles, charX: 0.5, charY: 0.55, figureT: 0, flyAngle: 0 };
+  return { karaktar, charEmoji, bakgrund, rorelse, effekter, particles, charX: 0.5, charY: 0.55, figureT: 0, flyAngle: 0 };
 }
 
 function drawAnimation(ctx, w, h, s, dt, t) {
@@ -1070,11 +1082,24 @@ function drawAnimation(ctx, w, h, s, dt, t) {
   }
 
   const rotate = s.rorelse === 'snurra' ? s.figureT * 3 : 0;
+  const emojiSize = Math.round(Math.min(w, h) * 0.18);
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(rotate);
-  drawStickFigure(ctx, 0, 0, 1.4, '#fff', s.rorelse === 'springa' ? 3 : (s.rorelse === 'hoppa' ? 1 : 0));
+  ctx.font = `${emojiSize}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(s.charEmoji, 0, 0);
   ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  // character name label at bottom
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = `bold ${Math.round(w * 0.055)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(s.karaktar, w / 2, h * 0.93);
+  ctx.textAlign = 'left';
 
   // particles / effects
   const effColors = {
