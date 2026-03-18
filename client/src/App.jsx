@@ -8,6 +8,7 @@ import OnboardingScreen from './screens/OnboardingScreen.jsx';
 import WizardScreen from './screens/WizardScreen.jsx';
 import PlaygroundScreen from './screens/PlaygroundScreen.jsx';
 import ResultScreen from './screens/ResultScreen.jsx';
+import PlayerScreen from './screens/PlayerScreen.jsx';
 
 const SCREENS = {
   home: HomeScreen,
@@ -19,6 +20,7 @@ const SCREENS = {
   wizard: WizardScreen,
   playground: PlaygroundScreen,
   result: ResultScreen,
+  player: PlayerScreen,
 };
 
 export default function App() {

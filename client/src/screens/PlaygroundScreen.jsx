@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
+import { buildPrompt } from '../lib/promptBuilder.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1259,11 +1260,66 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
   const lastRef   = useRef(null);
   const startRef  = useRef(null);
   const progressRef = useRef(null); // DOM element for progress bar fill
+  const abortRef  = useRef(null);
 
   const config = WIZARD_CONFIG[category] ?? {};
   const catLabel = config.label ?? category;
   const catEmoji = config.emoji ?? '⚙️';
 
+  // Generation via SSE
+  useEffect(() => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    async function generate() {
+      const prompt = buildPrompt(category, answers ?? {}, 'skapelse');
+      let detectedFile = null;
+      try {
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt }),
+          signal: controller.signal,
+        });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const obj = JSON.parse(line.slice(6));
+              if (obj.type === 'file') detectedFile = obj.file;
+              if (obj.type === 'done') {
+                navigate('result', { category, answers, file: detectedFile });
+                return;
+              }
+              if (obj.type === 'error') {
+                navigate('result', { category, answers, error: true });
+                return;
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        navigate('result', { category, answers, error: true });
+      }
+    }
+
+    generate();
+
+    return () => {
+      controller.abort();
+    };
+  }, [category]);
+
+  // Canvas animation
   useEffect(() => {
     const scene = SCENES[category];
     if (!scene) return;
@@ -1293,18 +1349,12 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
       ctx.clearRect(0, 0, w, h);
       scene.draw(ctx, w, h, stateRef.current, dt, elapsed);
 
-      // progress bar
+      // progress bar (visual only, not tied to real progress)
       if (progressRef.current) {
         const prog = elapsed < 25
           ? easeOut(elapsed / 25) * 90
           : 90 + Math.sin(elapsed * 2) * 2;
         progressRef.current.style.width = `${Math.min(prog, 92)}%`;
-      }
-
-      // navigate after 28 s (placeholder for Phase 3 hook)
-      if (elapsed >= 28) {
-        navigate('result', { category, answers, file: 'demo' });
-        return;
       }
 
       rafRef.current = requestAnimationFrame(loop);
@@ -1328,7 +1378,7 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
 
       {/* Back button */}
       <button
-        onClick={() => navigate('wizard', { category, answers })}
+        onClick={() => { abortRef.current?.abort(); navigate('wizard', { category, answers }); }}
         style={{
           position: 'absolute', top: 16, left: 16,
           background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.2)',
