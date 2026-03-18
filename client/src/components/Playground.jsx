@@ -217,6 +217,43 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         filmLastBubble: 0,
         filmCharState: 'walk', // walk | center | gesture | exit
         filmCharStateStart: 0,
+        // kortspel category
+        kortCards: Array.from({ length: 4 }, (_, i) => ({
+          x: 0.25 + i * 0.14,
+          y: 0.45,
+          flipPhase: i * 0.5,
+          flipped: false,
+        })),
+        kortSuits: Array.from({ length: 6 }, () => ({
+          x: Math.random(),
+          y: 0.6 + Math.random() * 0.3,
+          vy: -(0.0004 + Math.random() * 0.0003),
+          alpha: 0.7 + Math.random() * 0.3,
+          suit: ['♠','♥','♦','♣'][Math.floor(Math.random() * 4)],
+          drift: (Math.random() - 0.5) * 0.0002,
+        })),
+        kortDiePhase: 0,
+        kortLastSuitReset: 0,
+        // bradspel category
+        bradPieces: [
+          { pathPos: 0, color: '#e94560', hopPhase: 0 },
+          { pathPos: 3, color: '#2e86de', hopPhase: 1.5 },
+          { pathPos: 6, color: '#27ae60', hopPhase: 3.0 },
+        ],
+        bradPath: Array.from({ length: 12 }, (_, i) => {
+          const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+          return {
+            x: 0.5 + 0.32 * Math.cos(angle),
+            y: 0.5 + 0.28 * Math.sin(angle),
+            special: i % 4 === 0,
+          };
+        }),
+        bradDieBounce: 0,
+        bradDieValue: 3,
+        bradDieLastRoll: 0,
+        bradSparkles: [],
+        bradArrowAngle: 0,
+        bradLastPieceMove: 0,
       };
     }
 
@@ -1769,6 +1806,386 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     }
     // ---- END FILMSTUDIO CATEGORY ----
 
+    // ---- KORTSPEL CATEGORY ----
+    function drawKortspel(t, W, H) {
+      const { addedBlocks } = propsRef.current;
+      const hasDice = addedBlocks.some(b => b.type === 'dice');
+      const ks = state;
+
+      // Dark wooden table background
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1a0f0a');
+      grad.addColorStop(1, '#2d1a10');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Wood grain lines
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,200,100,0.04)';
+      ctx.lineWidth = 1;
+      for (let y = 0; y < H; y += 12) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 3 * Math.sin(y * 0.05));
+        ctx.lineTo(W, y + 3 * Math.sin(y * 0.05 + 1));
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Green felt table
+      const tableX = W * 0.08, tableY = H * 0.18, tableW = W * 0.84, tableH = H * 0.62;
+      ctx.save();
+      const feltGrad = ctx.createRadialGradient(tableX + tableW/2, tableY + tableH/2, 0, tableX + tableW/2, tableY + tableH/2, tableW * 0.6);
+      feltGrad.addColorStop(0, '#1a5c2a');
+      feltGrad.addColorStop(1, '#0d3318');
+      ctx.fillStyle = feltGrad;
+      ctx.strokeStyle = '#0a2210';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(tableX, tableY, tableW, tableH, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Deck stack in top-right corner
+      const deckX = tableX + tableW - 44, deckY = tableY + 10;
+      for (let i = 3; i >= 0; i--) {
+        ctx.save();
+        ctx.fillStyle = i === 0 ? '#1a2860' : '#162050';
+        ctx.strokeStyle = '#8899ff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(deckX + i, deckY + i, 30, 42, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Back pattern on top card
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = '#aabbff';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(deckX + 5, deckY + 4 + i * 7);
+        ctx.lineTo(deckX + 25, deckY + 4 + i * 7);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Fanned cards on table
+      const fanCx = tableX + tableW * 0.45, fanCy = tableY + tableH * 0.55;
+      ks.kortCards.forEach((card, i) => {
+        const angle = -0.25 + i * 0.17;
+        const cx = fanCx + Math.cos(-Math.PI/2 + angle) * 30;
+        const cy = fanCy + Math.sin(-Math.PI/2 + angle) * 30;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.roundRect(-13, -18, 26, 38, 3);
+        ctx.fill();
+
+        // Card body
+        const flip = Math.sin(t * 1.2 + card.flipPhase);
+        ctx.scale(Math.abs(flip) < 0.1 ? (flip < 0 ? -1 : 1) : 1, 1);
+        ctx.fillStyle = flip > 0 ? '#fff' : '#1a2860';
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-12, -17, 24, 36, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        if (flip > 0) {
+          const suits = ['♠','♥','♦','♣'];
+          const suit = suits[i % 4];
+          const isRed = suit === '♥' || suit === '♦';
+          ctx.fillStyle = isRed ? '#cc2222' : '#111';
+          ctx.font = 'bold 13px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(suit, 0, 0);
+        }
+        ctx.restore();
+      });
+
+      // Floating card suit symbols drifting upward
+      ks.kortSuits.forEach(s => {
+        s.y += s.vy;
+        s.x += s.drift;
+        s.alpha -= 0.002;
+        if (s.alpha <= 0 || s.y < 0) {
+          s.x = 0.1 + Math.random() * 0.8;
+          s.y = 0.65 + Math.random() * 0.2;
+          s.alpha = 0.6 + Math.random() * 0.3;
+          s.suit = ['♠','♥','♦','♣'][Math.floor(Math.random() * 4)];
+          s.vy = -(0.0004 + Math.random() * 0.0003);
+        }
+        ctx.globalAlpha = s.alpha;
+        ctx.fillStyle = (s.suit === '♥' || s.suit === '♦') ? '#e94560' : '#e6edf3';
+        ctx.font = '16px serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(s.suit, s.x * W, s.y * H);
+      });
+      ctx.globalAlpha = 1;
+
+      // Dice on table when dice block added
+      if (hasDice) {
+        ks.kortDiePhase += 0.04;
+        const dieX = tableX + 22, dieY = tableY + tableH * 0.5;
+        const tumble = Math.sin(ks.kortDiePhase) * 0.3;
+        const dieSize = 22;
+        ctx.save();
+        ctx.translate(dieX, dieY);
+        ctx.rotate(tumble);
+        ctx.fillStyle = '#2e86de';
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(-dieSize/2, -dieSize/2, dieSize, dieSize, 4);
+        ctx.fill();
+        ctx.stroke();
+        // Dots for 3
+        const dotPositions = [[-5,-5],[0,0],[5,5]];
+        ctx.fillStyle = '#fff';
+        dotPositions.forEach(([dx, dy]) => {
+          ctx.beginPath();
+          ctx.arc(dx, dy, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+    }
+    // ---- END KORTSPEL CATEGORY ----
+
+    // ---- BRADSPEL CATEGORY ----
+    function drawBradspel(t, W, H) {
+      const { addedBlocks } = propsRef.current;
+      const hasDice = addedBlocks.some(b => b.type === 'dice');
+      const bs = state;
+
+      // Dark wooden table background
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1a0f0a');
+      grad.addColorStop(1, '#2d1a10');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Wood grain
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,200,100,0.04)';
+      ctx.lineWidth = 1;
+      for (let y = 0; y < H; y += 12) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 3 * Math.sin(y * 0.05));
+        ctx.lineTo(W, y + 3 * Math.sin(y * 0.05 + 1));
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Checkerboard background (8x8)
+      const gridX = W * 0.04, gridY = H * 0.04;
+      const gridW = W * 0.92, gridH = H * 0.92;
+      const cols = 8, rows = 8;
+      const cellW2 = gridW / cols, cellH2 = gridH / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          ctx.fillStyle = (r + c) % 2 === 0 ? '#e8d5b0' : '#6b4226';
+          ctx.globalAlpha = 0.3;
+          ctx.fillRect(gridX + c * cellW2, gridY + r * cellH2, cellW2, cellH2);
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Winding path dots
+      const path = bs.bradPath;
+      path.forEach((node, i) => {
+        const nx = node.x * W, ny = node.y * H;
+        ctx.save();
+        if (node.special) {
+          ctx.fillStyle = '#ffe066';
+          ctx.strokeStyle = '#c8a800';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(nx, ny, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#333';
+          ctx.font = '10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('\u2605', nx, ny);
+        } else {
+          ctx.fillStyle = '#d4b896';
+          ctx.strokeStyle = '#a08060';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(nx, ny, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#555';
+          ctx.font = 'bold 8px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(i + 1, nx, ny);
+        }
+        // Line to next
+        if (i < path.length - 1) {
+          const nx2 = path[i+1].x * W, ny2 = path[i+1].y * H;
+          ctx.strokeStyle = 'rgba(200,170,120,0.4)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([3, 4]);
+          ctx.beginPath();
+          ctx.moveTo(nx, ny);
+          ctx.lineTo(nx2, ny2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        ctx.restore();
+      });
+
+      // Move pieces slowly along path
+      if (t - bs.bradLastPieceMove > 2.5) {
+        bs.bradLastPieceMove = t;
+        const idx = Math.floor(Math.random() * bs.bradPieces.length);
+        const piece = bs.bradPieces[idx];
+        piece.pathPos = (piece.pathPos + 1) % path.length;
+        if (path[piece.pathPos].special) {
+          bs.bradSparkles.push({
+            x: path[piece.pathPos].x * W,
+            y: path[piece.pathPos].y * H,
+            born: t,
+          });
+        }
+      }
+
+      // Hop animation for pieces
+      bs.bradPieces.forEach(piece => {
+        piece.hopPhase += 0.05;
+        const node = path[piece.pathPos];
+        const px = node.x * W;
+        const py = node.y * H;
+        const hop = -5 * Math.abs(Math.sin(piece.hopPhase));
+
+        ctx.save();
+        // Shadow
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(px, py + 8, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = piece.color;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(px, py + hop, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // Sparkles on special squares
+      bs.bradSparkles = bs.bradSparkles.filter(sp => {
+        const age = t - sp.born;
+        if (age > 1.0) return false;
+        const alpha = 1 - age;
+        const r2 = age * 20;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = '#ffe066';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, r2, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let j = 0; j < 6; j++) {
+          const a = (j / 6) * Math.PI * 2;
+          const sx = sp.x + Math.cos(a) * r2;
+          const sy = sp.y + Math.sin(a) * r2;
+          ctx.fillStyle = '#ffe066';
+          ctx.beginPath();
+          ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        return true;
+      });
+
+      // Turn indicator arrow rotating between 2 positions
+      bs.bradArrowAngle += 0.015;
+      const arrowX = W * 0.5, arrowY = H * 0.5;
+      const arrowR = 18;
+      const aAngle = bs.bradArrowAngle;
+      ctx.save();
+      ctx.translate(arrowX + Math.cos(aAngle) * 30, arrowY + Math.sin(aAngle) * 20);
+      ctx.rotate(aAngle + Math.PI / 2);
+      ctx.fillStyle = 'rgba(255,224,102,0.7)';
+      ctx.strokeStyle = '#c8a800';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -arrowR);
+      ctx.lineTo(arrowR * 0.5, arrowR * 0.4);
+      ctx.lineTo(0, arrowR * 0.1);
+      ctx.lineTo(-arrowR * 0.5, arrowR * 0.4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Bouncing d6 die in corner when dice block added
+      if (hasDice) {
+        bs.bradDiePhase += 0.06;
+        const bounce = Math.abs(Math.sin(bs.bradDiePhase)) * 14;
+        const dieX = W * 0.88, dieY = H * 0.85 - bounce;
+        const dieSize = 26;
+
+        if (bs.bradDiePhase % (Math.PI * 2) < 0.06) {
+          bs.bradDieValue = 1 + Math.floor(Math.random() * 6);
+        }
+
+        ctx.save();
+        ctx.fillStyle = '#e94560';
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(dieX - dieSize/2, dieY - dieSize/2, dieSize, dieSize, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // Dots
+        const dotLayouts = {
+          1: [[0,0]],
+          2: [[-6,-6],[6,6]],
+          3: [[-6,-6],[0,0],[6,6]],
+          4: [[-6,-6],[6,-6],[-6,6],[6,6]],
+          5: [[-6,-6],[6,-6],[0,0],[-6,6],[6,6]],
+          6: [[-6,-6],[6,-6],[-6,0],[6,0],[-6,6],[6,6]],
+        };
+        const dots = dotLayouts[bs.bradDieValue] || dotLayouts[1];
+        ctx.fillStyle = '#fff';
+        dots.forEach(([dx, dy]) => {
+          ctx.beginPath();
+          ctx.arc(dieX + dx, dieY + dy, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Ground shadow squash
+        ctx.globalAlpha = 0.2 + 0.3 * (1 - bounce / 14);
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(dieX, H * 0.85 + dieSize/2 + 2, dieSize * 0.5 * (1 - bounce / 28), 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+    }
+    // ---- END BRADSPEL CATEGORY ----
+
     function applyColorTint(t, W, H) {
       const { color } = propsRef.current;
       if (!color) return;
@@ -1807,6 +2224,8 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       else if (cat === 'rostlab') drawRostlab(t, W, H);
       else if (cat === 'animation') drawAnimation(t, W, H);
       else if (cat === 'filmstudio' || cat === 'berattelse') drawFilmstudio(t, W, H);
+      else if (cat === 'kortspel') drawKortspel(t, W, H);
+      else if (cat === 'bradspel') drawBradspel(t, W, H);
       else                       drawDefault(t, W, H);
 
       // Theme ground bar (only for non-spel which draws its own)

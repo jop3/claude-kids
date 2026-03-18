@@ -49,6 +49,10 @@ import CardMatchBlock from '../blocks/card-match/CardMatchBlock.jsx';
 import CardCompareBlock from '../blocks/card-compare/CardCompareBlock.jsx';
 import BoardGridBlock from '../blocks/board-grid/BoardGridBlock.jsx';
 import BoardPathBlock from '../blocks/board-path/BoardPathBlock.jsx';
+import GamePieceBlock from '../blocks/game-piece/GamePieceBlock.jsx';
+import DiceBlock from '../blocks/dice/DiceBlock.jsx';
+import SpinnerBlock from '../blocks/spinner/SpinnerBlock.jsx';
+import TurnManagerBlock from '../blocks/turn-manager/TurnManagerBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -107,6 +111,10 @@ const ALL_BLOCKS = [
   { id: 'card-compare', name: 'Top Trumps', emoji: '⚔️', type: 'card-compare', categories: ['kortspel'] },
   { id: 'board-grid', name: 'Spelbrädets rutnät', emoji: '♟️', type: 'board-grid', categories: ['kortspel', 'bradspel'] },
   { id: 'board-path', name: 'Spelstigen', emoji: '🎲', type: 'board-path', categories: ['kortspel', 'bradspel'] },
+  { id: 'game-piece', name: 'Spelbricker', emoji: '🔵', type: 'game-piece', categories: ['bradspel', 'kortspel'] },
+  { id: 'dice', name: 'Tärning', emoji: '🎲', type: 'dice', categories: ['bradspel', 'kortspel'] },
+  { id: 'spinner', name: 'Snurra', emoji: '🌀', type: 'spinner', categories: ['bradspel', 'kortspel'] },
+  { id: 'turn-manager', name: 'Turordning', emoji: '🔄', type: 'turn-manager', categories: ['bradspel', 'kortspel'] },
 ];
 
 function useIsLandscape() {
@@ -781,6 +789,26 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'board-path' ? (
             <BoardPathBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'game-piece' ? (
+            <GamePieceBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'dice' ? (
+            <DiceBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'spinner' ? (
+            <SpinnerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'turn-manager' ? (
+            <TurnManagerBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
