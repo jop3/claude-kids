@@ -26,6 +26,12 @@ import InputHandlerBlock from '../blocks/input-handler/InputHandlerBlock.jsx';
 import PlatformerCtrlBlock from '../blocks/platformer-ctrl/PlatformerCtrlBlock.jsx';
 import TopdownCtrlBlock from '../blocks/topdown-ctrl/TopdownCtrlBlock.jsx';
 import TilemapBlock from '../blocks/tilemap/TilemapBlock.jsx';
+import EnemyAIBlock from '../blocks/enemy-ai/EnemyAIBlock.jsx';
+import ScoreBlock from '../blocks/score/ScoreBlock.jsx';
+import HealthBlock from '../blocks/health/HealthBlock.jsx';
+import TimerBlock from '../blocks/timer/TimerBlock.jsx';
+import PowerupBlock from '../blocks/powerup/PowerupBlock.jsx';
+import TriggerZoneBlock from '../blocks/trigger-zone/TriggerZoneBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -58,6 +64,12 @@ const ALL_BLOCKS = [
   { id: 'platformer-ctrl', name: 'Plattformsspel', emoji: '🏃', type: 'platformer-ctrl', categories: ['spel'] },
   { id: 'topdown-ctrl', name: 'Uppifrån-spel', emoji: '🗺️', type: 'topdown-ctrl', categories: ['spel'] },
   { id: 'tilemap', name: 'Bandesign', emoji: '🗺️', type: 'tilemap', categories: ['spel'] },
+  { id: 'enemy-ai', name: 'Fiender', emoji: '👾', type: 'enemy-ai', categories: ['spel'] },
+  { id: 'score', name: 'Poäng', emoji: '⭐', type: 'score', categories: ['spel'] },
+  { id: 'health', name: 'Hälsa', emoji: '❤️', type: 'health', categories: ['spel'] },
+  { id: 'timer', name: 'Timer', emoji: '⏱️', type: 'timer', categories: ['spel'] },
+  { id: 'powerup', name: 'Power-up', emoji: '⚡', type: 'powerup', categories: ['spel'] },
+  { id: 'trigger-zone', name: 'Triggerzon', emoji: '🚪', type: 'trigger-zone', categories: ['spel'] },
 ];
 
 function useIsLandscape() {
@@ -617,6 +629,36 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'tilemap' ? (
             <TilemapBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'enemy-ai' ? (
+            <EnemyAIBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'score' ? (
+            <ScoreBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'health' ? (
+            <HealthBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'timer' ? (
+            <TimerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'powerup' ? (
+            <PowerupBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'trigger-zone' ? (
+            <TriggerZoneBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
