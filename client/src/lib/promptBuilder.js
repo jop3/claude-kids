@@ -180,6 +180,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'animation':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt animationsnamn på svenska (max 3 ord):
+- Karaktär: ${answers.karaktar}
+- Rörelse: ${answers.rorelse}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Ninja Hoppar"}`;
+
+    case 'animation_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa en komplett animering i HTML och spara som /workspace/${name}.html
 
 Animeringen ska visa:

@@ -96,6 +96,44 @@ export function getRunnerConfig(answers, title) {
   };
 }
 
+export function getAnimationConfig(answers, title) {
+  const CHAR_EMOJIS = {
+    ninja: '🥷', robot: '🤖', katt: '🐱', dinosaurie: '🦕', enhornin: '🦄', pirat: '🏴‍☠️',
+    haxan: '🧙‍♀️', bjorn: '🐻', pingvin: '🐧', rymdalien: '👽', delfin: '🐬',
+  };
+  const BG_WORLDS = {
+    rymden:      ['#0d0d2b','#1a1a4e'],
+    djungeln:    ['#0a2e0a','#1a5e1a'],
+    havet:       ['#001a3e','#0047ab'],
+    staden:      ['#1a1a2e','#2d2d4e'],
+    dromvarlden: ['#1a0a2e','#3d1a5e'],
+    vulkanen:    ['#2e0a00','#5e1a00'],
+  };
+  const EFFEKT_ACCENTS = {
+    konfetti: '#ff6b6b', stjarnor: '#ffd700', eld: '#ff6600',
+    bubblor: '#4ecdc4', regnbage: '#a29bfe', blixt: '#00e5ff',
+    sno: '#aaddff', hjartan: '#ff69b4', musik: '#ffd700', magi: '#ea80fc',
+  };
+  const char = (answers.karaktar || 'ninja').toLowerCase();
+  const world = (answers.bakgrund || 'rymden').toLowerCase();
+  const effekt = (answers.effekter || 'stjarnor').toLowerCase();
+  const charKey = Object.keys(CHAR_EMOJIS).find(k => char.includes(k)) || 'ninja';
+  const worldKey = Object.keys(BG_WORLDS).find(k => world.includes(k) || k.includes(world)) || 'rymden';
+  const bg = BG_WORLDS[worldKey] || BG_WORLDS.rymden;
+  const effektKey = Object.keys(EFFEKT_ACCENTS).find(k => effekt.includes(k)) || 'stjarnor';
+  return {
+    TITLE:      title || answers.karaktar + ' Animation',
+    CHAR_EMOJI: CHAR_EMOJIS[charKey] || '🥷',
+    CHAR_NAME:  (answers.karaktar || 'Ninja').charAt(0).toUpperCase() + (answers.karaktar || 'Ninja').slice(1),
+    BG_TOP:     bg[0],
+    BG_BOT:     bg[1],
+    RORELSE:    (answers.rorelse || 'hoppa').toLowerCase(),
+    EFFEKT:     effektKey,
+    ACCENT:     EFFEKT_ACCENTS[effektKey] || '#ffd700',
+    WORLD:      worldKey,
+  };
+}
+
 export function getMusicConfig(answers, title) {
   const GENRE_THEMES = {
     pop:         { bg: '#1a0020', accent: '#ff69b4', bpm: 120 },
