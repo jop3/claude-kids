@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getStateAtTime } from '../../lib/animationEngine.js';
+import { getStateAtTime, EASING_FUNCTIONS } from '../../lib/animationEngine.js';
+import { TWEEN_PRESETS } from '../../lib/tweenPresets.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const LABEL_WIDTH = 120; // px — object list column
@@ -10,12 +11,24 @@ const PREVIEW_SIZE = 200;
 
 const DURATION_OPTIONS = [2000, 5000, 10000];
 
-const EASING_OPTIONS = ['Linear', 'EaseIn', 'EaseOut', 'EaseInOut'];
+const EASING_OPTIONS = [
+  'linear',
+  'easeInQuad',
+  'easeOutQuad',
+  'easeInOutQuad',
+  'easeInCubic',
+  'easeOutCubic',
+  'easeInOutCubic',
+  'easeInBack',
+  'easeOutBack',
+  'easeOutBounce',
+  'easeOutElastic',
+];
 
 const ANIMATABLE_BLOCK_TYPES = new Set(['character-builder', 'background-picker', 'particle-fx', 'sprite-picker', 'canvas-draw', 'pixel-editor']);
 
 function defaultKeyframe(time) {
-  return { id: crypto.randomUUID(), time, x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, opacity: 1, easing: 'Linear' };
+  return { id: crypto.randomUUID(), time, x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, opacity: 1, easing: 'linear' };
 }
 
 function getObjectsFromBlocks(addedBlocks) {
@@ -43,6 +56,24 @@ function Slider({ label, value, min, max, step = 0.01, onChange, formatVal }) {
         style={{ width: '100%', accentColor: '#58a6ff' }}
       />
     </div>
+  );
+}
+
+// ─── Easing curve thumbnail ──────────────────────────────────────────────────
+
+function EasingCurve({ name, size = [30, 20] }) {
+  const [w, h] = size;
+  const fn = EASING_FUNCTIONS[name] || (t => t);
+  const steps = 20;
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps;
+    const v = fn(t);
+    return `${(t * w).toFixed(1)},${((1 - v) * h).toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} style={{ display: 'block', flexShrink: 0 }}>
+      <polyline points={points} fill="none" stroke="#58a6ff" strokeWidth="1.5" />
+    </svg>
   );
 }
 
@@ -191,6 +222,17 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
     const newObj = { id: crypto.randomUUID(), name, emoji: '⭐', keyframes: [], visible: true, custom: true };
     updateObjects([...syncedObjects, newObj]);
     setSelectedObjectId(newObj.id);
+  }
+
+  function addPreset(preset) {
+    if (!selectedObjectId) return;
+    const newKfs = preset.keyframes.map(kf => ({ ...kf, id: crypto.randomUUID() }));
+    const newObjects = syncedObjects.map(o => {
+      if (o.id !== selectedObjectId) return o;
+      const merged = [...(o.keyframes || []), ...newKfs].sort((a, b) => a.time - b.time);
+      return { ...o, keyframes: merged };
+    });
+    updateObjects(newObjects);
   }
 
   // ── duration change ──
@@ -346,6 +388,37 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
               }}
             >
               {d / 1000}s
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick animation presets */}
+      <div>
+        <div style={sectionLabel}>Snabbanimationer</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {TWEEN_PRESETS.map(preset => (
+            <button
+              key={preset.id}
+              onClick={() => addPreset(preset)}
+              disabled={!selectedObjectId}
+              title={selectedObjectId ? `Lagg till "${preset.name}" pa valt objekt` : 'Valj ett objekt forst'}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid #30363d',
+                background: selectedObjectId ? '#21262d' : '#161b22',
+                color: selectedObjectId ? '#c9d1d9' : '#444',
+                cursor: selectedObjectId ? 'pointer' : 'not-allowed',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>{preset.emoji}</span>
+              <span>{preset.name}</span>
             </button>
           ))}
         </div>
@@ -514,24 +587,31 @@ export default function AnimationTimelineBlock({ addedBlocks = [], config = {}, 
           <div>
             <div style={sectionLabel}>Easing</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {EASING_OPTIONS.map(e => (
-                <button
-                  key={e}
-                  onClick={() => updateKeyframe(selectedObjectId, selectedKfId, { easing: e })}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 6,
-                    border: `2px solid ${(selectedKf.easing || 'Linear') === e ? '#58a6ff' : '#30363d'}`,
-                    background: (selectedKf.easing || 'Linear') === e ? '#0d2744' : '#21262d',
-                    color: (selectedKf.easing || 'Linear') === e ? '#58a6ff' : '#c9d1d9',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {e}
-                </button>
-              ))}
+              {EASING_OPTIONS.map(e => {
+                const isActive = (selectedKf.easing || 'linear') === e;
+                return (
+                  <button
+                    key={e}
+                    onClick={() => updateKeyframe(selectedObjectId, selectedKfId, { easing: e })}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: `2px solid ${isActive ? '#58a6ff' : '#30363d'}`,
+                      background: isActive ? '#0d2744' : '#21262d',
+                      color: isActive ? '#58a6ff' : '#c9d1d9',
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <EasingCurve name={e} />
+                    {e}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
