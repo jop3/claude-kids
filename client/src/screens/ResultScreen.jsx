@@ -24,9 +24,12 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
         alignItems: 'center', justifyContent: 'center',
         background: '#1a1a2e', color: '#fff', gap: 16, padding: 24,
       }}>
-        <div style={{ fontSize: 80 }}>😵</div>
+        <div style={{ fontSize: 80 }}>😅</div>
         <div style={{ fontSize: '1.6rem', fontWeight: 800, textAlign: 'center' }}>
-          Hoppsan! Något gick fel.
+          Något gick snett 😅
+        </div>
+        <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+          Ingen panik — försök igen!
         </div>
         <button
           onClick={() => navigate('playground', { category, answers })}
