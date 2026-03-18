@@ -2186,6 +2186,227 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     }
     // ---- END BRADSPEL CATEGORY ----
 
+    // ---- LAROSPEL CATEGORY ----
+    function drawLarospel(t, W, H) {
+      const { addedBlocks, isPlaying, celebrate } = propsRef.current;
+      const ls = state;
+
+      // Initialize larospel state on first use
+      if (!ls.laroStars) {
+        ls.laroStars = Array.from({ length: 12 }, () => ({
+          x: Math.random() * 1.0,
+          y: -0.1,
+          vy: 0.003 + Math.random() * 0.004,
+          alpha: 0,
+          active: false,
+        }));
+        ls.laroStarLastSpawn = 0;
+        ls.laroIcons = Array.from({ length: 8 }, (_, i) => ({
+          x: 0.05 + Math.random() * 0.9,
+          y: 0.7 + Math.random() * 0.2,
+          vy: -(0.0004 + Math.random() * 0.0004),
+          alpha: 0.6 + Math.random() * 0.4,
+          icon: ['📚', '✏️', '🔢', '🌍', '🔬', '🎯'][Math.floor(Math.random() * 6)],
+          drift: (Math.random() - 0.5) * 0.0002,
+        }));
+        ls.laroProgressPct = 0;
+        ls.laroProgressStart = t;
+        ls.laroCharJump = 0;
+        ls.laroCharJumpV = 0;
+        ls.laroLightbulbAlpha = 0;
+        ls.laroLightbulbGrow = false;
+      }
+
+      // Sky-blue classroom background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, '#e8f4fd');
+      bgGrad.addColorStop(1, '#f0f8e8');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Floor
+      ctx.fillStyle = '#d4b896';
+      ctx.fillRect(0, H * 0.82, W, H * 0.18);
+      // Floor line
+      ctx.strokeStyle = '#b8956a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.82);
+      ctx.lineTo(W, H * 0.82);
+      ctx.stroke();
+
+      // Blackboard (back wall)
+      const bbX = W * 0.08, bbY = H * 0.08, bbW = W * 0.6, bbH = H * 0.42;
+      ctx.fillStyle = '#2d5a27';
+      ctx.strokeStyle = '#6b3a14';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.roundRect(bbX, bbY, bbW, bbH, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Chalk tray
+      ctx.fillStyle = '#6b3a14';
+      ctx.fillRect(bbX, bbY + bbH, bbW, 8);
+
+      // Text on blackboard - animated equation
+      ctx.save();
+      ctx.font = `bold ${Math.max(16, bbH * 0.22)}px monospace`;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const eqPhase = Math.floor(t * 0.3) % 4;
+      const equations = ['2 + 2 = ?', '5 x 3 = ?', 'A + B = C', '7 - 4 = ?'];
+      ctx.fillText(equations[eqPhase], bbX + bbW / 2, bbY + bbH * 0.4);
+      ctx.font = `${Math.max(10, bbH * 0.13)}px monospace`;
+      ctx.fillStyle = 'rgba(200,255,200,0.7)';
+      ctx.fillText('Klockrent!', bbX + bbW / 2, bbY + bbH * 0.7);
+      ctx.restore();
+
+      // Floating subject icons drift upward
+      ls.laroIcons.forEach(ic => {
+        ic.x += ic.drift;
+        ic.y += ic.vy;
+        if (ic.y < -0.05) {
+          ic.y = 0.75 + Math.random() * 0.15;
+          ic.x = 0.05 + Math.random() * 0.9;
+          ic.alpha = 0.6 + Math.random() * 0.4;
+        }
+        ctx.globalAlpha = ic.alpha * 0.65;
+        ctx.font = '18px serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(ic.icon, ic.x * W, ic.y * H);
+      });
+      ctx.globalAlpha = 1;
+
+      // Character (student) on right side
+      const charX = W * 0.82;
+      const groundY = H * 0.82;
+      const charH = H * 0.22;
+      const charR = charH * 0.18;
+
+      // Jump animation
+      if (celebrate || isPlaying) {
+        if (ls.laroCharJump === 0 && ls.laroCharJumpV === 0) {
+          ls.laroCharJumpV = -H * 0.015;
+        }
+      }
+      ls.laroCharJump += ls.laroCharJumpV;
+      ls.laroCharJumpV += H * 0.0008; // gravity
+      if (ls.laroCharJump >= 0) {
+        ls.laroCharJump = 0;
+        ls.laroCharJumpV = 0;
+      }
+
+      const charY = groundY - charH * 0.5 + ls.laroCharJump;
+
+      // Body
+      ctx.fillStyle = '#3a7bd5';
+      ctx.beginPath();
+      ctx.roundRect(charX - charR * 0.8, charY - charH * 0.3, charR * 1.6, charH * 0.55, 4);
+      ctx.fill();
+
+      // Raised hand (arm pointing up when celebrating)
+      const armUp = celebrate || isPlaying || ls.laroCharJump < -2;
+      const armAngle = armUp
+        ? -Math.PI * 0.7 + 0.2 * Math.sin(t * 5)
+        : -Math.PI * 0.3 + 0.15 * Math.sin(t * 2);
+      ctx.save();
+      ctx.translate(charX + charR * 0.7, charY - charH * 0.1);
+      ctx.rotate(armAngle);
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, charR * 1.8);
+      ctx.stroke();
+      ctx.restore();
+
+      // Left arm idle
+      ctx.save();
+      ctx.translate(charX - charR * 0.7, charY - charH * 0.1);
+      ctx.rotate(Math.PI * 0.25 + 0.1 * Math.sin(t * 2 + 1));
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, charR * 1.8);
+      ctx.stroke();
+      ctx.restore();
+
+      // Head
+      drawSmiley(charX, charY - charH * 0.38, charR, 0, 0);
+
+      // Lightbulb above head
+      if (celebrate || isPlaying) {
+        ls.laroLightbulbAlpha = Math.min(1, ls.laroLightbulbAlpha + 0.05);
+      } else {
+        ls.laroLightbulbAlpha = Math.max(0, ls.laroLightbulbAlpha - 0.02);
+      }
+      if (ls.laroLightbulbAlpha > 0) {
+        const lbX = charX, lbY = charY - charH * 0.7;
+        const glowR = charR * 1.2 + 4 * Math.sin(t * 4);
+        ctx.save();
+        ctx.globalAlpha = ls.laroLightbulbAlpha * 0.3;
+        const grd = ctx.createRadialGradient(lbX, lbY, 0, lbX, lbY, glowR * 2);
+        grd.addColorStop(0, '#ffe066');
+        grd.addColorStop(1, 'transparent');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(lbX, lbY, glowR * 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = ls.laroLightbulbAlpha;
+        ctx.font = `${charR * 1.6}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('💡', lbX, lbY);
+        ctx.restore();
+      }
+
+      // Gold stars raining from top on celebrate
+      if (celebrate || isPlaying) {
+        if (t - ls.laroStarLastSpawn > 0.25) {
+          ls.laroStarLastSpawn = t;
+          const inactive = ls.laroStars.find(s => !s.active);
+          if (inactive) {
+            inactive.active = true;
+            inactive.x = Math.random();
+            inactive.y = -0.05;
+            inactive.vy = 0.004 + Math.random() * 0.004;
+            inactive.alpha = 1;
+          }
+        }
+      }
+      ls.laroStars.forEach(s => {
+        if (!s.active) return;
+        s.y += s.vy;
+        s.alpha -= 0.008;
+        if (s.alpha <= 0 || s.y > 0.9) { s.active = false; return; }
+        ctx.globalAlpha = s.alpha;
+        ctx.font = '18px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⭐', s.x * W, s.y * H);
+      });
+      ctx.globalAlpha = 1;
+
+      // Progress bar at bottom (loops 0→100%→0 every 5s)
+      const elapsed = (t - ls.laroProgressStart) % 10;
+      const pct = elapsed < 5 ? elapsed / 5 : (10 - elapsed) / 5;
+      const pbX = W * 0.05, pbY = H * 0.90, pbW = W * 0.9, pbH = 10;
+      ctx.fillStyle = '#dde';
+      ctx.beginPath();
+      ctx.roundRect(pbX, pbY, pbW, pbH, 5);
+      ctx.fill();
+      ctx.fillStyle = '#3a7bd5';
+      ctx.beginPath();
+      ctx.roundRect(pbX, pbY, pbW * pct, pbH, 5);
+      ctx.fill();
+    }
+    // ---- END LAROSPEL CATEGORY ----
+
     function applyColorTint(t, W, H) {
       const { color } = propsRef.current;
       if (!color) return;
@@ -2226,6 +2447,7 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       else if (cat === 'filmstudio' || cat === 'berattelse') drawFilmstudio(t, W, H);
       else if (cat === 'kortspel') drawKortspel(t, W, H);
       else if (cat === 'bradspel') drawBradspel(t, W, H);
+      else if (cat === 'larospel') drawLarospel(t, W, H);
       else                       drawDefault(t, W, H);
 
       // Theme ground bar (only for non-spel which draws its own)

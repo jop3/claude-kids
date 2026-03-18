@@ -53,6 +53,14 @@ import GamePieceBlock from '../blocks/game-piece/GamePieceBlock.jsx';
 import DiceBlock from '../blocks/dice/DiceBlock.jsx';
 import SpinnerBlock from '../blocks/spinner/SpinnerBlock.jsx';
 import TurnManagerBlock from '../blocks/turn-manager/TurnManagerBlock.jsx';
+import QuestionMCBlock from '../blocks/question-mc/QuestionMCBlock.jsx';
+import QuestionTFBlock from '../blocks/question-tf/QuestionTFBlock.jsx';
+import QuestionFillBlock from '../blocks/question-fill/QuestionFillBlock.jsx';
+import QuestionDragBlock from '../blocks/question-drag/QuestionDragBlock.jsx';
+import MathGeneratorBlock from '../blocks/math-generator/MathGeneratorBlock.jsx';
+import ScoreTrackerBlock from '../blocks/score-tracker/ScoreTrackerBlock.jsx';
+import FeedbackMsgBlock from '../blocks/feedback-msg/FeedbackMsgBlock.jsx';
+import TimerChallengeBlock from '../blocks/timer-challenge/TimerChallengeBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -64,6 +72,7 @@ const CATEGORY_EMOJI = {
   filmstudio: '🎬',
   kortspel: '🃏',
   bradspel: '♟️',
+  larospel: '🎓',
 };
 
 const ALL_BLOCKS = [
@@ -115,6 +124,14 @@ const ALL_BLOCKS = [
   { id: 'dice', name: 'Tärning', emoji: '🎲', type: 'dice', categories: ['bradspel', 'kortspel'] },
   { id: 'spinner', name: 'Snurra', emoji: '🌀', type: 'spinner', categories: ['bradspel', 'kortspel'] },
   { id: 'turn-manager', name: 'Turordning', emoji: '🔄', type: 'turn-manager', categories: ['bradspel', 'kortspel'] },
+  { id: 'question-mc', name: 'Flerval', emoji: '🔘', type: 'question-mc', categories: ['larospel'] },
+  { id: 'question-tf', name: 'Sant/Falskt', emoji: '✅', type: 'question-tf', categories: ['larospel'] },
+  { id: 'question-fill', name: 'Fyll i luckan', emoji: '✏️', type: 'question-fill', categories: ['larospel'] },
+  { id: 'question-drag', name: 'Dra och slapp', emoji: '🖱️', type: 'question-drag', categories: ['larospel'] },
+  { id: 'math-generator', name: 'Mattegenerator', emoji: '🔢', type: 'math-generator', categories: ['larospel'] },
+  { id: 'score-tracker', name: 'Poangrakare', emoji: '⭐', type: 'score-tracker', categories: ['larospel'] },
+  { id: 'feedback-msg', name: 'Aterkopling', emoji: '💬', type: 'feedback-msg', categories: ['larospel'] },
+  { id: 'timer-challenge', name: 'Tidsbegransning', emoji: '⏱️', type: 'timer-challenge', categories: ['larospel'] },
 ];
 
 function useIsLandscape() {
@@ -809,6 +826,46 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'turn-manager' ? (
             <TurnManagerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'question-mc' ? (
+            <QuestionMCBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'question-tf' ? (
+            <QuestionTFBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'question-fill' ? (
+            <QuestionFillBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'question-drag' ? (
+            <QuestionDragBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'math-generator' ? (
+            <MathGeneratorBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'score-tracker' ? (
+            <ScoreTrackerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'feedback-msg' ? (
+            <FeedbackMsgBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'timer-challenge' ? (
+            <TimerChallengeBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
