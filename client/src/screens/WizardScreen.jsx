@@ -7,6 +7,8 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   const [answers, setAnswers] = useState(initialAnswers);
   const [transitioning, setTransitioning] = useState(false);
   const [slideDir, setSlideDir] = useState('in'); // 'in' | 'out'
+  const [slideForward, setSlideForward] = useState(true); // true = forward, false = back
+  const [tappingId, setTappingId] = useState(null);
   const [sliderValue, setSliderValue] = useState(null);
   const [multiSelected, setMultiSelected] = useState([]);
 
@@ -40,6 +42,7 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
       navigate('playground', { category, answers: newAnswers });
       return;
     }
+    setSlideForward(true);
     setTransitioning(true);
     setSlideDir('out');
     setTimeout(() => {
@@ -52,6 +55,8 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   function handleChoiceTap(choiceId) {
     const newAnswers = { ...answers, [step.id]: choiceId };
     setAnswers(newAnswers);
+    setTappingId(choiceId);
+    setTimeout(() => setTappingId(null), 220);
     setTimeout(() => advanceStep(newAnswers), 220);
   }
 
@@ -85,6 +90,7 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
     if (currentStep === 0) {
       navigate('home');
     } else {
+      setSlideForward(false);
       setTransitioning(true);
       setSlideDir('out');
       setTimeout(() => {
@@ -97,10 +103,13 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
 
   const themeColor = config.color;
 
+  const slideOffset = slideForward ? 80 : -80;
   const slideStyle = {
     transition: 'transform 0.2s ease, opacity 0.2s ease',
     transform: transitioning
-      ? slideDir === 'out' ? 'translateX(-60px)' : 'translateX(60px)'
+      ? slideDir === 'out'
+        ? `translateX(${-slideOffset}px)`
+        : `translateX(${slideOffset}px)`
       : 'translateX(0)',
     opacity: transitioning ? 0 : 1,
     width: '100%',
@@ -205,6 +214,7 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
             selected={answers[step.id]}
             themeColor={themeColor}
             onSelect={handleChoiceTap}
+            tappingId={tappingId}
           />
         )}
 
@@ -244,12 +254,17 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.7; transform: scale(1.15); }
         }
+        @keyframes tapBounce {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.13); box-shadow: 0 0 0 4px #fff; }
+          100% { transform: scale(1.05); }
+        }
       `}</style>
     </div>
   );
 }
 
-function ChoiceGrid({ choices, selected, themeColor, onSelect, multi = false }) {
+function ChoiceGrid({ choices, selected, themeColor, onSelect, multi = false, tappingId = null }) {
   const isSelected = (id) => multi
     ? Array.isArray(selected) && selected.includes(id)
     : selected === id;
@@ -264,6 +279,7 @@ function ChoiceGrid({ choices, selected, themeColor, onSelect, multi = false }) 
     }}>
       {choices.map(choice => {
         const sel = isSelected(choice.id);
+        const tapping = tappingId === choice.id;
         const otherSelected = !multi && selected && selected !== choice.id;
         return (
           <button
@@ -288,7 +304,8 @@ function ChoiceGrid({ choices, selected, themeColor, onSelect, multi = false }) 
               boxShadow: sel ? `0 0 16px ${themeColor}99` : 'none',
               transform: sel ? 'scale(1.05)' : otherSelected ? 'scale(0.93)' : 'scale(1)',
               opacity: otherSelected ? 0.5 : 1,
-              transition: 'transform 0.18s ease, opacity 0.18s ease, background 0.15s ease, box-shadow 0.15s ease',
+              transition: tapping ? 'none' : 'transform 0.18s ease, opacity 0.18s ease, background 0.15s ease, box-shadow 0.15s ease',
+              animation: tapping ? 'tapBounce 0.22s ease forwards' : 'none',
               position: 'relative',
             }}
           >
