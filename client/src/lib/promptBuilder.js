@@ -14,6 +14,16 @@ Svara exakt så här (byt ut värdet för title):
 {"title": "Ninja i Rymden"}`;
 
     case 'musik':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt studionamn på svenska (max 3 ord):
+- Genre: ${answers.genre}
+- Stämning: ${answers.stamning}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Pop Studio"}`;
+
+    case 'musik_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa en komplett interaktiv musikspelare i HTML och spara som /workspace/${name}.html
 
 Musiken ska vara:

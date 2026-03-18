@@ -96,6 +96,31 @@ export function getRunnerConfig(answers, title) {
   };
 }
 
+export function getMusicConfig(answers, title) {
+  const GENRE_THEMES = {
+    pop:         { bg: '#1a0020', accent: '#ff69b4', bpm: 120 },
+    hiphop:      { bg: '#1a1500', accent: '#ffd700', bpm: 90 },
+    rock:        { bg: '#1a0000', accent: '#ff3300', bpm: 140 },
+    elektronisk: { bg: '#001a1a', accent: '#00e5ff', bpm: 128 },
+    jazz:        { bg: '#0d0010', accent: '#9c27b0', bpm: 100 },
+    klassisk:    { bg: '#1a1a10', accent: '#f5f0dc', bpm: 80 },
+  };
+  const genre = (answers.genre || 'pop').toLowerCase();
+  const theme = Object.entries(GENRE_THEMES).find(([k]) => genre.includes(k))?.[1] || GENRE_THEMES.pop;
+  const instruments = Array.isArray(answers.instrument) ? answers.instrument : ['piano', 'trummor'];
+  const tempo = parseInt(answers.tempo) || 5;
+  const tempoScale = 0.4 + (tempo / 10) * 1.6; // 0.4–2.0x
+  return {
+    TITLE:        title || genre.charAt(0).toUpperCase() + genre.slice(1) + ' Studio',
+    BG:           theme.bg,
+    ACCENT:       theme.accent,
+    BPM:          Math.round(theme.bpm * tempoScale),
+    INSTRUMENT_1: instruments[0] || 'piano',
+    INSTRUMENT_2: instruments[1] || 'trummor',
+    GENRE:        genre,
+  };
+}
+
 export function getMemoryConfig(answers, title) {
   const MEMORY_THEMES = {
     'Djur🐾':           { bg: ['#1a3a1a','#2a5a2a'], cardBack: '#2d6a2d', cardFront: '#ffffff', matched: '#4caf50', accent: '#8bc34a', theme: 'djur' },

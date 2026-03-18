@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig, getMemoryConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getMemoryConfig, getMusicConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1378,6 +1378,29 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ templateName: 'memory', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'musik') {
+                  let title = 'Musik Studio';
+                  try {
+                    const parsed = JSON.parse(accText.trim());
+                    if (parsed.title) title = parsed.title;
+                  } catch {}
+                  const config = getMusicConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'musik', config }),
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();
