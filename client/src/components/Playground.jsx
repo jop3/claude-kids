@@ -122,6 +122,13 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         { side: 'right', sweepPhase: Math.PI },
       ];
 
+      // Spel category state
+      const spelPlatforms = [
+        { xr: 0.15, yr: 0.60, wr: 0.20, phase: 0.0 },
+        { xr: 0.45, yr: 0.45, wr: 0.18, phase: 1.2 },
+        { xr: 0.68, yr: 0.55, wr: 0.16, phase: 2.5 },
+      ];
+
       stateRef.current = {
         t: 0,
         charX: 0.2,
@@ -152,6 +159,30 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         spotlights,
         animTimelinePhase: 0, // 0=walk-left,1=stop,2=jump,3=spin,4=walk-right
         animPhaseStart: 0,
+        // spel category
+        spelPlatforms,
+        spelCharX: 0.15,
+        spelCharY: 0.0,   // normalized Y (0=top, 1=bottom of play area)
+        spelCharVX: 0.0018,
+        spelCharVY: 0,
+        spelOnGround: true,
+        spelCurrentPlatform: null, // index or null
+        spelJumpSquash: 1.0,       // scaleY for squash/stretch
+        spelJumpSquashV: 0,        // velocity of squash back to 1
+        spelEnemies: [
+          { xr: 0.17, platformIdx: 0, dir: 1, speed: 0.0012 },
+          { xr: 0.70, platformIdx: 2, dir: -1, speed: 0.0015 },
+        ],
+        spelScorePopups: [],
+        spelLastScoreTime: 0,
+        spelCoins: [
+          { xr: 0.20, platformIdx: 0, spinPhase: 0 },
+          { xr: 0.50, platformIdx: 1, spinPhase: 1.2 },
+          { xr: 0.72, platformIdx: 2, spinPhase: 2.4 },
+        ],
+        spelTimerStart: null,
+        spelTileFlips: Array.from({ length: 16 }, () => ({ active: false, timer: 0 })),
+        spelLastTileFlip: 0,
       };
     }
 
@@ -433,36 +464,387 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       drawBeatVisualizer(t, W, H, bpm, speedMult);
     }
 
+    function drawSpelPlatform(px, py, pw, ph) {
+      // Wood plank texture: alternating stripes
+      const stripeH = Math.max(4, Math.floor(ph / 3));
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#7a4e28' : '#5a3a1a';
+        ctx.fillRect(px, py + i * stripeH, pw, Math.min(stripeH, ph - i * stripeH));
+      }
+      // Top grass strip
+      ctx.fillStyle = '#4aa84a';
+      ctx.fillRect(px, py, pw, 4);
+      // Slight highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(px, py + 4, pw, 2);
+    }
+
+    function drawSpelPlayer(px, py, scaleY, facingRight) {
+      const W24 = 24, H32 = 32;
+      ctx.save();
+      ctx.translate(px + W24 / 2, py + H32 / 2);
+      ctx.scale(1, scaleY);
+      ctx.translate(-(W24 / 2), -(H32 / 2));
+      // Body
+      ctx.fillStyle = '#58a6ff';
+      ctx.beginPath();
+      ctx.roundRect(0, 0, W24, H32, 4);
+      ctx.fill();
+      // Eyes
+      const eyeY = 8;
+      const eyeXL = facingRight ? 14 : 4;
+      const eyeXR = facingRight ? 18 : 8;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(eyeXL, eyeY, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(eyeXR, eyeY, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.arc(eyeXL + (facingRight ? 1 : -1), eyeY, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(eyeXR + (facingRight ? 1 : -1), eyeY, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSpelEnemy(px, py, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      // Body
+      ctx.fillStyle = '#e05252';
+      ctx.beginPath();
+      ctx.roundRect(px, py, 20, 22, 3);
+      ctx.fill();
+      // Eyes (angry)
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(px + 3, py + 5, 6, 5);
+      ctx.fillRect(px + 11, py + 5, 6, 5);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(px + 5, py + 7, 3, 3);
+      ctx.fillRect(px + 13, py + 7, 3, 3);
+      ctx.restore();
+    }
+
+    function drawSpelCoin(cx, cy, spinPhase, t) {
+      const spin = Math.sin(t * 3 + spinPhase);
+      const scaleX = Math.abs(spin);
+      ctx.save();
+      ctx.translate(cx, cy + 4 * Math.sin(t * 1.5 + spinPhase));
+      ctx.scale(scaleX, 1);
+      ctx.fillStyle = '#ffe066';
+      ctx.strokeStyle = '#c8a800';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 7, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Shine
+      if (spin > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(-2, -3, 2, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     function drawSpel(t, W, H) {
-      // Sky gradient
+      const { addedBlocks } = propsRef.current;
+      const hasEnemyAI = addedBlocks.some(b => b.type === 'enemy-ai');
+      const hasScore   = addedBlocks.some(b => b.type === 'score');
+      const hasPowerup = addedBlocks.some(b => b.type === 'powerup');
+      const hasHealth  = addedBlocks.some(b => b.type === 'health');
+      const hasTimer   = addedBlocks.some(b => b.type === 'timer');
+      const hasTilemap = addedBlocks.some(b => b.type === 'tilemap');
+
+      const GROUND_Y = H * 0.82;
+      const PLAT_H = 14;
+
+      // ---- Sky gradient ----
       const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#1e3a5f');
-      grad.addColorStop(1, '#3a7bd5');
+      grad.addColorStop(0, '#0d1f3c');
+      grad.addColorStop(0.6, '#1e4a8f');
+      grad.addColorStop(1, '#2d6ecc');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
-      // Ground
-      ctx.fillStyle = '#2d6a2d';
-      ctx.fillRect(0, H * 0.8, W, H * 0.2);
+      // ---- Tilemap grid (background) ----
+      if (hasTilemap) {
+        const CELL = 20;
+        const cols = Math.ceil(W / CELL);
+        const rows = Math.ceil((GROUND_Y * 0.75) / CELL);
+        const sp = state.spelTileFlips;
+        // Flip tiles randomly
+        if (t - state.spelLastTileFlip > 0.4) {
+          state.spelLastTileFlip = t;
+          const idx = Math.floor(Math.random() * sp.length);
+          sp[idx].active = !sp[idx].active;
+          sp[idx].timer = t;
+        }
+        ctx.globalAlpha = 0.13;
+        ctx.strokeStyle = '#7ec8e3';
+        ctx.lineWidth = 0.5;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const i = (r * cols + c) % sp.length;
+            const px2 = c * CELL, py2 = r * CELL;
+            ctx.strokeRect(px2 + 0.5, py2 + 0.5, CELL - 1, CELL - 1);
+            if (sp[i].active) {
+              const age = t - sp[i].timer;
+              const a = Math.max(0, Math.min(1, age * 3)) * 0.25;
+              ctx.globalAlpha = a;
+              ctx.fillStyle = '#4ecdc4';
+              ctx.fillRect(px2 + 1, py2 + 1, CELL - 2, CELL - 2);
+              ctx.globalAlpha = 0.13;
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // ---- Ground ----
+      ctx.fillStyle = '#1a4a1a';
+      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+      // Ground top stripe
       ctx.fillStyle = '#3a8a3a';
-      ctx.fillRect(0, H * 0.8, W, 6);
+      ctx.fillRect(0, GROUND_Y, W, 5);
+      ctx.fillStyle = '#5ac05a';
+      ctx.fillRect(0, GROUND_Y, W, 2);
 
-      // Platforms
-      state.platforms.forEach(p => {
-        ctx.fillStyle = '#5a3a1a';
-        ctx.beginPath();
-        ctx.roundRect(p.x * W, p.y * H, p.w * W, 12, 4);
-        ctx.fill();
-        ctx.fillStyle = '#3a8a3a';
-        ctx.fillRect(p.x * W, p.y * H, p.w * W, 4);
+      // ---- Platforms (bobbing) ----
+      const platRects = state.spelPlatforms.map(p => {
+        const bob = 3 * Math.sin(t * 0.8 + p.phase);
+        const px = p.xr * W;
+        const py = p.yr * H + bob;
+        const pw = p.wr * W;
+        return { px, py, pw, ph: PLAT_H, xr: p.xr, yr: p.yr, wr: p.wr };
       });
+      platRects.forEach(r => drawSpelPlatform(r.px, r.py, r.pw, r.ph));
 
-      // Running character
-      state.charX += state.charVX;
-      if (state.charX > 0.85) { state.charX = 0.85; state.charVX = -Math.abs(state.charVX); }
-      if (state.charX < 0.1)  { state.charX = 0.1;  state.charVX =  Math.abs(state.charVX); }
-      const runBounce = -3 * Math.abs(Math.sin(t * 8));
-      drawSmiley(state.charX * W, H * 0.75, 22, runBounce, 0);
+      // ---- Coins / powerups ----
+      if (hasPowerup) {
+        state.spelCoins.forEach(coin => {
+          const pr = platRects[coin.platformIdx];
+          if (!pr) return;
+          const cx = pr.px + coin.xr * pr.pw;
+          const cy = pr.py - 18;
+          drawSpelCoin(cx, cy, coin.spinPhase, t);
+        });
+      }
+
+      // ---- Enemy patrol ----
+      if (hasEnemyAI) {
+        state.spelEnemies.forEach(en => {
+          const pr = platRects[en.platformIdx];
+          if (!pr) return;
+          const minX = pr.px;
+          const maxX = pr.px + pr.pw - 20;
+          en.xr += en.dir * en.speed;
+          const ex = minX + en.xr * pr.pw;
+          if (ex <= minX || ex >= maxX) {
+            en.dir = -en.dir;
+            en.xr = Math.max(0, Math.min(en.xr, (maxX - minX) / pr.pw));
+          }
+          const ey = pr.py - 22;
+          // Flash when near player
+          const playerX = state.spelCharX * W;
+          const playerY = GROUND_Y - 32;
+          const dist = Math.sqrt((ex - playerX) ** 2 + (ey - playerY) ** 2);
+          const flash = dist < 80 ? 0.5 + 0.5 * Math.sin(t * 12) : 1.0;
+          drawSpelEnemy(ex, ey, flash);
+        });
+      }
+
+      // ---- Player character ----
+      {
+        const sp = state;
+        const charW = 24, charH = 32;
+
+        // Update squash/stretch spring
+        sp.spelJumpSquash += sp.spelJumpSquashV;
+        sp.spelJumpSquashV += (1.0 - sp.spelJumpSquash) * 0.3;
+        sp.spelJumpSquashV *= 0.7;
+
+        // Determine if on a platform
+        let onPlat = null;
+        for (let i = 0; i < platRects.length; i++) {
+          const pr = platRects[i];
+          const charPixX = sp.spelCharX * W;
+          if (
+            charPixX + charW > pr.px &&
+            charPixX < pr.px + pr.pw
+          ) {
+            const platTop = pr.py;
+            if (sp.spelOnGround && sp.spelCurrentPlatform === i) {
+              onPlat = { i, pr };
+              break;
+            }
+          }
+        }
+
+        if (sp.spelOnGround) {
+          // Move horizontally
+          sp.spelCharX += sp.spelCharVX;
+
+          const charPixX = sp.spelCharX * W;
+
+          // Check platform edges to trigger jump
+          if (sp.spelCurrentPlatform !== null) {
+            const pr = platRects[sp.spelCurrentPlatform];
+            if (charPixX + charW > pr.px + pr.pw + 2 || charPixX < pr.px - 2) {
+              // Fell off or reached edge — jump to another or ground
+              sp.spelCurrentPlatform = null;
+              sp.spelOnGround = false;
+              sp.spelCharVY = -0.0055;
+              // stretch on take-off
+              sp.spelJumpSquash = 1.2;
+              sp.spelJumpSquashV = 0;
+            }
+          } else {
+            // On ground — check edges
+            if (charPixX + charW >= W * 0.9) {
+              sp.spelCharVX = -Math.abs(sp.spelCharVX);
+            }
+            if (charPixX <= W * 0.05) {
+              sp.spelCharVX = Math.abs(sp.spelCharVX);
+            }
+            // Occasionally jump onto nearest platform ahead
+            const nearPlat = platRects.findIndex(pr => {
+              const ahead = sp.spelCharVX > 0
+                ? (pr.px > charPixX && pr.px < charPixX + W * 0.3)
+                : (pr.px + pr.pw < charPixX && pr.px + pr.pw > charPixX - W * 0.3);
+              return ahead;
+            });
+            if (nearPlat >= 0 && Math.random() < 0.004) {
+              sp.spelOnGround = false;
+              sp.spelCharVY = -0.0065;
+              sp.spelJumpSquash = 1.2;
+              sp.spelJumpSquashV = 0;
+              sp._jumpTargetPlat = nearPlat;
+            }
+          }
+
+          // Keep Y on ground or platform
+          if (sp.spelCurrentPlatform !== null) {
+            const pr = platRects[sp.spelCurrentPlatform];
+            sp.spelCharY = (pr.py - charH) / H;
+          } else {
+            sp.spelCharY = (GROUND_Y - charH) / H;
+          }
+        } else {
+          // Airborne
+          sp.spelCharY += sp.spelCharVY;
+          sp.spelCharX += sp.spelCharVX * 0.7;
+          sp.spelCharVY += 0.00025; // gravity
+
+          const charPixX = sp.spelCharX * W;
+          const charPixY = sp.spelCharY * H;
+
+          // Land on platform?
+          let landed = false;
+          for (let i = 0; i < platRects.length; i++) {
+            const pr = platRects[i];
+            if (
+              charPixX + charW > pr.px &&
+              charPixX < pr.px + pr.pw &&
+              sp.spelCharVY > 0 &&
+              charPixY + charH >= pr.py &&
+              charPixY + charH <= pr.py + PLAT_H + 8
+            ) {
+              sp.spelOnGround = true;
+              sp.spelCurrentPlatform = i;
+              sp.spelCharY = (pr.py - charH) / H;
+              sp.spelCharVY = 0;
+              // squash on land
+              sp.spelJumpSquash = 0.7;
+              sp.spelJumpSquashV = 0.03;
+              landed = true;
+              break;
+            }
+          }
+
+          if (!landed) {
+            // Land on ground?
+            if (charPixY + charH >= GROUND_Y) {
+              sp.spelOnGround = true;
+              sp.spelCurrentPlatform = null;
+              sp.spelCharY = (GROUND_Y - charH) / H;
+              sp.spelCharVY = 0;
+              sp.spelJumpSquash = 0.7;
+              sp.spelJumpSquashV = 0.03;
+            }
+            // Clamp horizontal
+            if (sp.spelCharX < 0.03) { sp.spelCharX = 0.03; sp.spelCharVX = Math.abs(sp.spelCharVX); }
+            if (sp.spelCharX > 0.93) { sp.spelCharX = 0.93; sp.spelCharVX = -Math.abs(sp.spelCharVX); }
+          }
+        }
+
+        // Run bounce when on ground
+        let bounce = 0;
+        if (sp.spelOnGround) {
+          bounce = -2 * Math.abs(Math.sin(t * 10));
+        }
+
+        const drawX = sp.spelCharX * W;
+        const drawY = sp.spelCharY * H + bounce;
+        const facingRight = sp.spelCharVX >= 0;
+        drawSpelPlayer(drawX, drawY, Math.max(0.5, sp.spelJumpSquash), facingRight);
+      }
+
+      // ---- Score popups ----
+      if (hasScore) {
+        if (t - state.spelLastScoreTime > 3.0) {
+          state.spelLastScoreTime = t;
+          const labels = ['+10', '+10', '+10', '+100', '+50'];
+          state.spelScorePopups.push({
+            x: W * (0.15 + Math.random() * 0.7),
+            y: H * (0.3 + Math.random() * 0.4),
+            label: labels[Math.floor(Math.random() * labels.length)],
+            born: t,
+            color: ['#ffe066','#ff6b6b','#4ecdc4','#a78bfa','#f472b6'][Math.floor(Math.random() * 5)],
+          });
+        }
+        state.spelScorePopups = state.spelScorePopups.filter(p => {
+          const age = t - p.born;
+          if (age > 1.0) return false;
+          const alpha = 1 - age;
+          const py2 = p.y - age * 40;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.font = 'bold 20px sans-serif';
+          ctx.fillStyle = '#111';
+          ctx.fillText(p.label, p.x + 2, py2 + 2);
+          ctx.fillStyle = p.color;
+          ctx.fillText(p.label, p.x, py2);
+          ctx.restore();
+          return true;
+        });
+      }
+
+      // ---- Health hearts ----
+      if (hasHealth) {
+        const heartBeat = 0.85 + 0.15 * Math.abs(Math.sin(t * 1.5));
+        ctx.save();
+        ctx.font = `${Math.round(20 * heartBeat)}px serif`;
+        for (let i = 0; i < 3; i++) {
+          ctx.globalAlpha = 0.9;
+          ctx.fillText('\u2764', 10 + i * 26, 28);
+        }
+        ctx.restore();
+      }
+
+      // ---- Timer display ----
+      if (hasTimer) {
+        if (state.spelTimerStart === null) state.spelTimerStart = t;
+        const elapsed = (t - state.spelTimerStart) % 90;
+        const remaining = Math.max(0, 90 - elapsed);
+        const mins = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const secs = Math.floor(remaining % 60).toString().padStart(2, '0');
+        const timerStr = `${mins}:${secs}`;
+        ctx.save();
+        ctx.font = 'bold 16px monospace';
+        ctx.fillStyle = '#111';
+        ctx.fillText(timerStr, W - 50 + 1, 24 + 1);
+        ctx.fillStyle = '#ffe066';
+        ctx.fillText(timerStr, W - 50, 24);
+        ctx.restore();
+      }
     }
 
     function drawRitprogram(t, W, H) {
