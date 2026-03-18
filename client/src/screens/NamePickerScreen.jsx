@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createProject, saveProject } from '../lib/projectStore.js';
 
 const ADJECTIVES = [
   'Röda', 'Blå', 'Galna', 'Snabba', 'Magiska', 'Mörka', 'Ljusa', 'Stjärniga',
@@ -82,7 +83,10 @@ export default function NamePickerScreen({ navigate, params }) {
     if (params && typeof params.onConfirm === 'function') {
       params.onConfirm(fullName);
     } else {
-      navigate('builder', { ...(params || {}), name: fullName });
+      const { category, answers, file } = params || {};
+      const project = createProject(category, answers, file, fullName);
+      saveProject(project);
+      navigate('myStuff');
     }
   }
 
