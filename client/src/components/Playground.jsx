@@ -129,6 +129,27 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         { xr: 0.68, yr: 0.55, wr: 0.16, phase: 2.5 },
       ];
 
+      // Filmstudio category state
+      const filmPanels = Array.from({ length: 5 }, (_, i) => ({
+        x: 0.05 + (i % 3) * 0.32,
+        y: i < 3 ? 0.08 : 0.48,
+        w: 0.28,
+        h: 0.36,
+        colorPhase: i * 0.8,
+        fillProgress: 0,
+        fillTarget: Math.random(),
+      }));
+      const filmBubbles = Array.from({ length: 6 }, () => ({
+        x: Math.random(),
+        y: 0.5 + Math.random() * 0.3,
+        vy: -(0.0008 + Math.random() * 0.0006),
+        alpha: 0,
+        size: 14 + Math.random() * 12,
+        emoji: ['💬','💭','😮','🌟','💥','😄'][Math.floor(Math.random() * 6)],
+        active: false,
+      }));
+      const SCENE_COLORS = ['#0d1b2a','#1a0a30','#0a2a0a'];
+
       stateRef.current = {
         t: 0,
         charX: 0.2,
@@ -183,6 +204,19 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         spelTimerStart: null,
         spelTileFlips: Array.from({ length: 16 }, () => ({ active: false, timer: 0 })),
         spelLastTileFlip: 0,
+        // filmstudio category
+        filmPanels,
+        filmBubbles,
+        filmSceneColors: SCENE_COLORS,
+        filmSceneIdx: 0,
+        filmLastSceneChange: 0,
+        filmCharX: -0.1,
+        filmCharPhase: 0,
+        filmSpeechAlpha: 0,
+        filmSpeechText: '...',
+        filmLastBubble: 0,
+        filmCharState: 'walk', // walk | center | gesture | exit
+        filmCharStateStart: 0,
       };
     }
 
@@ -1527,6 +1561,214 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
 
     // ---- END ANIMATION CATEGORY ----
 
+    // ---- FILMSTUDIO CATEGORY ----
+    function drawFilmstudio(t, W, H) {
+      const { addedBlocks } = propsRef.current;
+      const fs = state;
+
+      // Scene color shift
+      if (t - fs.filmLastSceneChange > 4.0) {
+        fs.filmLastSceneChange = t;
+        fs.filmSceneIdx = (fs.filmSceneIdx + 1) % fs.filmSceneColors.length;
+      }
+      const sceneProgress = Math.min(1, (t - fs.filmLastSceneChange) / 1.5);
+      const fromColor = fs.filmSceneColors[(fs.filmSceneIdx + fs.filmSceneColors.length - 1) % fs.filmSceneColors.length];
+      const toColor = fs.filmSceneColors[fs.filmSceneIdx];
+
+      function hexLerp(a, b, p) {
+        const ah = a.replace('#',''), bh = b.replace('#','');
+        const ar = parseInt(ah.slice(0,2),16), ag = parseInt(ah.slice(2,4),16), ab2 = parseInt(ah.slice(4,6),16);
+        const br = parseInt(bh.slice(0,2),16), bg2 = parseInt(bh.slice(2,4),16), bb = parseInt(bh.slice(4,6),16);
+        const r = Math.round(ar + (br-ar)*p);
+        const g = Math.round(ag + (bg2-ag)*p);
+        const b2 = Math.round(ab2 + (bb-ab2)*p);
+        return `rgb(${r},${g},${b2})`;
+      }
+
+      ctx.fillStyle = hexLerp(fromColor, toColor, sceneProgress);
+      ctx.fillRect(0, 0, W, H);
+
+      // Theater stage floor
+      const stageY = H * 0.78;
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#5a3010' : '#6b3a14';
+        const ph = Math.round((H - stageY) / 5);
+        ctx.fillRect(0, stageY + i * ph, W, ph + 1);
+      }
+      ctx.fillStyle = '#8b5a2b';
+      ctx.fillRect(0, stageY, W, 3);
+
+      // Screen / backdrop in background center
+      const scrX = W * 0.2, scrY = H * 0.08, scrW = W * 0.6, scrH = H * 0.55;
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.08;
+      ctx.fillRect(scrX, scrY, scrW, scrH);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(scrX, scrY, scrW, scrH);
+
+      // Comic panel frames materializing inside backdrop
+      fs.filmPanels.forEach((fp, i) => {
+        const px = scrX + fp.x * scrW;
+        const py = scrY + fp.y * scrH * 0.9;
+        const pw = fp.w * scrW;
+        const ph = fp.h * scrH;
+
+        // Gradually fill color
+        fp.fillProgress = Math.min(fp.fillTarget, fp.fillProgress + 0.0008);
+        const hue = (fp.colorPhase * 60 + t * 20) % 360;
+        ctx.globalAlpha = fp.fillProgress * 0.35;
+        ctx.fillStyle = `hsl(${hue},60%,50%)`;
+        ctx.fillRect(px, py, pw, ph);
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(px, py, pw, ph);
+        ctx.globalAlpha = 1;
+
+        if (fp.fillProgress >= fp.fillTarget) {
+          fp.fillTarget = Math.random();
+          fp.fillProgress = 0;
+        }
+      });
+
+      // Curtains
+      drawCurtains(t, W, H);
+
+      // Spotlights
+      state.spotlights[0].sweepPhase += 0.008;
+      state.spotlights[1].sweepPhase += 0.008;
+      drawSpotlight(W, H, 'left',  state.spotlights[0].sweepPhase);
+      drawSpotlight(W, H, 'right', state.spotlights[1].sweepPhase);
+
+      // Character walking / gesturing
+      const hasFilmstudio = addedBlocks.some(b => b.type === 'filmstudio');
+      if (hasFilmstudio) {
+        const charCx = fs.filmCharX * W;
+        const charCy = stageY - 30;
+
+        // State machine
+        const stateAge = t - fs.filmCharStateStart;
+        if (fs.filmCharState === 'walk') {
+          fs.filmCharX += 0.003;
+          if (fs.filmCharX >= 0.48) {
+            fs.filmCharState = 'center';
+            fs.filmCharStateStart = t;
+          }
+        } else if (fs.filmCharState === 'center') {
+          if (stateAge > 0.8) {
+            fs.filmCharState = 'gesture';
+            fs.filmCharStateStart = t;
+            fs.filmSpeechText = '...';
+          }
+        } else if (fs.filmCharState === 'gesture') {
+          fs.filmSpeechAlpha = Math.min(1, fs.filmSpeechAlpha + 0.04);
+          if (stateAge > 0.5 && fs.filmSpeechText === '...') {
+            fs.filmSpeechText = ['Hej!','Cool!','Kolla!','Wow!'][Math.floor(Math.random()*4)];
+          }
+          if (stateAge > 2.5) {
+            fs.filmCharState = 'exit';
+            fs.filmCharStateStart = t;
+          }
+        } else if (fs.filmCharState === 'exit') {
+          fs.filmCharX += 0.004;
+          fs.filmSpeechAlpha = Math.max(0, fs.filmSpeechAlpha - 0.03);
+          if (fs.filmCharX > 1.2) {
+            fs.filmCharX = -0.15;
+            fs.filmCharState = 'walk';
+            fs.filmCharStateStart = t;
+            fs.filmSpeechAlpha = 0;
+          }
+        }
+
+        fs.filmCharPhase += 0.12;
+
+        // Draw character (simple smiley + body)
+        const armAngle = fs.filmCharState === 'gesture' ? 1.1 : 0.7 * Math.sin(fs.filmCharPhase * 0.5);
+        const bounceY = fs.filmCharState === 'walk' || fs.filmCharState === 'exit' ? -3 * Math.abs(Math.sin(fs.filmCharPhase)) : 0;
+
+        // Left arm
+        ctx.save();
+        ctx.translate(charCx - 18, charCy + bounceY);
+        ctx.rotate(Math.PI * 0.5 + (fs.filmCharState === 'gesture' ? -armAngle : armAngle));
+        ctx.strokeStyle = '#ffe066';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, 22);
+        ctx.stroke();
+        ctx.restore();
+
+        // Right arm (raised in gesture)
+        ctx.save();
+        ctx.translate(charCx + 18, charCy + bounceY);
+        ctx.rotate(-(Math.PI * 0.5 + armAngle));
+        ctx.strokeStyle = '#ffe066';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, 22);
+        ctx.stroke();
+        ctx.restore();
+
+        drawSmiley(charCx, charCy, 20, bounceY, 0);
+
+        // Speech bubble
+        if (fs.filmSpeechAlpha > 0) {
+          const bx = charCx - 36, by = charCy - 55;
+          ctx.globalAlpha = fs.filmSpeechAlpha;
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#333';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, 72, 28, 8);
+          ctx.fill();
+          ctx.stroke();
+          // Tail
+          ctx.beginPath();
+          ctx.moveTo(charCx - 8, by + 28);
+          ctx.lineTo(charCx, by + 38);
+          ctx.lineTo(charCx + 8, by + 28);
+          ctx.fill();
+          ctx.fillStyle = '#111';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(fs.filmSpeechText, charCx, by + 14);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // Floating speech bubble emojis
+      if (t - fs.filmLastBubble > 1.2) {
+        fs.filmLastBubble = t;
+        const inactive = fs.filmBubbles.find(b => !b.active);
+        if (inactive) {
+          inactive.active = true;
+          inactive.x = 0.2 + Math.random() * 0.6;
+          inactive.y = 0.65 + Math.random() * 0.15;
+          inactive.vy = -(0.0008 + Math.random() * 0.0006);
+          inactive.alpha = 0.9;
+          inactive.emoji = ['💬','💭','😮','🌟','💥','😄'][Math.floor(Math.random() * 6)];
+        }
+      }
+
+      fs.filmBubbles.forEach(b => {
+        if (!b.active) return;
+        b.y += b.vy;
+        b.alpha -= 0.006;
+        if (b.alpha <= 0 || b.y < 0) { b.active = false; return; }
+        ctx.globalAlpha = b.alpha;
+        ctx.font = `${b.size}px serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(b.emoji, b.x * W, b.y * H);
+      });
+      ctx.globalAlpha = 1;
+    }
+    // ---- END FILMSTUDIO CATEGORY ----
+
     function applyColorTint(t, W, H) {
       const { color } = propsRef.current;
       if (!color) return;
@@ -1564,6 +1806,7 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       else if (cat === 'ritprogram' || cat === 'konst') drawRitprogram(t, W, H);
       else if (cat === 'rostlab') drawRostlab(t, W, H);
       else if (cat === 'animation') drawAnimation(t, W, H);
+      else if (cat === 'filmstudio' || cat === 'berattelse') drawFilmstudio(t, W, H);
       else                       drawDefault(t, W, H);
 
       // Theme ground bar (only for non-spel which draws its own)

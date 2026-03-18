@@ -40,6 +40,7 @@ import VariableBlock from '../blocks/variable/VariableBlock.jsx';
 import SceneSystemBlock from '../blocks/scene-system/SceneSystemBlock.jsx';
 import FontPickerBlock from '../blocks/font-picker/FontPickerBlock.jsx';
 import TextFxBlock from '../blocks/text-fx/TextFxBlock.jsx';
+import FilmstudioBlock from '../blocks/filmstudio/FilmstudioBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -87,6 +88,7 @@ const ALL_BLOCKS = [
   { id: 'scene-system', name: 'Scensystem', emoji: '🗂️', type: 'scene-system', categories: ['filmstudio'] },
   { id: 'font-picker', name: 'Typsnitt', emoji: '🔤', type: 'font-picker', categories: ['filmstudio'] },
   { id: 'text-fx', name: 'Texteffekter', emoji: '✨', type: 'text-fx', categories: ['filmstudio'] },
+  { id: 'filmstudio', name: 'Filmstudio', emoji: '🎬', type: 'filmstudio', categories: ['filmstudio'] },
 ];
 
 function useIsLandscape() {
@@ -716,6 +718,11 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'text-fx' ? (
             <TextFxBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'filmstudio' ? (
+            <FilmstudioBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
