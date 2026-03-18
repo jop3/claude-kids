@@ -21,6 +21,8 @@ import CharacterBuilderBlock from '../blocks/character-builder/CharacterBuilderB
 import AnimationTimelineBlock from '../blocks/animation-timeline/AnimationTimelineBlock.jsx';
 import VisualEffectsBlock from '../blocks/visual-effects/VisualEffectsBlock.jsx';
 import BackgroundScrollerBlock from '../blocks/background-scroller/BackgroundScrollerBlock.jsx';
+import GameLoopBlock from '../blocks/game-loop/GameLoopBlock.jsx';
+import InputHandlerBlock from '../blocks/input-handler/InputHandlerBlock.jsx';
 import Playground from '../components/Playground.jsx';
 
 const CATEGORY_EMOJI = {
@@ -48,6 +50,8 @@ const ALL_BLOCKS = [
   { id: 'animation-timeline', name: 'Animation', emoji: '🎬', type: 'animation-timeline', categories: ['animation'] },
   { id: 'visual-effects', name: 'Effekter', emoji: '💥', type: 'visual-effects', categories: ['animation'] },
   { id: 'background-scroller', name: 'Bakgrundsrullning', emoji: '🌄', type: 'background-scroller', categories: ['animation'] },
+  { id: 'game-loop', name: 'Spelmotor', emoji: '⚙️', type: 'game-loop', categories: ['spel'] },
+  { id: 'input-handler', name: 'Kontroller', emoji: '🕹️', type: 'input-handler', categories: ['spel'] },
 ];
 
 function useIsLandscape() {
@@ -582,6 +586,16 @@ export default function BuilderScreen({ navigate, category, projectId: initialPr
             />
           ) : selectedBlock.type === 'background-scroller' ? (
             <BackgroundScrollerBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'game-loop' ? (
+            <GameLoopBlock
+              config={blockConfigs[selectedBlock.id] || {}}
+              onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
+            />
+          ) : selectedBlock.type === 'input-handler' ? (
+            <InputHandlerBlock
               config={blockConfigs[selectedBlock.id] || {}}
               onConfigChange={cfg => handleConfigChange(selectedBlock.id, cfg)}
             />
