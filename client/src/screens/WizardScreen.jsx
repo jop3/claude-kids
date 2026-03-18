@@ -365,6 +365,12 @@ function SliderStep({ step, value, onChange, themeColor, onNext }) {
         />
       </div>
 
+      {step.id === 'svarighet' && (
+        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', textAlign: 'center' }}>
+          {value <= 3 ? '😊 Lätt' : value <= 7 ? '😐 Lagom' : '😤 Svårt'}
+        </div>
+      )}
+
       <NextButton onClick={onNext} themeColor={themeColor} label="Nästa →" />
     </div>
   );
