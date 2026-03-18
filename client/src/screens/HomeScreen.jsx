@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { tap } from '../lib/haptics.js';
+import { playTap } from '../lib/sfx.js';
 
 const CATEGORIES = [
   { id: 'musik',      name: 'Musik Studio',  emoji: '🎵', bg: '#6c3bbd' },
@@ -14,6 +16,18 @@ const CATEGORIES = [
 ];
 
 export default function HomeScreen({ navigate }) {
+  const [highContrast, setHighContrast] = useState(false);
+
+  function toggleContrast() {
+    const next = !highContrast;
+    setHighContrast(next);
+    if (next) {
+      document.body.classList.add('high-contrast');
+    } else {
+      document.body.classList.remove('high-contrast');
+    }
+  }
+
   return (
     <div style={{ width: '100%', maxWidth: 900, padding: '24px 16px', boxSizing: 'border-box' }}>
       {/* Header */}
@@ -21,24 +35,45 @@ export default function HomeScreen({ navigate }) {
         <h1 style={{ fontSize: '2rem', margin: 0, textAlign: 'center', color: '#fff' }}>
           ClaudeKids ✨
         </h1>
-        <button
-          onClick={() => navigate('myStuff')}
-          style={{
-            position: 'absolute',
-            right: 0,
-            background: 'rgba(255,255,255,0.15)',
-            border: '2px solid rgba(255,255,255,0.3)',
-            borderRadius: 12,
-            color: '#fff',
-            fontSize: '0.95rem',
-            fontWeight: 'bold',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Mina Saker 📁
-        </button>
+        <div style={{ position: 'absolute', right: 0, display: 'flex', gap: 8 }}>
+          <button
+            onClick={toggleContrast}
+            title={highContrast ? 'Normal vy' : 'Hogkontrastlage'}
+            style={{
+              background: highContrast ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              borderRadius: 12,
+              color: '#fff',
+              fontSize: '1.1rem',
+              cursor: 'pointer',
+              padding: '8px 12px',
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            👁
+          </button>
+          <button
+            onClick={() => navigate('myStuff')}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              borderRadius: 12,
+              color: '#fff',
+              fontSize: '0.95rem',
+              fontWeight: 'bold',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              minHeight: 44,
+            }}
+          >
+            Mina Saker 📁
+          </button>
+        </div>
       </div>
 
       {/* Category grid */}
@@ -56,11 +91,11 @@ export default function HomeScreen({ navigate }) {
 }
 
 function CategoryCard({ cat, navigate }) {
-  const [pressed, setPressed] = React.useState(false);
+  const [pressed, setPressed] = useState(false);
 
   return (
     <button
-      onClick={() => navigate('builder', { category: cat.id })}
+      onClick={() => { tap(); playTap(); navigate('builder', { category: cat.id }); }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       onMouseLeave={() => setPressed(false)}

@@ -4,6 +4,7 @@ import MyStuffScreen from './screens/MyStuffScreen.jsx';
 import BuilderScreen from './screens/BuilderScreen.jsx';
 import PlayScreen from './screens/PlayScreen.jsx';
 import NamePickerScreen from './screens/NamePickerScreen.jsx';
+import OnboardingScreen from './screens/OnboardingScreen.jsx';
 
 const SCREENS = {
   home: HomeScreen,
@@ -11,10 +12,13 @@ const SCREENS = {
   builder: BuilderScreen,
   play: PlayScreen,
   namePicker: NamePickerScreen,
+  onboarding: OnboardingScreen,
 };
 
 export default function App() {
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState(
+    localStorage.getItem('kompisen_onboarded') ? 'home' : 'onboarding'
+  );
   const [screenParams, setScreenParams] = useState({});
   const Screen = SCREENS[screen] || HomeScreen;
 

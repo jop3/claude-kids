@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { tap, success } from '../lib/haptics.js';
+import { playBlockAdd, playSuccess } from '../lib/sfx.js';
 import { getProject, saveProject, exportProject } from '../lib/projectStore.js';
 import { exportToWav } from '../lib/wavExport.js';
 import { exportCanvasAsPng, exportPixelGridAsPng } from '../lib/pngExport.js';
@@ -267,6 +269,8 @@ function BuilderScreenInner({ navigate, category, projectId: initialProjectId, n
     saveProject(project);
     setCurrentProjectId(project.id);
     showToast('Sparat!');
+    success();
+    playSuccess();
     setCelebrate(true);
     setTimeout(() => setCelebrate(false), 2000);
     return project;
@@ -367,6 +371,8 @@ function BuilderScreenInner({ navigate, category, projectId: initialProjectId, n
   }
 
   function handleBlockChipClick(block) {
+    tap();
+    playBlockAdd();
     if (!addedBlocks.find(b => b.id === block.id)) {
       setAddedBlocks(prev => [...prev, block]);
     }

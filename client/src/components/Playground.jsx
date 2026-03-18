@@ -27,6 +27,7 @@ const ART_SPLASH_COLORS = ['#e94560','#f18f01','#3bb273','#2d7dd2','#6c3bbd','#f
 export default function Playground({ category, theme = 'default', color, bpm = 120, addedBlocks = [], isPlaying = false, celebrate = false }) {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
+  const pausedRef = useRef(false);
 
   // Keep live props accessible in animation loop without restarting
   const propsRef = useRef({ color, bpm, addedBlocks, isPlaying, celebrate });
@@ -254,12 +255,28 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
         bradSparkles: [],
         bradArrowAngle: 0,
         bradLastPieceMove: 0,
+        // Global celebration state
+        globalCelebration: {
+          active: false,
+          startT: 0,
+          confetti: [],
+          sparkles: [],
+          textAlpha: 0,
+          charBounce: 0,
+          charBounceV: 0,
+        },
       };
     }
 
     const state = stateRef.current;
     let rafId;
     let running = true;
+
+    // Task 7: Pause RAF when tab is hidden
+    function handleVisibilityChange() {
+      pausedRef.current = document.hidden;
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -2839,8 +2856,125 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       ctx.globalAlpha = 1;
     }
 
+    const CONF_COLORS_GLOBAL = ['#e94560','#f18f01','#ffe066','#4ecdc4','#a78bfa','#f472b6','#3bb273'];
+
+    function drawGlobalCelebration(t, W, H) {
+      const gc = state.globalCelebration;
+      if (!gc.active) return;
+      const age = t - gc.startT;
+      if (age > 3.0) {
+        gc.active = false;
+        gc.confetti = [];
+        gc.sparkles = [];
+        return;
+      }
+
+      // Spawn confetti burst
+      if (age < 0.5 && gc.confetti.length < 30) {
+        for (let i = 0; i < 6; i++) {
+          gc.confetti.push({
+            x: W * (0.2 + Math.random() * 0.6),
+            y: -10,
+            vx: (Math.random() - 0.5) * 4,
+            vy: 2 + Math.random() * 3,
+            rot: Math.random() * Math.PI * 2,
+            rotV: (Math.random() - 0.5) * 0.2,
+            w: 7 + Math.random() * 7,
+            h: 4 + Math.random() * 5,
+            color: CONF_COLORS_GLOBAL[Math.floor(Math.random() * CONF_COLORS_GLOBAL.length)],
+          });
+        }
+      }
+
+      // Draw confetti
+      gc.confetti = gc.confetti.filter(c => {
+        c.x += c.vx;
+        c.y += c.vy;
+        c.rot += c.rotV;
+        if (c.y > H + 10) return false;
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.globalAlpha = Math.max(0, 1 - (age - 1.5) / 1.5);
+        ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+        ctx.restore();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      // Star sparkle explosion from center
+      if (age < 0.3 && gc.sparkles.length < 20) {
+        const COLORS = ['#ffe066','#f472b6','#a78bfa','#4ecdc4','#f18f01'];
+        for (let i = 0; i < 5; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 3 + Math.random() * 5;
+          gc.sparkles.push({
+            x: W / 2,
+            y: H / 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            alpha: 1,
+            size: 14 + Math.random() * 12,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          });
+        }
+      }
+      gc.sparkles = gc.sparkles.filter(sp => {
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.vy += 0.15;
+        sp.alpha -= 0.025;
+        if (sp.alpha <= 0) return false;
+        ctx.save();
+        ctx.globalAlpha = sp.alpha;
+        ctx.fillStyle = sp.color;
+        ctx.font = `${sp.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★', sp.x, sp.y);
+        ctx.restore();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      // Character bounce (applied via charBounceV tracking)
+      gc.charBounce += gc.charBounceV;
+      if (age < 1.5) {
+        const bounceT = (age / 1.5) * Math.PI * 3;
+        gc.charBounce = -15 * Math.abs(Math.sin(bounceT));
+      }
+
+      // "TOPPEN!" text bouncing in from top
+      const textAge = age;
+      if (textAge < 2.5) {
+        const textAlpha = Math.min(1, textAge * 4) * Math.max(0, 1 - (textAge - 1.8) / 0.7);
+        const textY = textAge < 0.3
+          ? -60 + textAge / 0.3 * (H * 0.35)
+          : H * 0.35 + 6 * Math.sin(textAge * 8);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, textAlpha);
+        ctx.font = `bold ${Math.round(W * 0.07)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Shadow
+        ctx.fillStyle = '#000';
+        ctx.shadowBlur = 0;
+        ctx.fillText('TOPPEN!', W / 2 + 3, textY + 3);
+        // Fill
+        ctx.fillStyle = '#ffe066';
+        ctx.shadowColor = '#f18f01';
+        ctx.shadowBlur = 12;
+        ctx.fillText('TOPPEN!', W / 2, textY);
+        ctx.restore();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+    }
+
     function frame(ts) {
       if (!running) return;
+      if (pausedRef.current) { rafId = requestAnimationFrame(frame); return; }
       resizeCanvas();
       const W = canvas.width;
       const H = canvas.height;
@@ -2850,6 +2984,8 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       const t = state.t;
       const cat = category || 'default';
       const { bpm, addedBlocks, isPlaying } = propsRef.current;
+
+      const { celebrate: celebrateNow } = propsRef.current;
 
       if (cat === 'musik')      drawMusik(t, W, H, bpm, addedBlocks, isPlaying);
       else if (cat === 'spel')  drawSpel(t, W, H);
@@ -2869,6 +3005,20 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
       // Color tint overlay
       applyColorTint(t, W, H);
 
+      // Global celebration overlay (all categories)
+      if (celebrateNow && !state.globalCelebration.active) {
+        state.globalCelebration.active = true;
+        state.globalCelebration.startT = t;
+        state.globalCelebration.confetti = [];
+        state.globalCelebration.sparkles = [];
+        state.globalCelebration.charBounce = 0;
+        state.globalCelebration.charBounceV = 0;
+      }
+      if (!celebrateNow && state.globalCelebration.active) {
+        // Reset when prop turns off — allow natural finish
+      }
+      drawGlobalCelebration(t, W, H);
+
       rafId = requestAnimationFrame(frame);
     }
 
@@ -2876,6 +3026,7 @@ export default function Playground({ category, theme = 'default', color, bpm = 1
     return () => {
       running = false;
       cancelAnimationFrame(rafId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, theme]);
