@@ -95,7 +95,7 @@ function CategoryCard({ cat, navigate }) {
 
   return (
     <button
-      onClick={() => { tap(); playTap(); navigate('builder', { category: cat.id }); }}
+      onClick={() => { tap(); playTap(); navigate('wizard', { category: cat.id }); }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       onMouseLeave={() => setPressed(false)}

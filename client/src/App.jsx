@@ -5,6 +5,9 @@ import BuilderScreen from './screens/BuilderScreen.jsx';
 import PlayScreen from './screens/PlayScreen.jsx';
 import NamePickerScreen from './screens/NamePickerScreen.jsx';
 import OnboardingScreen from './screens/OnboardingScreen.jsx';
+import WizardScreen from './screens/WizardScreen.jsx';
+import PlaygroundScreen from './screens/PlaygroundScreen.jsx';
+import ResultScreen from './screens/ResultScreen.jsx';
 
 const SCREENS = {
   home: HomeScreen,
@@ -13,6 +16,9 @@ const SCREENS = {
   play: PlayScreen,
   namePicker: NamePickerScreen,
   onboarding: OnboardingScreen,
+  wizard: WizardScreen,
+  playground: PlaygroundScreen,
+  result: ResultScreen,
 };
 
 export default function App() {
