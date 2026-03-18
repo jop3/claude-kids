@@ -162,8 +162,11 @@ function drawSpel(ctx, w, h, s, dt, t) {
   ctx.fillStyle = '#2a4a2a';
   ctx.fillRect(0, h * 0.88, w, h * 0.12);
 
-  // platforms
-  s.platforms.forEach(p => {
+  // platforms (progressive reveal)
+  const visiblePlatforms = s.streamProgress < 1
+    ? s.platforms.slice(0, Math.max(1, Math.ceil(s.streamProgress * s.platforms.length)))
+    : s.platforms;
+  visiblePlatforms.forEach(p => {
     const py = h * p.y;
     ctx.fillStyle = p.color;
     ctx.beginPath();
@@ -175,9 +178,10 @@ function drawSpel(ctx, w, h, s, dt, t) {
     ctx.fillRect(p.x + p.w - 16, py + 16, 6, h * 0.88 - py - 16);
   });
 
-  // coins
+  // coins (progressive reveal — only show for visible platforms)
   s.coins.forEach((c, i) => {
     if (!c.alive) return;
+    if (i >= visiblePlatforms.length) return;
     const plat = s.platforms[i % s.platforms.length];
     const cy = h * plat.y - 24 + Math.sin(t * 3 + c.phase) * 4;
     ctx.fillStyle = '#ffd700';
@@ -623,7 +627,10 @@ function drawKortspel(ctx, w, h, s, dt, t) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
-  s.cards.forEach((c, i) => {
+  const visibleCards = s.streamProgress < 1
+    ? s.cards.slice(0, Math.max(2, Math.ceil(s.streamProgress * s.cards.length)))
+    : s.cards;
+  visibleCards.forEach((c, i) => {
     const age = t - c.delay;
     if (age < 0) return;
 
@@ -1297,6 +1304,17 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
       const prompt = buildPrompt(category, answers ?? {}, 'skapelse');
       let detectedFile = null;
       let accText = '';
+
+      // Progressive reveal: increment streamProgress every 500ms while streaming
+      if (stateRef.current) stateRef.current.streamProgress = 0.05;
+      const progressInterval = setInterval(() => {
+        if (stateRef.current) {
+          stateRef.current.streamProgress = Math.min(
+            (stateRef.current.streamProgress || 0) + 0.08,
+            0.95
+          );
+        }
+      }, 500);
       try {
         const resp = await fetch('/api/chat', {
           method: 'POST',
@@ -1340,6 +1358,8 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
                   if (renderData.file) {
                     navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
                   } else {
@@ -1361,6 +1381,8 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
                   if (renderData.file) {
                     navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
                   } else {
@@ -1368,10 +1390,13 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                   }
                   return;
                 }
+                clearInterval(progressInterval);
+                if (stateRef.current) stateRef.current.streamProgress = 1;
                 navigate('result', { category, answers, file: detectedFile, thumb: getThumb() });
                 return;
               }
               if (obj.type === 'error') {
+                clearInterval(progressInterval);
                 navigate('result', { category, answers, error: true });
                 return;
               }
@@ -1379,6 +1404,7 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
           }
         }
       } catch (err) {
+        clearInterval(progressInterval);
         if (err.name === 'AbortError') return;
         navigate('result', { category, answers, error: true });
       }
@@ -1401,6 +1427,7 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
 
     const ctx = canvas.getContext('2d');
     stateRef.current = scene.init(answers ?? {});
+    stateRef.current.streamProgress = 0.05;
     startRef.current = null;
     lastRef.current = null;
 
