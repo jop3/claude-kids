@@ -47,7 +47,7 @@ export default function App() {
           const proj = createProject(rest.category, rest.answers, rest.file, pickedName);
           if (rest.thumb) proj.thumb = rest.thumb;
           saveProject(proj);
-          navigate('myStuff');
+          navigate('myStuff', { justSaved: true });
         } else if (returnTo === 'builder') {
           navigate('builder', { ...rest, name: pickedName });
         } else {

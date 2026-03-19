@@ -33,12 +33,19 @@ function formatSwedishDate(isoString) {
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function ProjectCard({ project, navigate, onDeleted }) {
+function ProjectCard({ project, navigate, onDeleted, highlight }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [glowing, setGlowing] = useState(highlight);
   const menuRef = useRef(null);
   const color = CAT_COLORS[project.category] || '#374151';
   const emoji = CAT_EMOJIS[project.category] || '🎨';
+
+  useEffect(() => {
+    if (!highlight) return;
+    const t = setTimeout(() => setGlowing(false), 2000);
+    return () => clearTimeout(t);
+  }, [highlight]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -91,8 +98,8 @@ function ProjectCard({ project, navigate, onDeleted }) {
         borderRadius: 20,
         overflow: 'visible',
         cursor: 'pointer',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-        transition: 'transform 0.15s',
+        boxShadow: glowing ? '0 0 0 3px #4caf50, 0 4px 24px rgba(76,175,80,0.6)' : '0 4px 20px rgba(0,0,0,0.35)',
+        transition: 'transform 0.15s, box-shadow 0.4s',
         position: 'relative',
         userSelect: 'none',
         display: 'flex',
@@ -273,7 +280,7 @@ function ProjectCard({ project, navigate, onDeleted }) {
   );
 }
 
-export default function MyStuffScreen({ navigate }) {
+export default function MyStuffScreen({ navigate, justSaved }) {
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
@@ -361,12 +368,13 @@ export default function MyStuffScreen({ navigate }) {
           }}
             className="my-stuff-grid"
           >
-            {projects.map(project => (
+            {projects.map((project, i) => (
               <ProjectCard
                 key={project.id}
                 project={project}
                 navigate={navigate}
                 onDeleted={refresh}
+                highlight={justSaved && i === 0}
               />
             ))}
           </div>

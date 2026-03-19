@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { tap } from '../lib/haptics.js';
 import { playTap } from '../lib/sfx.js';
+import { getProjects } from '../lib/projectStore.js';
 
 const CATEGORIES = [
   { id: 'musik',      name: 'Musik Studio',  emoji: '🎵', bg: '#6c3bbd' },
@@ -17,6 +18,11 @@ const CATEGORIES = [
 
 export default function HomeScreen({ navigate }) {
   const [highContrast, setHighContrast] = useState(false);
+  const [projectCount, setProjectCount] = useState(0);
+
+  useEffect(() => {
+    setProjectCount(getProjects().length);
+  }, []);
 
   function toggleContrast() {
     const next = !highContrast;
@@ -71,7 +77,7 @@ export default function HomeScreen({ navigate }) {
               minHeight: 44,
             }}
           >
-            Mina Saker 📁
+            Mina Saker 📁{projectCount > 0 && <span style={{ marginLeft: 6, fontSize: '0.8rem', opacity: 0.85 }}>({projectCount} sparade)</span>}
           </button>
         </div>
       </div>
