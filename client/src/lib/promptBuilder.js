@@ -67,6 +67,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'filmstudio':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt filmtitel på svenska (max 3 ord):
+- Genre: ${answers.genre}
+- Hjälte: ${answers.hjalte}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Ninjan Raeddar Varlden"}`;
+
+    case 'filmstudio_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa en komplett interaktiv serietidning/film i HTML och spara som /workspace/${name}.html
 
 Berättelsen ska vara:

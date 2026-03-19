@@ -256,6 +256,32 @@ export function getAnimationConfig(answers, title) {
   };
 }
 
+export function getFilmstudioConfig(answers, title) {
+  const GENRE_THEMES = {
+    aventyr:     { color: '#ffd700', bg: ['#0d1a00','#1a3300'], ambient: 'epic' },
+    komedi:      { color: '#ff9800', bg: ['#1a1000','#2e1a00'], ambient: 'bouncy' },
+    skrack:      { color: '#880000', bg: ['#000','#1a0000'], ambient: 'tense' },
+    scifi:       { color: '#00e5ff', bg: ['#00001a','#001a2e'], ambient: 'synth' },
+    saga:        { color: '#ab47bc', bg: ['#0d001a','#1a002e'], ambient: 'magical' },
+    superhjälte: { color: '#1565c0', bg: ['#00001a','#001a3e'], ambient: 'epic' },
+  };
+  const genre = (answers.genre || 'aventyr').toLowerCase();
+  const theme = Object.entries(GENRE_THEMES).find(([k]) => genre.includes(k))?.[1] || GENRE_THEMES.aventyr;
+  const ending = answers.slut || 'glad';
+  return {
+    TITLE:        title || 'Min Film',
+    GENRE:        genre,
+    GENRE_COLOR:  theme.color,
+    HERO:         answers.hjalte || 'ninja',
+    VILLAIN:      answers.skurk || 'drake',
+    MILJO:        answers.miljo || 'skog',
+    ENDING_STYLE: ending,
+    BG_TOP:       theme.bg[0],
+    BG_BOT:       theme.bg[1],
+    AMBIENT:      theme.ambient,
+  };
+}
+
 export function getRostlabConfig(answers, title) {
   const EFFEKT_ACCENTS = {
     robot:    '#00e5ff',

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{TITLE}}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    font-family: 'Segoe UI', Impact, sans-serif;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* Comic border frame */
+  #frame {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+    height: 100vh;
+    max-height: 820px;
+    border: 6px solid {{GENRE_COLOR}};
+    box-shadow: 0 0 30px {{GENRE_COLOR}}88, inset 0 0 20px rgba(0,0,0,0.5);
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  /* Panel container — slides */
+  #panels {
+    display: flex;
+    width: 600%; /* 6 panels */
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .panel {
+    width: calc(100% / 6);
+    height: 100%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 12px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Panel number badge */
+  .panel-num {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: {{GENRE_COLOR}};
+    color: #000;
+    font-weight: 900;
+    font-size: 0.85rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  /* Speech bubble */
+  .bubble {
+    background: #fff;
+    border-radius: 16px;
+    border: 3px solid #222;
+    padding: 10px 14px;
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+    font-weight: 700;
+    color: #111;
+    text-align: center;
+    max-width: 92%;
+    position: relative;
+    margin-bottom: 4px;
+    line-height: 1.35;
+    box-shadow: 3px 3px 0 #222;
+  }
+  .bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: #222;
+  }
+  .bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: #fff;
+    z-index: 1;
+  }
+
+  /* Scene area */
+  .scene {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 0 8px 8px;
+    position: relative;
+  }
+
+  /* Characters */
+  .char-svg {
+    width: clamp(60px, 16vw, 90px);
+    height: clamp(90px, 24vw, 140px);
+    flex-shrink: 0;
+  }
+
+  /* Navigation hint */
+  #nav-hint {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    color: {{GENRE_COLOR}};
+    font-size: 1.6rem;
+    animation: blink 1.2s infinite;
+    z-index: 10;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Progress dots */
+  #dots {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: background 0.3s;
+  }
+  .dot.active { background: {{GENRE_COLOR}}; }
+
+  /* Flash overlay for transition */
+  #flash {
+    position: absolute;
+    inset: 0;
+    background: {{GENRE_COLOR}};
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.08s;
+  }
+
+  /* Last panel restart button */
+  #restart-btn {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 32px;
+    background: {{GENRE_COLOR}};
+    color: #000;
+    font-size: 1.1rem;
+    font-weight: 900;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    z-index: 10;
+    touch-action: manipulation;
+  }
+
+  /* Sound toggle */
+  #sound-btn {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .world-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .scene, .bubble, .panel-num { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<div id="frame">
+  <div id="flash"></div>
+  <div id="dots"></div>
+  <button id="sound-btn">Ljud av</button>
+  <div id="panels"></div>
+  <div id="nav-hint">&#9654;</div>
+  <button id="restart-btn">SLUT! Spela om?</button>
+</div>
+
+<script>
+(function() {
+  const GENRE = '{{GENRE}}';
+  const GENRE_COLOR = '{{GENRE_COLOR}}';
+  const HERO = '{{HERO}}';
+  const VILLAIN = '{{VILLAIN}}';
+  const MILJO = '{{MILJO}}';
+  const ENDING = '{{ENDING_STYLE}}';
+  const BG_TOP = '{{BG_TOP}}';
+  const BG_BOT = '{{BG_BOT}}';
+  const TITLE = '{{TITLE}}';
+
+  // ── Hero SVGs ─────────────────────────────────────────────────────────────
+  const HERO_SVGS = {
+    ninja: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="16" rx="13" ry="14" fill="#222"/>
+      <rect x="17" y="28" width="26" height="2" rx="1" fill="#333"/>
+      <rect x="10" y="30" width="40" height="32" rx="6" fill="#333"/>
+      <rect x="10" y="62" width="14" height="26" rx="4" fill="#333"/>
+      <rect x="36" y="62" width="14" height="26" rx="4" fill="#333"/>
+      <rect x="0" y="32" width="14" height="8" rx="4" fill="#333"/>
+      <rect x="46" y="32" width="14" height="8" rx="4" fill="#333"/>
+      <ellipse cx="24" cy="14" rx="3" ry="3.5" fill="#e44"/>
+      <ellipse cx="36" cy="14" rx="3" ry="3.5" fill="#e44"/>
+    </svg>`,
+    robot: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <rect x="18" y="2" width="24" height="22" rx="4" fill="#78909c"/>
+      <rect x="21" y="6" width="8" height="6" rx="2" fill="#00e5ff"/>
+      <rect x="31" y="6" width="8" height="6" rx="2" fill="#00e5ff"/>
+      <rect x="27" y="14" width="6" height="3" rx="1" fill="#90a4ae"/>
+      <rect x="10" y="26" width="40" height="36" rx="4" fill="#78909c"/>
+      <rect x="16" y="30" width="28" height="10" rx="3" fill="#90a4ae"/>
+      <circle cx="22" cy="35" r="3" fill="#00e5ff"/>
+      <circle cx="38" cy="35" r="3" fill="#00e5ff"/>
+      <rect x="4" y="28" width="10" height="26" rx="4" fill="#78909c"/>
+      <rect x="46" y="28" width="10" height="26" rx="4" fill="#78909c"/>
+      <rect x="12" y="62" width="16" height="26" rx="4" fill="#78909c"/>
+      <rect x="32" y="62" width="16" height="26" rx="4" fill="#78909c"/>
+    </svg>`,
+    prinsessa: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="15" rx="12" ry="13" fill="#fdbcb4"/>
+      <polygon points="22,4 30,0 38,4 35,10 25,10" fill="#ffd700"/>
+      <circle cx="30" cy="3" r="3" fill="#ff69b4"/>
+      <circle cx="22" cy="6" r="2" fill="#ff69b4"/>
+      <circle cx="38" cy="6" r="2" fill="#ff69b4"/>
+      <path d="M18 30 Q12 60 8 88 L52 88 Q48 60 42 30 Z" fill="#ff69b4"/>
+      <rect x="6" y="29" width="10" height="8" rx="4" fill="#fdbcb4"/>
+      <rect x="44" y="29" width="10" height="8" rx="4" fill="#fdbcb4"/>
+      <ellipse cx="24" cy="13" rx="2.5" ry="2.5" fill="#8b4513"/>
+      <ellipse cx="36" cy="13" rx="2.5" ry="2.5" fill="#8b4513"/>
+      <path d="M26 19 Q30 22 34 19" stroke="#c66" stroke-width="1.5" fill="none"/>
+    </svg>`,
+    superhjälte: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="15" rx="12" ry="13" fill="#fdbcb4"/>
+      <rect x="12" y="28" width="36" height="36" rx="4" fill="#1565c0"/>
+      <polygon points="30,32 34,42 44,42 36,48 39,58 30,52 21,58 24,48 16,42 26,42" fill="#ffd700"/>
+      <path d="M12 28 Q6 35 4 50 L12 60 Z" fill="#1565c0"/>
+      <path d="M48 28 Q54 35 56 50 L48 60 Z" fill="#1565c0"/>
+      <rect x="12" y="64" width="16" height="24" rx="4" fill="#1565c0"/>
+      <rect x="32" y="64" width="16" height="24" rx="4" fill="#1565c0"/>
+      <ellipse cx="24" cy="13" rx="2.5" ry="3" fill="#5d4037"/>
+      <ellipse cx="36" cy="13" rx="2.5" ry="3" fill="#5d4037"/>
+    </svg>`,
+    detektiv: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="16" rx="12" ry="12" fill="#fdbcb4"/>
+      <path d="M16 12 Q30 2 44 12 L44 9 Q30 0 16 9 Z" fill="#5d4037"/>
+      <rect x="14" y="9" width="32" height="4" rx="2" fill="#3e2723"/>
+      <rect x="12" y="28" width="36" height="36" rx="4" fill="#5d4037"/>
+      <rect x="20" y="34" width="20" height="6" rx="2" fill="#8d6e63"/>
+      <rect x="4" y="28" width="10" height="24" rx="4" fill="#5d4037"/>
+      <rect x="46" y="28" width="10" height="24" rx="4" fill="#5d4037"/>
+      <rect x="12" y="64" width="16" height="24" rx="4" fill="#4e342e"/>
+      <rect x="32" y="64" width="16" height="24" rx="4" fill="#4e342e"/>
+      <ellipse cx="24" cy="15" rx="2.5" ry="2.5" fill="#5d4037"/>
+      <ellipse cx="36" cy="15" rx="2.5" ry="2.5" fill="#5d4037"/>
+    </svg>`,
+    magiker: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="16" rx="12" ry="12" fill="#fdbcb4"/>
+      <polygon points="30,0 22,14 38,14" fill="#4a148c"/>
+      <rect x="10" y="26" width="40" height="36" rx="4" fill="#4a148c"/>
+      <circle cx="30" cy="40" r="8" fill="#7b1fa2" opacity="0.5"/>
+      <text x="25" y="45" font-size="12" fill="#ffd700">★</text>
+      <path d="M10 26 Q4 40 6 58 L10 62 Z" fill="#4a148c"/>
+      <path d="M50 26 Q56 40 54 58 L50 62 Z" fill="#4a148c"/>
+      <rect x="12" y="62" width="16" height="26" rx="4" fill="#4a148c"/>
+      <rect x="32" y="62" width="16" height="26" rx="4" fill="#4a148c"/>
+      <ellipse cx="24" cy="14" rx="2.5" ry="2.5" fill="#6a1b9a"/>
+      <ellipse cx="36" cy="14" rx="2.5" ry="2.5" fill="#6a1b9a"/>
+    </svg>`,
+  };
+
+  // ── Villain SVGs ──────────────────────────────────────────────────────────
+  const VILLAIN_SVGS = {
+    drake: `<svg viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="35" cy="18" rx="15" ry="14" fill="#c62828"/>
+      <polygon points="20,10 10,0 25,12" fill="#c62828"/>
+      <polygon points="50,10 60,0 45,12" fill="#c62828"/>
+      <ellipse cx="28" cy="15" rx="3" ry="4" fill="#ff1744"/>
+      <ellipse cx="42" cy="15" rx="3" ry="4" fill="#ff1744"/>
+      <path d="M28 23 Q35 27 42 23" stroke="#ff8f00" stroke-width="2" fill="none"/>
+      <ellipse cx="35" cy="46" rx="18" ry="22" fill="#c62828"/>
+      <path d="M53 30 Q70 20 68 45 Q65 55 53 52 Z" fill="#c62828"/>
+      <path d="M17 30 Q0 20 2 45 Q5 55 17 52 Z" fill="#c62828"/>
+      <rect x="22" y="68" width="12" height="22" rx="4" fill="#c62828"/>
+      <rect x="36" y="68" width="12" height="22" rx="4" fill="#c62828"/>
+      <path d="M29 87 L22 96" stroke="#c62828" stroke-width="4" stroke-linecap="round"/>
+      <path d="M41 87 L48 96" stroke="#c62828" stroke-width="4" stroke-linecap="round"/>
+    </svg>`,
+    alien: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="20" rx="18" ry="20" fill="#388e3c"/>
+      <ellipse cx="20" cy="16" rx="7" ry="8" fill="#1b5e20"/>
+      <ellipse cx="40" cy="16" rx="7" ry="8" fill="#1b5e20"/>
+      <ellipse cx="20" cy="16" rx="4" ry="5" fill="#00e676"/>
+      <ellipse cx="40" cy="16" rx="4" ry="5" fill="#00e676"/>
+      <ellipse cx="30" cy="30" rx="5" ry="3" fill="#2e7d32"/>
+      <rect x="14" y="40" width="32" height="28" rx="6" fill="#388e3c"/>
+      <rect x="4" y="42" width="12" height="20" rx="4" fill="#388e3c"/>
+      <rect x="44" y="42" width="12" height="20" rx="4" fill="#388e3c"/>
+      <rect x="16" y="68" width="12" height="22" rx="4" fill="#388e3c"/>
+      <rect x="32" y="68" width="12" height="22" rx="4" fill="#388e3c"/>
+    </svg>`,
+    häxa: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="18" rx="12" ry="12" fill="#d7ccc8"/>
+      <polygon points="30,0 18,18 42,18" fill="#4a148c"/>
+      <rect x="15" y="14" width="30" height="4" rx="2" fill="#6a1b9a"/>
+      <rect x="12" y="30" width="36" height="30" rx="3" fill="#4a148c"/>
+      <path d="M12 30 Q6 50 8 68 L12 60 Z" fill="#4a148c"/>
+      <path d="M48 30 Q54 50 52 68 L48 60 Z" fill="#4a148c"/>
+      <path d="M12 60 Q20 90 30 90 Q40 90 48 60 Z" fill="#4a148c"/>
+      <ellipse cx="24" cy="16" rx="2.5" ry="3" fill="#6a1b9a"/>
+      <ellipse cx="36" cy="16" rx="2.5" ry="3" fill="#6a1b9a"/>
+      <path d="M25 22 Q30 26 35 22" stroke="#9c27b0" stroke-width="1.5" fill="none"/>
+    </svg>`,
+    pirat: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="16" rx="13" ry="13" fill="#fdbcb4"/>
+      <rect x="16" y="5" width="28" height="6" rx="2" fill="#212121"/>
+      <rect x="14" y="3" width="32" height="4" rx="2" fill="#212121"/>
+      <ellipse cx="25" cy="14" rx="3" ry="3" fill="#212121"/>
+      <ellipse cx="35" cy="14" rx="3" ry="2"/>
+      <rect x="29" y="13" width="6" height="3" rx="1" fill="#78909c"/>
+      <rect x="12" y="28" width="36" height="36" rx="4" fill="#37474f"/>
+      <rect x="22" y="32" width="16" height="8" rx="2" fill="#546e7a"/>
+      <rect x="4" y="30" width="10" height="22" rx="4" fill="#37474f"/>
+      <rect x="46" y="30" width="10" height="22" rx="4" fill="#37474f"/>
+      <rect x="12" y="64" width="16" height="24" rx="4" fill="#37474f"/>
+      <rect x="32" y="64" width="16" height="24" rx="4" fill="#37474f"/>
+    </svg>`,
+    spöke: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="28" rx="22" ry="26" fill="rgba(220,220,220,0.85)"/>
+      <path d="M8 50 Q8 88 16 88 Q20 75 24 88 Q28 75 30 88 Q32 75 36 88 Q40 75 44 88 Q52 88 52 50 Z" fill="rgba(220,220,220,0.85)"/>
+      <ellipse cx="22" cy="26" rx="4" ry="5" fill="#212121"/>
+      <ellipse cx="38" cy="26" rx="4" ry="5" fill="#212121"/>
+      <path d="M24 36 Q30 40 36 36" stroke="#aaa" stroke-width="2" fill="none"/>
+    </svg>`,
+    ondrobot: `<svg viewBox="0 0 60 90" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="2" width="28" height="24" rx="3" fill="#b71c1c"/>
+      <rect x="20" y="6" width="8" height="6" rx="1" fill="#ff1744"/>
+      <rect x="32" y="6" width="8" height="6" rx="1" fill="#ff1744"/>
+      <rect x="24" y="14" width="12" height="3" fill="#c62828"/>
+      <polygon points="16,18 12,26 20,22" fill="#b71c1c"/>
+      <polygon points="44,18 48,26 40,22" fill="#b71c1c"/>
+      <rect x="10" y="26" width="40" height="36" rx="3" fill="#b71c1c"/>
+      <polygon points="20,30 10,46 20,46" fill="#c62828"/>
+      <polygon points="40,30 50,46 40,46" fill="#c62828"/>
+      <rect x="4" y="28" width="8" height="28" rx="2" fill="#b71c1c"/>
+      <rect x="48" y="28" width="8" height="28" rx="2" fill="#b71c1c"/>
+      <rect x="12" y="62" width="16" height="26" rx="3" fill="#b71c1c"/>
+      <rect x="32" y="62" width="16" height="26" rx="3" fill="#b71c1c"/>
+    </svg>`,
+  };
+
+  // ── World background drawing ───────────────────────────────────────────────
+  const WORLD_BGS = {
+    skog: `<svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a4a1a"/><stop offset="100%" stop-color="#2d7d2d"/></linearGradient></defs>
+      <rect width="400" height="250" fill="url(#sky)"/>
+      <rect y="180" width="400" height="70" fill="#1b3a1b"/>
+      <ellipse cx="60" cy="160" rx="40" ry="60" fill="#1b5e20"/>
+      <rect x="52" y="160" width="16" height="40" fill="#5d4037"/>
+      <ellipse cx="160" cy="150" rx="35" ry="55" fill="#2e7d32"/>
+      <rect x="152" y="150" width="16" height="50" fill="#5d4037"/>
+      <ellipse cx="280" cy="155" rx="45" ry="65" fill="#1b5e20"/>
+      <rect x="272" y="155" width="16" height="45" fill="#5d4037"/>
+      <ellipse cx="360" cy="165" rx="30" ry="50" fill="#2e7d32"/>
+      <rect x="353" y="165" width="14" height="35" fill="#5d4037"/>
+    </svg>`,
+    rymden: `<svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="space" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000010"/><stop offset="100%" stop-color="#0d0d2b"/></linearGradient></defs>
+      <rect width="400" height="250" fill="url(#space)"/>
+      <circle cx="40" cy="30" r="2" fill="white" opacity="0.8"/>
+      <circle cx="100" cy="15" r="1.5" fill="white"/>
+      <circle cx="180" cy="40" r="2.5" fill="white" opacity="0.7"/>
+      <circle cx="250" cy="20" r="1" fill="white"/>
+      <circle cx="320" cy="35" r="2" fill="white"/>
+      <circle cx="370" cy="10" r="1.5" fill="white" opacity="0.9"/>
+      <circle cx="80" cy="70" r="1" fill="white" opacity="0.6"/>
+      <circle cx="200" cy="60" r="1.5" fill="white"/>
+      <ellipse cx="310" cy="50" rx="30" ry="30" fill="#1a237e" opacity="0.7"/>
+      <ellipse cx="310" cy="50" rx="20" ry="20" fill="#283593" opacity="0.8"/>
+      <ellipse cx="310" cy="50" rx="38" ry="8" fill="rgba(100,150,255,0.25)"/>
+      <rect y="200" width="400" height="50" fill="#0a0a20"/>
+    </svg>`,
+    stad: `<svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="citysky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a2e"/><stop offset="100%" stop-color="#2d2d4e"/></linearGradient></defs>
+      <rect width="400" height="250" fill="url(#citysky)"/>
+      <rect x="20" y="100" width="50" height="150" fill="#222"/>
+      <rect x="0" y="130" width="35" height="120" fill="#1a1a1a"/>
+      <rect x="90" y="80" width="60" height="170" fill="#2a2a2a"/>
+      <rect x="170" y="60" width="80" height="190" fill="#1e1e2e"/>
+      <rect x="190" y="50" width="30" height="15" fill="#252535"/>
+      <rect x="260" y="90" width="50" height="160" fill="#222"/>
+      <rect x="320" y="70" width="70" height="180" fill="#1a1a2a"/>
+      <rect x="360" y="100" width="40" height="150" fill="#202020"/>
+      <rect x="32" y="108" width="8" height="6" fill="#ffd700" opacity="0.8"/>
+      <rect x="44" y="108" width="8" height="6" fill="#ffd700" opacity="0.6"/>
+      <rect x="32" y="120" width="8" height="6" fill="#ffd700" opacity="0.7"/>
+      <rect x="100" y="88" width="10" height="8" fill="#87ceeb" opacity="0.6"/>
+      <rect x="115" y="88" width="10" height="8" fill="#ffd700" opacity="0.7"/>
+      <rect x="182" y="68" width="12" height="10" fill="#87ceeb" opacity="0.8"/>
+      <rect x="198" y="68" width="12" height="10" fill="#ffd700" opacity="0.5"/>
+    </svg>`,
+    hav: `<svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#001a3e"/><stop offset="100%" stop-color="#0047ab"/></linearGradient></defs>
+      <rect width="400" height="250" fill="url(#ocean)"/>
+      <circle cx="60" cy="30" r="3" fill="white" opacity="0.6"/>
+      <circle cx="180" cy="20" r="2" fill="white" opacity="0.5"/>
+      <circle cx="300" cy="25" r="2.5" fill="white" opacity="0.7"/>
+      <ellipse cx="200" cy="160" rx="220" ry="30" fill="rgba(0,100,200,0.4)"/>
+      <path d="M0 170 Q50 155 100 170 Q150 185 200 170 Q250 155 300 170 Q350 185 400 170 L400 250 L0 250 Z" fill="#0d47a1"/>
+      <path d="M0 180 Q60 165 120 180 Q180 195 240 180 Q300 165 360 180 L400 185 L400 250 L0 250 Z" fill="#1565c0" opacity="0.7"/>
+    </svg>`,
+    vulkan: `<svg viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="lava-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a0000"/><stop offset="100%" stop-color="#4a0a00"/></linearGradient></defs>
+      <rect width="400" height="250" fill="url(#lava-sky)"/>
+      <polygon points="200,30 100,200 300,200" fill="#3e2723"/>
+      <polygon points="200,30 160,80 240,80" fill="#4e342e"/>
+      <ellipse cx="200" cy="35" rx="20" ry="10" fill="#bf360c" opacity="0.9"/>
+      <circle cx="200" cy="30" r="8" fill="#ff6d00"/>
+      <rect y="200" width="400" height="50" fill="#3e2723"/>
+      <path d="M0 215 Q100 200 200 210 Q300 220 400 205 L400 250 L0 250 Z" fill="#bf360c" opacity="0.6"/>
+    </svg>`,
+  };
+
+  // ── Panel story texts ─────────────────────────────────────────────────────
+  const heroLabel = HERO.charAt(0).toUpperCase() + HERO.slice(1);
+  const villainLabel = VILLAIN.charAt(0).toUpperCase() + VILLAIN.slice(1);
+  const miljoLabel = MILJO.charAt(0).toUpperCase() + MILJO.slice(1);
+
+  const ENDING_TEXTS = {
+    glad: `${heroLabel} vann! Alla jublade och levde lyckliga!`,
+    cliffhanger: `Plotsligt... hordes ett dunkande ljud bakom dorren!`,
+    roligt: `${villainLabel} snubblade och landet i en tarta. Alla skrattade!`,
+    sorglig: `${heroLabel} vann men kandes ensam. Nasta gang blir battre...`,
+    overraskande: `Det visade sig att ${villainLabel} egentligen var god hela tiden!`,
+  };
+  const endingText = ENDING_TEXTS[ENDING] || ENDING_TEXTS.glad;
+
+  const PANELS_DATA = [
+    {
+      bubble: `I ${miljoLabel} levde en modig ${heroLabel}. Aventyret borjar!`,
+      heroSide: 'left',
+      villainSide: null,
+    },
+    {
+      bubble: `Plotsligt dok ${villainLabel} upp! "Mu-ha-ha! Nu far du se!"`,
+      heroSide: 'right',
+      villainSide: 'left',
+    },
+    {
+      bubble: `${heroLabel}: "Aldrig! Jag skyddar detta stallet!"`,
+      heroSide: 'left',
+      villainSide: 'right',
+    },
+    {
+      bubble: `En episk strid brotjades! PANG! SWISH! BOOM!`,
+      heroSide: 'left',
+      villainSide: 'right',
+    },
+    {
+      bubble: `${heroLabel} hittade sin styrka och slog tillbaka!`,
+      heroSide: 'left',
+      villainSide: null,
+    },
+    {
+      bubble: endingText,
+      heroSide: 'left',
+      villainSide: null,
+      isLast: true,
+    },
+  ];
+
+  // ── Build panels ──────────────────────────────────────────────────────────
+  const worldBg = WORLD_BGS[MILJO] || WORLD_BGS.skog;
+  const heroSvg = HERO_SVGS[HERO] || HERO_SVGS.ninja;
+  const villainSvg = VILLAIN_SVGS[VILLAIN] || VILLAIN_SVGS.drake;
+  const panelsEl = document.getElementById('panels');
+  const dotsEl = document.getElementById('dots');
+
+  PANELS_DATA.forEach((p, idx) => {
+    // Gradient backgrounds alternate slightly
+    const brightness = 1 + idx * 0.04;
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.style.background = `linear-gradient(160deg, ${BG_TOP}, ${BG_BOT})`;
+
+    // World background SVG
+    const bgDiv = document.createElement('div');
+    bgDiv.className = 'world-bg';
+    bgDiv.innerHTML = worldBg;
+    panel.appendChild(bgDiv);
+
+    // Panel number
+    const numEl = document.createElement('div');
+    numEl.className = 'panel-num';
+    numEl.textContent = `${idx + 1}/6`;
+    panel.appendChild(numEl);
+
+    // Speech bubble
+    const bubbleEl = document.createElement('div');
+    bubbleEl.className = 'bubble';
+    bubbleEl.textContent = p.bubble;
+    panel.appendChild(bubbleEl);
+
+    // Scene with characters
+    const sceneEl = document.createElement('div');
+    sceneEl.className = 'scene';
+    sceneEl.style.position = 'relative';
+    sceneEl.style.zIndex = '1';
+
+    // Ground
+    const ground = document.createElement('div');
+    ground.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:30px;background:rgba(0,0,0,0.3);border-radius:8px 8px 0 0;`;
+    sceneEl.appendChild(ground);
+
+    if (p.heroSide === 'left') {
+      const hEl = document.createElement('div');
+      hEl.className = 'char-svg';
+      hEl.innerHTML = heroSvg;
+      sceneEl.appendChild(hEl);
+    }
+
+    // Spacer
+    const spacer = document.createElement('div');
+    spacer.style.flex = '1';
+    sceneEl.appendChild(spacer);
+
+    if (p.heroSide === 'right') {
+      const hEl = document.createElement('div');
+      hEl.className = 'char-svg';
+      hEl.style.transform = 'scaleX(-1)';
+      hEl.innerHTML = heroSvg;
+      sceneEl.appendChild(hEl);
+    }
+    if (p.villainSide === 'right') {
+      const vEl = document.createElement('div');
+      vEl.className = 'char-svg';
+      vEl.style.transform = 'scaleX(-1)';
+      vEl.innerHTML = villainSvg;
+      sceneEl.appendChild(vEl);
+    }
+    if (p.villainSide === 'left') {
+      const vEl = document.createElement('div');
+      vEl.className = 'char-svg';
+      vEl.innerHTML = villainSvg;
+      sceneEl.insertBefore(vEl, spacer);
+    }
+
+    panel.appendChild(sceneEl);
+
+    panelsEl.appendChild(panel);
+
+    // Dot
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (idx === 0 ? ' active' : '');
+    dotsEl.appendChild(dot);
+  });
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  let current = 0;
+  const totalPanels = PANELS_DATA.length;
+  const navHint = document.getElementById('nav-hint');
+  const restartBtn = document.getElementById('restart-btn');
+  const flash = document.getElementById('flash');
+  const dots = document.querySelectorAll('.dot');
+  const frame = document.getElementById('frame');
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= totalPanels) return;
+    // Flash
+    flash.style.opacity = '0.4';
+    setTimeout(() => { flash.style.opacity = '0'; }, 150);
+
+    current = idx;
+    panelsEl.style.transform = `translateX(calc(-${100 / 6 * idx}%))`;
+
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+
+    if (idx === totalPanels - 1) {
+      navHint.style.display = 'none';
+      restartBtn.style.display = 'block';
+    } else {
+      navHint.style.display = 'block';
+      restartBtn.style.display = 'none';
+    }
+  }
+
+  frame.addEventListener('click', e => {
+    if (e.target === restartBtn) return;
+    if (current < totalPanels - 1) {
+      goTo(current + 1);
+    }
+  });
+
+  restartBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    goTo(0);
+  });
+
+  // Swipe support
+  let touchStartX = 0;
+  frame.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  frame.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0) goTo(current + 1);
+      else goTo(current - 1);
+    }
+  });
+
+  // ── Ambient Audio ─────────────────────────────────────────────────────────
+  const AMBIENT = '{{AMBIENT}}';
+  let audioCtx = null;
+  let audioOn = true;
+  const soundBtn = document.getElementById('sound-btn');
+
+  function startAmbient() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const ac = audioCtx;
+    // Simple looping ambient based on genre
+    const patterns = {
+      epic:    [220, 261, 293, 349, 392, 440],
+      bouncy:  [392, 440, 494, 523, 587, 659],
+      tense:   [196, 220, 246, 233, 196, 185],
+      synth:   [440, 494, 554, 622, 698, 784],
+      magical: [261, 311, 370, 415, 466, 523],
+    };
+    const notes = patterns[AMBIENT] || patterns.epic;
+    let noteIdx = 0;
+    let interval;
+
+    function playNote() {
+      if (!audioOn) return;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = AMBIENT === 'synth' ? 'square' : AMBIENT === 'tense' ? 'sawtooth' : 'sine';
+      osc.frequency.value = notes[noteIdx % notes.length];
+      gain.gain.setValueAtTime(0, ac.currentTime);
+      gain.gain.linearRampToValueAtTime(0.06, ac.currentTime + 0.08);
+      gain.gain.linearRampToValueAtTime(0, ac.currentTime + 0.6);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start();
+      osc.stop(ac.currentTime + 0.65);
+      noteIdx++;
+    }
+
+    playNote();
+    interval = setInterval(playNote, 700);
+    return interval;
+  }
+
+  let ambientInterval = null;
+
+  soundBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    audioOn = !audioOn;
+    soundBtn.textContent = audioOn ? 'Ljud av' : 'Ljud pa';
+    if (audioOn && !ambientInterval) {
+      ambientInterval = startAmbient();
+    }
+  });
+
+  // Auto-start on first interaction
+  frame.addEventListener('click', () => {
+    if (!ambientInterval) {
+      ambientInterval = startAmbient();
+    }
+  }, { once: true });
+
+  // Title in first panel bubble update
+  document.title = TITLE;
+})();
+</script>
+</body>
+</html>
