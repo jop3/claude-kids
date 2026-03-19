@@ -272,6 +272,31 @@ export function getMusicConfig(answers, title) {
   };
 }
 
+export function getRostlabConfig(answers, title) {
+  const EFFEKT_ACCENTS = {
+    robot:    '#00e5ff',
+    chipmunk: '#ffeb3b',
+    monster:  '#f44336',
+    echo:     '#ce93d8',
+    reverb:   '#80cbc4',
+    pitchupp: '#ff9800',
+    none:     '#ffffff',
+  };
+  const effekt = answers.effekt || 'robot';
+  const accent = EFFEKT_ACCENTS[effekt] || '#00e5ff';
+  const loopRaw = answers.loop || '';
+  const loopMode = loopRaw === 'loopa' || loopRaw.includes('loopa') ? 'ja' : 'nej';
+  const layerRaw = answers.lager || '1';
+  const layers = parseInt(layerRaw) || 1;
+  return {
+    TITLE:          title || 'Rostlab',
+    DEFAULT_EFFEKT: effekt,
+    LOOP_MODE:      loopMode,
+    LAYERS:         layers,
+    ACCENT:         accent,
+  };
+}
+
 export function getMemoryConfig(answers, title) {
   const MEMORY_THEMES = {
     'Djur🐾':           { bg: ['#1a3a1a','#2a5a2a'], cardBack: '#2d6a2d', cardFront: '#ffffff', matched: '#4caf50', accent: '#8bc34a', theme: 'djur' },

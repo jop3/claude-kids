@@ -159,6 +159,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'rostlab':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt röststudio-namn på svenska (max 3 ord):
+- Effekt: ${answers.effekt}
+- Lager: ${answers.lager}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Robotrösten"}`;
+
+    case 'rostlab_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa ett komplett röststudio-program i HTML och spara som /workspace/${name}.html
 
 Röststudion ska ha:
