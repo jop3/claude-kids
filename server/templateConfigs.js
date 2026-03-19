@@ -269,6 +269,10 @@ export function getMusicConfig(answers, title) {
     elektronisk: { bg: '#001a1a', accent: '#00e5ff', bpm: 128 },
     jazz:        { bg: '#0d0010', accent: '#9c27b0', bpm: 100 },
     klassisk:    { bg: '#1a1a10', accent: '#f5f0dc', bpm: 80 },
+    reggae:      { bg: '#001a00', accent: '#00e676', bpm: 80 },
+    metal:       { bg: '#0d0000', accent: '#ff1744', bpm: 180 },
+    country:     { bg: '#1a0f00', accent: '#ff8f00', bpm: 110 },
+    kpop:        { bg: '#1a001a', accent: '#f48fb1', bpm: 130 },
   };
   const genre = (answers.genre || 'pop').toLowerCase();
   const theme = Object.entries(GENRE_THEMES).find(([k]) => genre.includes(k))?.[1] || GENRE_THEMES.pop;

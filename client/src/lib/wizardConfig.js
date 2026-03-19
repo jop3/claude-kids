@@ -104,6 +104,10 @@ export const WIZARD_CONFIG = {
           { id: 'elektronisk', label: 'Elektronisk', emoji: '⚡' },
           { id: 'jazz', label: 'Jazz', emoji: '🎷' },
           { id: 'klassisk', label: 'Klassisk', emoji: '🎻' },
+          { id: 'reggae', label: 'Reggae', emoji: '🌴' },
+          { id: 'metal', label: 'Metal', emoji: '🤘' },
+          { id: 'country', label: 'Country', emoji: '🤠' },
+          { id: 'kpop', label: 'K-Pop', emoji: '🌸' },
         ],
       },
       {
@@ -117,6 +121,9 @@ export const WIZARD_CONFIG = {
           { id: 'lugn', label: 'Lugn', emoji: '🌊' },
           { id: 'galen', label: 'Galen', emoji: '🤪' },
           { id: 'laskig', label: 'Läskig', emoji: '👻' },
+          { id: 'dansvänlig', label: 'Dansvänlig', emoji: '💃' },
+          { id: 'drömsk', label: 'Drömsk', emoji: '💭' },
+          { id: 'triumferande', label: 'Triumferande', emoji: '🏆' },
         ],
       },
       {
@@ -132,6 +139,10 @@ export const WIZARD_CONFIG = {
           { id: 'synth', label: 'Synth', emoji: '🎛️' },
           { id: 'trumpet', label: 'Trumpet', emoji: '🎺' },
           { id: 'violin', label: 'Violin', emoji: '🎻' },
+          { id: 'bas', label: 'Bas', emoji: '🎵' },
+          { id: 'slagverk', label: 'Slagverk', emoji: '🪘' },
+          { id: 'harpa', label: 'Harpa', emoji: '🪗' },
+          { id: 'orgel', label: 'Orgel', emoji: '🎹' },
         ],
       },
       {
