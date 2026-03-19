@@ -322,11 +322,20 @@ export function getMusicConfig(answers, title) {
 
 export function getBradspelConfig(answers, title) {
   const TEMA_META = {
-    banspel:  { accent: '#4a90d9', bg: ['#0a1a2e','#1a2e4a'] },
-    pirater:  { accent: '#c49a6c', bg: ['#1a0f00','#2e1a05'] },
-    rymd:     { accent: '#7986cb', bg: ['#00001a','#0d0d2e'] },
-    djungel:  { accent: '#43a047', bg: ['#0a1a0a','#1a2e1a'] },
-    saga:     { accent: '#ce93d8', bg: ['#0d001a','#1a0035'] },
+    banspel:      { accent: '#4a90d9', bg: ['#0a1a2e','#1a2e4a'] },
+    pirater:      { accent: '#c49a6c', bg: ['#1a0f00','#2e1a05'] },
+    rymd:         { accent: '#7986cb', bg: ['#00001a','#0d0d2e'] },
+    rymden:       { accent: '#7986cb', bg: ['#00001a','#0d0d2e'] },
+    djungel:      { accent: '#43a047', bg: ['#0a1a0a','#1a2e1a'] },
+    djungeln:     { accent: '#43a047', bg: ['#0a1a0a','#1a2e1a'] },
+    saga:         { accent: '#ce93d8', bg: ['#0d001a','#1a0035'] },
+    trollskogen:  { accent: '#7cb342', bg: ['#0a1a10','#1a2e1a'] },
+    havet:        { accent: '#29b6f6', bg: ['#001a3e','#003388'] },
+    halloween:    { accent: '#ff6d00', bg: ['#0d0000','#1a0500'] },
+    sagolandet:   { accent: '#f48fb1', bg: ['#1a001a','#2e0035'] },
+    vildavästern: { accent: '#ff8f00', bg: ['#1a0f00','#2e1a00'] },
+    medeltiden:   { accent: '#ffd700', bg: ['#1a1000','#2e1a00'] },
+    framtiden:    { accent: '#00e5ff', bg: ['#001a2e','#002e4e'] },
   };
   const tema = (answers.tema || 'banspel').toLowerCase();
   const temaKey = Object.keys(TEMA_META).find(k => tema.includes(k)) || 'banspel';

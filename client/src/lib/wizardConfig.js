@@ -353,6 +353,11 @@ export const WIZARD_CONFIG = {
           { id: 'djungeln', label: 'Djungeln', emoji: '🌿' },
           { id: 'medeltiden', label: 'Medeltiden', emoji: '⚔️' },
           { id: 'framtiden', label: 'Framtiden', emoji: '🤖' },
+          { id: 'trollskogen', label: 'Trollskogen', emoji: '🌲' },
+          { id: 'havet', label: 'Havet', emoji: '🌊' },
+          { id: 'halloween', label: 'Halloweenslottet', emoji: '🎃' },
+          { id: 'sagolandet', label: 'Sagolandet', emoji: '🧚' },
+          { id: 'vildavästern', label: 'Vilda Västern', emoji: '🤠' },
         ],
       },
       {
