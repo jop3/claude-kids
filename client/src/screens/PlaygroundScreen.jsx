@@ -28,6 +28,10 @@ const GENRE_COLORS = {
   elektronisk: '#00e5ff',
   jazz:        '#9c27b0',
   klassisk:    '#f5f0dc',
+  reggae:      '#00e676',
+  metal:       '#ff1744',
+  country:     '#ff8f00',
+  kpop:        '#f48fb1',
 };
 
 const FILM_COLORS = {
@@ -255,7 +259,8 @@ function drawSpel(ctx, w, h, s, dt, t) {
 // ─── Scene: musik ─────────────────────────────────────────────────────────────
 const INSTRUMENT_EMOJIS = {
   piano: '🎹', gitarr: '🎸', trummor: '🥁', synth: '🎛️',
-  trumpet: '🎺', violin: '🎻', saxofon: '🎷', bas: '🎸',
+  trumpet: '🎺', violin: '🎻', saxofon: '🎷', bas: '🎵',
+  slagverk: '🪘', harpa: '🪗', orgel: '🎹',
 };
 
 function initMusik(answers) {
@@ -264,7 +269,7 @@ function initMusik(answers) {
   const color = GENRE_COLORS[genre] ?? '#ff69b4';
   const rawInstr = answers?.instrument ?? ['piano', 'trummor'];
   const instruments = (Array.isArray(rawInstr) ? rawInstr : [rawInstr]).slice(0, 3);
-  const bpmBase = { pop:120, hiphop:90, rock:140, elektronisk:128, jazz:100, klassisk:80 };
+  const bpmBase = { pop:120, hiphop:90, rock:140, elektronisk:128, jazz:100, klassisk:80, reggae:80, metal:180, country:110, kpop:130 };
   const bpm = bpmBase[genre] ?? 120;
   // floating instrument icons
   const icons = instruments.map((instr, i) => ({
@@ -1013,7 +1018,8 @@ function drawRostlab(ctx, w, h, s, dt, t) {
 const ANIM_CHAR_EMOJIS = {
   ninja: '🥷', robot: '🤖', katt: '🐱', dinosaurie: '🦕',
   enhörning: '🦄', pirat: '🏴‍☠️', astronaut: '👨‍🚀', drake: '🐉',
-  haj: '🦈', häxa: '🧙', superhjälte: '🦸', enhornin: '🦄',
+  haj: '🦈', häxa: '🧙', haxan: '🧙‍♀️', superhjälte: '🦸', enhornin: '🦄',
+  bjorn: '🐻', pingvin: '🐧', rymdalien: '👽', delfin: '🐬',
 };
 
 function initAnimation(answers) {
@@ -1085,6 +1091,18 @@ function drawAnimation(ctx, w, h, s, dt, t) {
       cx = (((s.figureT * 0.15) % 1.2) - 0.1) * w;
       cy = h * 0.62;
       break;
+    case 'simma':
+      cx = w / 2 + Math.sin(s.figureT * 1.5) * w * 0.3;
+      cy = h * 0.52 + Math.sin(s.figureT * 3) * h * 0.04;
+      break;
+    case 'smyga':
+      cx = (((s.figureT * 0.08) % 1.2) - 0.1) * w;
+      cy = h * 0.68 + Math.sin(s.figureT * 1.5) * h * 0.025;
+      break;
+    case 'studsa':
+      cx = w / 2 + Math.sin(s.figureT * 2.2) * w * 0.15;
+      cy = h * 0.62 - Math.abs(Math.sin(s.figureT * 5)) * h * 0.14;
+      break;
     default:
       cy = h * 0.62;
   }
@@ -1117,19 +1135,30 @@ function drawAnimation(ctx, w, h, s, dt, t) {
     bubblor:   ['#aef','#bdf','#cef'],
     regnbage:  ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'],
     blixt:     ['#fff','#ffff00','#00ffff'],
+    sno:       ['#e0f7fa','#b3e5fc','#fff','#e1f5fe'],
+    hjartan:   ['#ff69b4','#ff1493','#ffb6c1','#ff69b4'],
+    musik:     ['#ffd700','#ff69b4','#00e5ff','#9c27b0'],
+    magi:      ['#ea80fc','#e040fb','#fff','#ffeb3b'],
   };
   const pColors = effColors[s.effekter] ?? effColors.stjarnor;
 
+  const fallDown = s.effekter === 'sno';
   s.particles.forEach(p => {
     p.x += p.vx * dt * 0.3;
-    p.y += p.vy * dt * 0.3;
+    p.y += (fallDown ? 1 : 1) * p.vy * dt * 0.3;
     p.life -= dt * 0.3;
-    if (p.life <= 0 || p.y < -0.1 || p.x < -0.1 || p.x > 1.1) {
-      p.x = s.effekter === 'eld' ? cx / w : rand(0, 1);
-      p.y = s.effekter === 'eld' ? cy / h : rand(0.3, 0.9);
+    const offscreen = fallDown ? p.y > 1.05 : p.y < -0.1;
+    if (p.life <= 0 || offscreen || p.x < -0.1 || p.x > 1.1) {
+      if (s.effekter === 'eld') {
+        p.x = cx / w; p.y = cy / h;
+      } else if (fallDown) {
+        p.x = rand(0, 1); p.y = -0.05;
+      } else {
+        p.x = rand(0, 1); p.y = rand(0.3, 0.9);
+      }
       p.life = 1;
-      p.vy = rand(-0.6, -0.1);
-      p.vx = rand(-0.4, 0.4);
+      p.vy = fallDown ? rand(0.15, 0.45) : rand(-0.6, -0.1);
+      p.vx = rand(-0.15, 0.15);
     }
     const color = pColors[Math.floor(p.x * pColors.length) % pColors.length];
     const a = p.life * 0.8;
@@ -1149,16 +1178,26 @@ function drawAnimation(ctx, w, h, s, dt, t) {
       ctx.stroke();
     } else {
       ctx.fillStyle = color;
-      ctx.beginPath();
+      ctx.font = `${p.size + 4}px serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
       if (s.effekter === 'stjarnor' || s.effekter === 'regnbage') {
-        ctx.font = `${p.size + 4}px serif`;
-        ctx.textBaseline = 'middle';
         ctx.fillText('★', p.x * w, p.y * h);
-        ctx.textBaseline = 'alphabetic';
+      } else if (s.effekter === 'sno') {
+        ctx.fillText('❄', p.x * w, p.y * h);
+      } else if (s.effekter === 'hjartan') {
+        ctx.fillText('♥', p.x * w, p.y * h);
+      } else if (s.effekter === 'musik') {
+        ctx.fillText(p.life > 0.5 ? '♪' : '♫', p.x * w, p.y * h);
+      } else if (s.effekter === 'magi') {
+        ctx.fillText('✦', p.x * w, p.y * h);
       } else {
+        ctx.beginPath();
         ctx.arc(p.x * w, p.y * h, p.size / 2, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
     }
   });
   ctx.globalAlpha = 1;
