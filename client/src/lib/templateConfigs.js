@@ -402,6 +402,13 @@ export function getMemoryConfig(answers, title) {
     'Superhjältar🦸':   { bg: ['#1a0030','#2d0050'], cardBack: '#4a148c', cardFront: '#f3e5f5', matched: '#7b1fa2', accent: '#ce93d8', theme: 'superhjältar' },
     'Pirater☠️':        { bg: ['#1a0f00','#2e1a00'], cardBack: '#5d4037', cardFront: '#fff8e1', matched: '#8d6e63', accent: '#ffd54f', theme: 'pirater' },
     'Framtiden🤖':      { bg: ['#001a2e','#002e4e'], cardBack: '#0d47a1', cardFront: '#e8f4fd', matched: '#1976d2', accent: '#00e5ff', theme: 'framtiden' },
+    'Hajar🦈':          { bg: ['#001a3e','#003388'], cardBack: '#0d47a1', cardFront: '#e3f2fd', matched: '#1565c0', accent: '#00b0ff', theme: 'hajar' },
+    'Sagofigurer🧚':    { bg: ['#0d001a','#200040'], cardBack: '#6a1b9a', cardFront: '#f3e5f5', matched: '#8e24aa', accent: '#ea80fc', theme: 'sagofigurer' },
+    'Jul🎄':            { bg: ['#001a00','#003300'], cardBack: '#1b5e20', cardFront: '#fff8e1', matched: '#388e3c', accent: '#ff5722', theme: 'jul' },
+    'Halloween🎃':      { bg: ['#0d0000','#1a0500'], cardBack: '#4a148c', cardFront: '#fff3e0', matched: '#6a1b9a', accent: '#ff6d00', theme: 'halloween' },
+    'Musikinstrument🎸':{ bg: ['#0d001a','#1a0030'], cardBack: '#880e4f', cardFront: '#fce4ec', matched: '#c2185b', accent: '#f48fb1', theme: 'musikinstrument' },
+    'Yrken👩‍🚀':          { bg: ['#001a0d','#003322'], cardBack: '#006064', cardFront: '#e0f2f1', matched: '#00897b', accent: '#1de9b6', theme: 'yrken' },
+    'Sverige🇸🇪':        { bg: ['#001a2e','#003366'], cardBack: '#004d99', cardFront: '#fff9e6', matched: '#1565c0', accent: '#ffd700', theme: 'sverige' },
   };
 
   const svMap = { latt: 1, lagom: 2, svart: 3 };

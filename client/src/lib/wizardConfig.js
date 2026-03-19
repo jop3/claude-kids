@@ -294,6 +294,13 @@ export const WIZARD_CONFIG = {
           { id: 'superhjältar', label: 'Superhjältar', emoji: '🦸' },
           { id: 'pirater', label: 'Pirater', emoji: '☠️' },
           { id: 'framtiden', label: 'Framtiden', emoji: '🤖' },
+          { id: 'hajar', label: 'Hajar', emoji: '🦈' },
+          { id: 'sagofigurer', label: 'Sagofigurer', emoji: '🧚' },
+          { id: 'jul', label: 'Jul', emoji: '🎄' },
+          { id: 'halloween', label: 'Halloween', emoji: '🎃' },
+          { id: 'musikinstrument', label: 'Musikinstrument', emoji: '🎸' },
+          { id: 'yrken', label: 'Yrken', emoji: '👩‍🚀' },
+          { id: 'sverige', label: 'Sverige', emoji: '🇸🇪' },
         ],
       },
       {

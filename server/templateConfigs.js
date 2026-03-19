@@ -391,8 +391,15 @@ export function getMemoryConfig(answers, title) {
     'Sport⚽':          { bg: ['#1a1a2e','#16213e'], cardBack: '#0f3460', cardFront: '#e8f4f8', matched: '#e94560', accent: '#0f3460', theme: 'sport' },
     'Dinosaurier🦕':    { bg: ['#1a2e1a','#2e4a2e'], cardBack: '#33691e', cardFront: '#f9fbe7', matched: '#7cb342', accent: '#c5e1a5', theme: 'dinosaurier' },
     'Superhjältar🦸':   { bg: ['#1a0030','#2d0050'], cardBack: '#4a148c', cardFront: '#f3e5f5', matched: '#7b1fa2', accent: '#ce93d8', theme: 'superhjältar' },
-    'Pirater\u2620\uFE0F':  { bg: ['#1a0f00','#2e1a00'], cardBack: '#5d4037', cardFront: '#fff8e1', matched: '#8d6e63', accent: '#ffd54f', theme: 'pirater' },
-    'Framtiden\uD83E\uDD16': { bg: ['#001a2e','#002e4e'], cardBack: '#0d47a1', cardFront: '#e8f4fd', matched: '#1976d2', accent: '#00e5ff', theme: 'framtiden' },
+    'Pirater\u2620\uFE0F':      { bg: ['#1a0f00','#2e1a00'], cardBack: '#5d4037', cardFront: '#fff8e1', matched: '#8d6e63', accent: '#ffd54f', theme: 'pirater' },
+    'Framtiden\uD83E\uDD16':    { bg: ['#001a2e','#002e4e'], cardBack: '#0d47a1', cardFront: '#e8f4fd', matched: '#1976d2', accent: '#00e5ff', theme: 'framtiden' },
+    'Hajar\uD83E\uDD88':        { bg: ['#001a3e','#003388'], cardBack: '#0d47a1', cardFront: '#e3f2fd', matched: '#1565c0', accent: '#00b0ff', theme: 'hajar' },
+    'Sagofigurer\uD83E\uDDDA':  { bg: ['#0d001a','#200040'], cardBack: '#6a1b9a', cardFront: '#f3e5f5', matched: '#8e24aa', accent: '#ea80fc', theme: 'sagofigurer' },
+    'Jul\uD83C\uDF84':          { bg: ['#001a00','#003300'], cardBack: '#1b5e20', cardFront: '#fff8e1', matched: '#388e3c', accent: '#ff5722', theme: 'jul' },
+    'Halloween\uD83C\uDF83':    { bg: ['#0d0000','#1a0500'], cardBack: '#4a148c', cardFront: '#fff3e0', matched: '#6a1b9a', accent: '#ff6d00', theme: 'halloween' },
+    'Musikinstrument\uD83C\uDFB8': { bg: ['#0d001a','#1a0030'], cardBack: '#880e4f', cardFront: '#fce4ec', matched: '#c2185b', accent: '#f48fb1', theme: 'musikinstrument' },
+    'Yrken\uD83D\uDC69\u200D\uD83D\uDE80': { bg: ['#001a0d','#003322'], cardBack: '#006064', cardFront: '#e0f2f1', matched: '#00897b', accent: '#1de9b6', theme: 'yrken' },
+    'Sverige\uD83C\uDDF8\uD83C\uDDEA': { bg: ['#001a2e','#003366'], cardBack: '#004d99', cardFront: '#fff9e6', matched: '#1565c0', accent: '#ffd700', theme: 'sverige' },
   };
 
   const svMap = { latt: 1, lagom: 2, svart: 3 };
