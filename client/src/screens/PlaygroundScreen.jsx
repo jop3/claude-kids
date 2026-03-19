@@ -5,12 +5,20 @@ import { getSpelConfig, getRunnerConfig, getMemoryConfig, getMusicConfig, getAni
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
-  rymden:      { top: '#0d0d2b', bot: '#1a1a4e' },
-  djungeln:    { top: '#0a2e0a', bot: '#1a5e1a' },
-  havet:       { top: '#001a3e', bot: '#0047ab' },
-  staden:      { top: '#1a1a2e', bot: '#2d2d4e' },
-  dromvarlden: { top: '#1a0a2e', bot: '#3d1a5e' },
-  vulkanen:    { top: '#2e0a00', bot: '#5e1a00' },
+  rymden:          { top: '#0d0d2b', bot: '#1a1a4e' },
+  djungeln:        { top: '#0a2e0a', bot: '#1a5e1a' },
+  havet:           { top: '#001a3e', bot: '#0047ab' },
+  staden:          { top: '#1a1a2e', bot: '#2d2d4e' },
+  dromvarlden:     { top: '#1a0a2e', bot: '#3d1a5e' },
+  vulkanen:        { top: '#2e0a00', bot: '#5e1a00' },
+  istiden:         { top: '#001a2e', bot: '#003366' },
+  skogen:          { top: '#0a1f0a', bot: '#1a3d1a' },
+  sandoknen:       { top: '#2e1a00', bot: '#5d3a00' },
+  arktis:          { top: '#001a2e', bot: '#003366' },
+  undervattnet:    { top: '#001a3e', bot: '#003388' },
+  halloweenstaden: { top: '#1a0a00', bot: '#2e1500' },
+  candyland:       { top: '#cc2266', bot: '#aa1155' },
+  ingenstandsland: { top: '#1a0030', bot: '#2e0060' },
 };
 
 const GENRE_COLORS = {
