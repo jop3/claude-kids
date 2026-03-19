@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{TITLE}}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: {{BG}};
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 12px 20px;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Header */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 520px;
+  }
+  #subject-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: {{ACCENT}}22;
+    border: 1.5px solid {{ACCENT}}66;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: {{ACCENT}};
+  }
+  #score-display {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: {{ACCENT}};
+  }
+
+  /* Progress bar */
+  #progress-track {
+    width: 100%;
+    max-width: 520px;
+    height: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  #progress-fill {
+    height: 100%;
+    background: {{ACCENT}};
+    border-radius: 5px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px {{ACCENT}}88;
+  }
+
+  /* Question area */
+  #question-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 520px;
+    gap: 16px;
+    padding: 8px 0;
+  }
+
+  #question-num {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 1px;
+  }
+
+  #question-text {
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+    padding: 0 8px;
+    min-height: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Answers grid */
+  #answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .ans-btn {
+    padding: 18px 10px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.07);
+    color: #fff;
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.1s, background 0.15s, border-color 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .ans-btn:hover { background: rgba(255,255,255,0.13); }
+  .ans-btn.correct {
+    background: #1b5e20;
+    border-color: #4caf50;
+    box-shadow: 0 0 16px #4caf5066;
+  }
+  .ans-btn.wrong {
+    background: #b71c1c;
+    border-color: #f44336;
+  }
+  .ans-btn.reveal {
+    background: #1b5e20;
+    border-color: #4caf50;
+    opacity: 0.7;
+  }
+  .ans-btn:disabled { cursor: default; }
+
+  /* Feedback overlay */
+  #feedback {
+    font-size: 2.8rem;
+    min-height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s;
+  }
+
+  /* End screen */
+  #end-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex: 1;
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+  }
+  #stars-display {
+    font-size: 3.5rem;
+    letter-spacing: 6px;
+  }
+  #end-title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: {{ACCENT}};
+  }
+  #end-subtitle {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.65);
+  }
+  #restart-btn {
+    padding: 16px 40px;
+    background: {{ACCENT}};
+    border: none;
+    border-radius: 16px;
+    color: #000;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 16px {{ACCENT}}55;
+    touch-action: manipulation;
+  }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="subject-badge">
+    <span>{{SUBJECT_ICON}}</span>
+    <span>{{AMNE}}</span>
+  </div>
+  <div id="score-display">0 / 0</div>
+</div>
+
+<div id="progress-track">
+  <div id="progress-fill" style="width: 0%"></div>
+</div>
+
+<div id="question-area">
+  <div id="question-num">Fraga 1 av 10</div>
+  <div id="question-text">Laddar fraga...</div>
+  <div id="answers">
+    <button class="ans-btn" data-idx="0"></button>
+    <button class="ans-btn" data-idx="1"></button>
+    <button class="ans-btn" data-idx="2"></button>
+    <button class="ans-btn" data-idx="3"></button>
+  </div>
+  <div id="feedback"></div>
+</div>
+
+<div id="end-screen">
+  <div id="stars-display"></div>
+  <div id="end-title"></div>
+  <div id="end-subtitle"></div>
+  <button id="restart-btn">Spela igen!</button>
+</div>
+
+<script>
+(function() {
+  const AMNE = '{{AMNE}}';
+  const SVARIGHET = '{{SVARIGHET}}';
+  const ACCENT = '{{ACCENT}}';
+
+  // ── Full question bank ───────────────────────────────────────────────────
+  const QB = {
+    matte: {
+      latt: [
+        { q: '2 + 2 = ?', a: ['4','3','5','6'], correct: 0 },
+        { q: '5 + 3 = ?', a: ['8','7','9','6'], correct: 0 },
+        { q: '10 - 4 = ?', a: ['6','5','7','4'], correct: 0 },
+        { q: '3 x 2 = ?', a: ['6','5','8','4'], correct: 0 },
+        { q: '4 x 3 = ?', a: ['12','10','9','15'], correct: 0 },
+        { q: '7 + 6 = ?', a: ['13','12','14','11'], correct: 0 },
+        { q: '9 - 3 = ?', a: ['6','7','5','8'], correct: 0 },
+        { q: '2 x 5 = ?', a: ['10','8','12','7'], correct: 0 },
+        { q: '15 - 7 = ?', a: ['8','7','9','6'], correct: 0 },
+        { q: '6 + 8 = ?', a: ['14','13','15','12'], correct: 0 },
+        { q: 'Vad ar hälften av 10?', a: ['5','4','6','3'], correct: 0 },
+        { q: 'Vilket tal kommer efter 19?', a: ['20','18','21','22'], correct: 0 },
+      ],
+      lagom: [
+        { q: '12 x 4 = ?', a: ['48','42','52','36'], correct: 0 },
+        { q: '48 ÷ 6 = ?', a: ['8','7','9','6'], correct: 0 },
+        { q: '25 + 37 = ?', a: ['62','60','65','58'], correct: 0 },
+        { q: '100 - 43 = ?', a: ['57','53','47','63'], correct: 0 },
+        { q: '7 x 8 = ?', a: ['56','54','63','48'], correct: 0 },
+        { q: '63 ÷ 9 = ?', a: ['7','8','6','9'], correct: 0 },
+        { q: '144 ÷ 12 = ?', a: ['12','11','13','10'], correct: 0 },
+        { q: '18 x 3 = ?', a: ['54','48','63','36'], correct: 0 },
+        { q: '200 - 75 = ?', a: ['125','115','130','135'], correct: 0 },
+        { q: '9 x 9 = ?', a: ['81','72','90','63'], correct: 0 },
+        { q: '56 ÷ 8 = ?', a: ['7','6','8','9'], correct: 0 },
+        { q: '45 + 55 = ?', a: ['100','95','105','110'], correct: 0 },
+      ],
+      svart: [
+        { q: '√144 = ?', a: ['12','11','14','13'], correct: 0 },
+        { q: '2³ = ?', a: ['8','6','9','12'], correct: 0 },
+        { q: '15² = ?', a: ['225','215','235','205'], correct: 0 },
+        { q: '3⁴ = ?', a: ['81','64','72','100'], correct: 0 },
+        { q: '√256 = ?', a: ['16','14','18','12'], correct: 0 },
+        { q: '7² = ?', a: ['49','42','56','36'], correct: 0 },
+        { q: '5! (fem fakultet) = ?', a: ['120','60','24','720'], correct: 0 },
+        { q: '2¹⁰ = ?', a: ['1024','512','2048','256'], correct: 0 },
+        { q: '√400 = ?', a: ['20','25','18','22'], correct: 0 },
+        { q: '11² = ?', a: ['121','111','131','100'], correct: 0 },
+        { q: 'Vad ar pi (π) avrundat till 2 decimaler?', a: ['3.14','3.12','3.16','3.18'], correct: 0 },
+        { q: '4³ = ?', a: ['64','48','32','81'], correct: 0 },
+      ],
+    },
+    svenska: {
+      latt: [
+        { q: 'Vilket ord ar ett djur?', a: ['Katt','Stol','Ringa','Varm'], correct: 0 },
+        { q: 'Vilken mening ar korrekt?', a: ['Jag äter mat.','Jag äter mat','äter Jag mat.','Jag äter. mat'], correct: 0 },
+        { q: 'Vad heter pluralis av "boll"?', a: ['Bollar','Boller','Bolles','Bollarna'], correct: 0 },
+        { q: 'Vad ar motsatsen till "stor"?', a: ['Liten','Bred','Lång','Smal'], correct: 0 },
+        { q: 'Vilket ord stavar man rätt?', a: ['Äpple','Äple','Äppele','Äppel'], correct: 0 },
+        { q: 'Vilken är bokstaven efter "D" i alfabetet?', a: ['E','F','C','G'], correct: 0 },
+        { q: 'Hur many bokstäver har "HUND"?', a: ['4','3','5','6'], correct: 0 },
+        { q: 'Vad är ett verb (göra-ord)?', a: ['Hoppa','Blå','Snabb','Stor'], correct: 0 },
+        { q: 'Vad är ett substantiv (ting-ord)?', a: ['Hus','Spinga','Glad','Sakta'], correct: 0 },
+        { q: 'Hur stavar man "sol"?', a: ['Sol','Sohl','Sowl','Sole'], correct: 0 },
+        { q: 'Vad heter pluralis av "bil"?', a: ['Bilar','Biler','Bils','Bilarna'], correct: 0 },
+        { q: 'Vilken mening har ett frågetecken?', a: ['Vart ska vi?','Vi går nu.','Hej!','Stopp!'], correct: 0 },
+      ],
+      lagom: [
+        { q: 'Vad kallas en person som skriver böcker?', a: ['Författare','Skådespelare','Dirigent','Kompositör'], correct: 0 },
+        { q: 'Vilket ord är ett adjektiv?', a: ['Glänsande','Springa','Snabbt','Stol'], correct: 0 },
+        { q: 'Vad är "synonym" för "glad"?', a: ['Lycklig','Ledsen','Arg','Trott'], correct: 0 },
+        { q: 'Vad kallas berättaren i en bok?', a: ['Berättare','Hjälte','Skurk','Karaktär'], correct: 0 },
+        { q: 'Hur stavar man "fjäril"?', a: ['Fjäril','Fjärril','Fjärill','Fjärrel'], correct: 0 },
+        { q: 'Vad är en "metafor"?', a: ['En jämförelse utan "som"','En rimrad mening','En frågemening','En utropsmening'], correct: 0 },
+        { q: 'Vilken ordklass är "snabbt"?', a: ['Adverb','Adjektiv','Substantiv','Verb'], correct: 0 },
+        { q: 'Vad är "antonym" för "varm"?', a: ['Kall','Het','Ljum','Svval'], correct: 0 },
+        { q: 'Hur stavar man "människa"?', a: ['Människa','Meniska','Människa','Meniska'], correct: 0 },
+        { q: 'Vad kallas en grupp av ord som bildar en mening?', a: ['Sats','Stycke','Kapitel','Paragraf'], correct: 0 },
+        { q: 'Vilken tempus är "Hon sprang"?', a: ['Imperfekt','Presens','Perfekt','Futurum'], correct: 0 },
+        { q: 'Vad är pluralis av "man"?', a: ['Män','Maner','Mans','Mäns'], correct: 0 },
+      ],
+      svart: [
+        { q: 'Vad kallas läran om språkets byggnad?', a: ['Grammatik','Fonetik','Semantik','Pragmatik'], correct: 0 },
+        { q: 'Vilken stilfigur upprepas inledningsljudet i ord?', a: ['Allitteration','Assonans','Anafor','Antites'], correct: 0 },
+        { q: 'Vad är ett "pronomen"?', a: ['Ord som ersätter substantiv','Ord för handlingar','Beskrivande ord','Bindeord'], correct: 0 },
+        { q: 'Vad kallas ett ords grundform?', a: ['Infinitiv','Imperfekt','Supinum','Particip'], correct: 0 },
+        { q: 'Vad är "konjunktion"?', a: ['Bindeord som "och","men"','Hjälpverb','Artikel','Preposition'], correct: 0 },
+        { q: 'Vad kallar man att säga "skynda" istället för "gå fort"?', a: ['Syonynym','Homonym','Antonym','Paronym'], correct: 0 },
+        { q: 'Vilket påstående om haiku är korrekt?', a: ['17 stavelser i 5-7-5','14 rader','Rimmar alltid','Inget av ovanstående'], correct: 0 },
+        { q: 'Vad kallas ordets böjningsform i plural genitiv?', a: ['Genitivformen','Pluralisformen','Dativformen','Ackusativformen'], correct: 0 },
+        { q: 'Vad är en "sats" (syntax)?', a: ['En grupp ord med subjekt+predikat','En mening utan verb','Ett stycke text','En bokstav'], correct: 0 },
+        { q: 'Vad kallas ett ord som låter likt ett annat men betyder olika?', a: ['Homofon','Synonym','Antonym','Metafor'], correct: 0 },
+        { q: 'Vilket är ett "sammansatt ord"?', a: ['Fotboll','Hoppa','Snabb','Glad'], correct: 0 },
+        { q: 'Vad är "imperfekt particip" av "springa"?', a: ['Sprungen','Springer','Sprang','Springit'], correct: 0 },
+      ],
+    },
+    geografi: {
+      latt: [
+        { q: 'Vad är Sveriges huvudstad?', a: ['Stockholm','Göteborg','Malmö','Uppsala'], correct: 0 },
+        { q: 'Vilket hav ligger söder om Sverige?', a: ['Östersjön','Atlantens','Nordsjön','Medelhavet'], correct: 0 },
+        { q: 'Vilken kontinent bor vi i?', a: ['Europa','Asien','Afrika','Amerika'], correct: 0 },
+        { q: 'Vilket land är störst i Europa?', a: ['Ryssland','Frankrike','Sverige','Spanien'], correct: 0 },
+        { q: 'Vad heter Frankrikes huvudstad?', a: ['Paris','Lyon','Marseille','Berlin'], correct: 0 },
+        { q: 'Hur heter Norges huvudstad?', a: ['Oslo','Bergen','Stockholm','Köpenhamn'], correct: 0 },
+        { q: 'Vilket djur är Australiens symbol?', a: ['Känguru','Koala','Emu','Wombat'], correct: 0 },
+        { q: 'Vilket land har flest invånare?', a: ['Kina','USA','Indien','Ryssland'], correct: 0 },
+        { q: 'Vad heter Englands huvudstad?', a: ['London','Manchester','Edinburgh','Oxford'], correct: 0 },
+        { q: 'Vilket är världens längsta flod?', a: ['Nilen','Amazonas','Mississippi','Yangtze'], correct: 0 },
+        { q: 'Vilket hav är störst?', a: ['Stilla havet','Atlanten','Indiska oceanen','Arktis'], correct: 0 },
+        { q: 'Vad heter Spaniens huvudstad?', a: ['Madrid','Barcelona','Sevilla','Valencia'], correct: 0 },
+      ],
+      lagom: [
+        { q: 'Vad heter Japans huvudstad?', a: ['Tokyo','Osaka','Kyoto','Hiroshima'], correct: 0 },
+        { q: 'Vilket land är Island beläget i?', a: ['Det är ett eget land','Norge','Danmark','Grönland'], correct: 0 },
+        { q: 'Vilket är världens högsta berg?', a: ['Mount Everest','K2','Kilimanjaro','Mont Blanc'], correct: 0 },
+        { q: 'Vilket land har en röd lönnlöv på flaggan?', a: ['Kanada','USA','Australien','Nya Zeeland'], correct: 0 },
+        { q: 'Hur many länder finns det i Norden?', a: ['5','4','6','3'], correct: 0 },
+        { q: 'Vilket hav gränsar till Brasilien?', a: ['Atlanten','Stilla havet','Indiska oceanen','Karibiska havet'], correct: 0 },
+        { q: 'Vad heter Kinas huvudstad?', a: ['Peking (Beijing)','Shanghai','Guangzhou','Chengdu'], correct: 0 },
+        { q: 'Vilken ö är störst i världen?', a: ['Grönland','Australien','Borneo','Madagaskar'], correct: 0 },
+        { q: 'Vilket land producerar mest olja?', a: ['Saudiarabien','Ryssland','USA','Irak'], correct: 0 },
+        { q: 'Vad heter Brasiliens huvudstad?', a: ['Brasília','Rio de Janeiro','São Paulo','Salvador'], correct: 0 },
+        { q: 'Vilket land har flest öar?', a: ['Sverige','Norge','Finland','Danmark'], correct: 0 },
+        { q: 'Vad heter Australiens huvudstad?', a: ['Canberra','Sydney','Melbourne','Brisbane'], correct: 0 },
+      ],
+      svart: [
+        { q: 'Vilken flod rinner genom Egypten?', a: ['Nilen','Tigris','Eufrat','Kongo'], correct: 0 },
+        { q: 'Vilket land har fler tidszoner än något annat?', a: ['Ryssland','USA','Kina','Frankrike'], correct: 0 },
+        { q: 'Vad heter Nepals huvudstad?', a: ['Kathmandu','Pokhara','Lalitpur','Bhaktapur'], correct: 0 },
+        { q: 'Vilket land kallas "landet lagom"?', a: ['Sverige','Norge','Danmark','Finland'], correct: 0 },
+        { q: 'Vilken ö tillhör Spanien men finns nära Afrika?', a: ['Kanarieöarna','Balearerna','Korsika','Sardinien'], correct: 0 },
+        { q: 'Vilket hav har saltaste vattnet?', a: ['Döda havet (tekniskt en sjö)','Medelhavet','Röda havet','Kaspiska havet'], correct: 0 },
+        { q: 'Vilken stad kallas "världens huvudstad"?', a: ['New York','London','Paris','Genève'], correct: 0 },
+        { q: 'Vilket land har Kilimanjaro?', a: ['Tanzania','Kenya','Etiopien','Uganda'], correct: 0 },
+        { q: 'Vad är den officiella valutan i Japan?', a: ['Yen','Won','Yuan','Baht'], correct: 0 },
+        { q: 'Vilket land var inte med i EU 2024?', a: ['Norge','Sverige','Finland','Danmark'], correct: 0 },
+        { q: 'Vilken stad är störst i Sydamerika?', a: ['São Paulo','Buenos Aires','Lima','Bogotá'], correct: 0 },
+        { q: 'Vad heter Kanadas huvudstad?', a: ['Ottawa','Toronto','Vancouver','Montréal'], correct: 0 },
+      ],
+    },
+    natur: {
+      latt: [
+        { q: 'Vad äter en löjlig liten kanin?', a: ['Morötter och gräs','Kött','Fisk','Nötter'], correct: 0 },
+        { q: 'Vilket djur är störst?', a: ['Elefant','Lejon','Neshorn','Flodhäst'], correct: 0 },
+        { q: 'Var lever pingviner naturligt?', a: ['Antarktis','Nordpolen','Sverige','Afrika'], correct: 0 },
+        { q: 'Vad kallar man unga hundar?', a: ['Valpar','Killingar','Lamm','Ungar'], correct: 0 },
+        { q: 'Vilket djur kan leva i vatten och på land?', a: ['Groda','Hund','Fisk','Fågel'], correct: 0 },
+        { q: 'Vad behöver en växt för att växa?', a: ['Sol, vatten och jord','Bara vatten','Bara sol','Bara jord'], correct: 0 },
+        { q: 'Vilket är ett krypddjur?', a: ['Ödla','Groda','Orm (ja, orm är reptil)','Sköldpadda'], correct: 0 },
+        { q: 'Vad äter en björn mest av?', a: ['Bär och fisk','Bara kött','Bara gräs','Insekter'], correct: 0 },
+        { q: 'Hur many ben har en spindel?', a: ['8','6','4','10'], correct: 0 },
+        { q: 'Vilket djur gör "Muu"?', a: ['Ko','Får','Get','Häst'], correct: 0 },
+        { q: 'Var lever hajar?', a: ['I havet','I floder','I sjöar','På land'], correct: 0 },
+        { q: 'Vad kallas ett trads årsringar?', a: ['De visar åldern','De visar höjden','De visar tjockleken','De visar arten'], correct: 0 },
+      ],
+      lagom: [
+        { q: 'Vilket djur är världens giftigaste orm?', a: ['Inlandstaipan','Kobraa','Mamba','Pytonorm'], correct: 0 },
+        { q: 'Vad kallas djur som äter både växter och kött?', a: ['Allätare','Köttätare','Växtätare','Rovdjur'], correct: 0 },
+        { q: 'Hur länge kan en kamel gå utan vatten?', a: ['Flera veckor','1 dag','1 vecka','1 månad'], correct: 0 },
+        { q: 'Vilket djur är snabbast på land?', a: ['Gepard','Lejon','Struts','Hare'], correct: 0 },
+        { q: 'Vad kallas processen när en växt gör näring av sol?', a: ['Fotosyntes','Respiration','Transpiration','Osmosis'], correct: 0 },
+        { q: 'Vilket djur har bläck som försvar?', a: ['Bläckfisk','Sjöhäst','Havstulpan','Manet'], correct: 0 },
+        { q: 'Hur many hjärtan har en bläckfisk?', a: ['3','1','2','4'], correct: 0 },
+        { q: 'Vilket djur är närmast släkt med dinosaurier?', a: ['Fåglar','Krokodiler','Ödlor','Ormar'], correct: 0 },
+        { q: 'Vad kallas det när djur sover hela vintern?', a: ['Dvala','Migration','Mutation','Hibernation'], correct: 0 },
+        { q: 'Vilket land har störst biologisk mångfald?', a: ['Brasilien','Australien','Kina','USA'], correct: 0 },
+        { q: 'Vad äter en koala?', a: ['Eukalyptusblad','Bambu','Gräs','Frukt'], correct: 0 },
+        { q: 'Vilket är världens tyngsta insekt?', a: ['Goliathbaggen','Dynastesbaggen','Atlasfalken','Herculesflygaren'], correct: 0 },
+      ],
+      svart: [
+        { q: 'Vad kallas den vetenskapliga studien av insekter?', a: ['Entomologi','Zoologi','Ekologi','Biologi'], correct: 0 },
+        { q: 'Vilket djur har störst hjärna i förhållande till sin storlek?', a: ['Delfin','Människa','Elefant','Schimpans'], correct: 0 },
+        { q: 'Vad kallas det lager av atmosfär där ozon finns?', a: ['Stratosfären','Troposfären','Mesosfären','Thermosfären'], correct: 0 },
+        { q: 'Hur many procent av jordens yta täcks av vatten?', a: ['71%','51%','61%','81%'], correct: 0 },
+        { q: 'Vilket element är vanligast i jordskorpan?', a: ['Syre','Kisel','Aluminium','Järn'], correct: 0 },
+        { q: 'Vad är symbiosis?', a: ['Samlevnad till nytta för båda','Rovdjur och byte','Konkurrens om mat','Parasitism'], correct: 0 },
+        { q: 'Hur länge kan en tardigrad (vattenbjiörn) överleva utan vatten?', a: ['Decennier','Dagar','Månader','1 år'], correct: 0 },
+        { q: 'Vad kallas studien av svampar?', a: ['Mykologi','Botanik','Zoologi','Algologi'], correct: 0 },
+        { q: 'Vilket djur har flest ryggkotor?', a: ['Orm','Människa','Giraff','Fisk'], correct: 0 },
+        { q: 'Vad kallas processen där ett djur byter kön?', a: ['Sekventiell hermafroditism','Partenogenes','Asexuell reproduktion','Kloning'], correct: 0 },
+        { q: 'Vilket djur kan se ultraviolett ljus?', a: ['Bi','Hund','Katt','Örn'], correct: 0 },
+        { q: 'Hur many celler innehåller en människa ungefär?', a: ['37 biljoner','1 miljon','1 miljard','100 miljarder'], correct: 0 },
+      ],
+    },
+    historia: {
+      latt: [
+        { q: 'Vem uppfann telefonen?', a: ['Alexander Graham Bell','Thomas Edison','Nikola Tesla','Albert Einstein'], correct: 0 },
+        { q: 'Vilket land byggde pyramiderna?', a: ['Egypten','Mexiko','Kina','Grekland'], correct: 0 },
+        { q: 'Vad heter Sveriges kung som regerade längst?', a: ['Karl XI','Gustav II Adolf','Karl XII','Gustaf VI Adolf'], correct: 0 },
+        { q: 'Vilket år landade Neil Armstrong på månen?', a: ['1969','1965','1972','1959'], correct: 0 },
+        { q: 'Vem var Sverige kung 2024?', a: ['Carl XVI Gustaf','Gustaf V','Oscar II','Karl XVI'], correct: 0 },
+        { q: 'Vilket år var den franska revolutionen?', a: ['1789','1776','1804','1815'], correct: 0 },
+        { q: 'Vad heter Vikingars berömda skepp?', a: ['Långskepp','Drakbåt','Trirem','Galej'], correct: 0 },
+        { q: 'Vilket år slutade andra världskriget?', a: ['1945','1944','1946','1943'], correct: 0 },
+        { q: 'Vem målade Mona Lisa?', a: ['Leonardo da Vinci','Michelangelo','Raphael','Botticelli'], correct: 0 },
+        { q: 'Var levde dinosaurierna ungefär?', a: ['65+ miljoner år sedan','1000 år sedan','1 miljon år sedan','10 000 år sedan'], correct: 0 },
+        { q: 'Vilket land var Viking Erik den Röde från?', a: ['Norge','Sverige','Danmark','Island'], correct: 0 },
+        { q: 'Vem var den förste presidenten i USA?', a: ['George Washington','Abraham Lincoln','Benjamin Franklin','Thomas Jefferson'], correct: 0 },
+      ],
+      lagom: [
+        { q: 'Vilket år grundades Sverige ungefär?', a: ['800-talet','1000-talet','600-talet','1200-talet'], correct: 0 },
+        { q: 'Vad heter den berömda handelsrutten som förbandsom Kina och Europa?', a: ['Sidenvägen','Kryddvägen','Slavhandeln','Nordvästpassagen'], correct: 0 },
+        { q: 'Vilket år uppfanns boktryckarkonsten i Europa?', a: ['1450','1400','1500','1350'], correct: 0 },
+        { q: 'Vem ledde Spartanererna under slaget vid Thermopyle?', a: ['Leonidas','Xerxes','Themistocles','Perikles'], correct: 0 },
+        { q: 'Vilket år börjde koloniseringen av Amerika av européer?', a: ['1492','1500','1492','1488'], correct: 0 },
+        { q: 'Vad heter den magna carta undertecknades av?', a: ['Kung Johan av England','Kung Richard Lejonhjärta','Kung Henrik VIII','Kung Edward I'], correct: 0 },
+        { q: 'Vilket år skedde den ryska revolutionen?', a: ['1917','1905','1920','1914'], correct: 0 },
+        { q: 'Vem var den förste att segla runt jorden?', a: ['Magellan/Elcano','Columbus','Vasco da Gama','Cabot'], correct: 0 },
+        { q: 'Vilket år föll Berlinmuren?', a: ['1989','1991','1987','1985'], correct: 0 },
+        { q: 'Vad heter den gamla handelsvägen norrifrån till Bysans?', a: ['Vägen från varjager till greker','Sidenvägen','Hansaleden','Bernsteinsvägen'], correct: 0 },
+        { q: 'Vilket år grundades FN?', a: ['1945','1919','1950','1939'], correct: 0 },
+        { q: 'Vem var Napoleon Bonaparte?', a: ['Frankrikes kejsare','Rysslands tsar','Englands kung','Pruusens kung'], correct: 0 },
+      ],
+      svart: [
+        { q: 'Vilket år undertecknades Westfaliska freden?', a: ['1648','1618','1700','1668'], correct: 0 },
+        { q: 'Vad heter filosofen som grundade de första olympiska spelen i antiken?', a: ['Spelen grundades, inte av en filosof','Platon','Aristoteles','Sokrates'], correct: 0 },
+        { q: 'Vilket år proklamerades USA:s självständighetsförklaring?', a: ['1776','1787','1783','1775'], correct: 0 },
+        { q: 'Vad heter det mesopotamiska imperiets centrum?', a: ['Babylon','Persepolis','Nineve','Ur'], correct: 0 },
+        { q: 'Vilket år antogs FN:s mänskliga rättigheter?', a: ['1948','1945','1950','1953'], correct: 0 },
+        { q: 'Vilken civilisation byggde Machu Picchu?', a: ['Inkaerna','Mayafolket','Aztekerna','Olmekerna'], correct: 0 },
+        { q: 'Vad kallades perioden efter Roms fall i Europa (476 e.Kr.)?', a: ['Medeltiden','Renässansen','Antiken','Upplysningen'], correct: 0 },
+        { q: 'Vilket år publicerade Darwin Om arternas uppkomst?', a: ['1859','1869','1849','1879'], correct: 0 },
+        { q: 'Vem var den siste faraonen i Egypten?', a: ['Kleopatra VII','Ramses II','Tutankhamun','Nefertiti'], correct: 0 },
+        { q: 'Vad heter den filosofi-skola som Konfucius grundade?', a: ['Konfucianism','Taoism','Buddhism','Shintoism'], correct: 0 },
+        { q: 'Vilket år startade den franska och indianska kriget i Nordamerika?', a: ['1754','1775','1812','1739'], correct: 0 },
+        { q: 'Vem uppfann radioaktivitetsbegreppet?', a: ['Marie Curie','Wilhelm Röntgen','Henri Becquerel','Ernest Rutherford'], correct: 0 },
+      ],
+    },
+    engelska: {
+      latt: [
+        { q: 'Vad heter "hund" på engelska?', a: ['Dog','Cat','Pig','Cow'], correct: 0 },
+        { q: 'Vad heter "röd" på engelska?', a: ['Red','Blue','Green','Yellow'], correct: 0 },
+        { q: 'Vad heter "skola" på engelska?', a: ['School','House','Park','Shop'], correct: 0 },
+        { q: 'Hur säger man "hej" på engelska?', a: ['Hello','Bonjour','Hola','Ciao'], correct: 0 },
+        { q: 'Vad heter "vatten" på engelska?', a: ['Water','Milk','Juice','Tea'], correct: 0 },
+        { q: 'Vad heter "äpple" på engelska?', a: ['Apple','Orange','Banana','Pear'], correct: 0 },
+        { q: 'Hur säger man "tack" på engelska?', a: ['Thank you','Please','Sorry','Hello'], correct: 0 },
+        { q: 'Vad heter "boken" på engelska?', a: ['Book','Chair','Table','Pen'], correct: 0 },
+        { q: 'Vad heter "sol" på engelska?', a: ['Sun','Moon','Star','Cloud'], correct: 0 },
+        { q: 'Hur räknar man "ett, två, tre" på engelska?', a: ['One, two, three','Un, deux, trois','Ein, zwei, drei','Uno, dos, tres'], correct: 0 },
+        { q: 'Vad heter "katt" på engelska?', a: ['Cat','Dog','Bird','Fish'], correct: 0 },
+        { q: 'Vad heter "hus" på engelska?', a: ['House','Shop','Park','School'], correct: 0 },
+      ],
+      lagom: [
+        { q: 'Vad betyder "beautiful" på svenska?', a: ['Vacker','Glad','Stor','Snabb'], correct: 0 },
+        { q: 'Vad heter "bibliotek" på engelska?', a: ['Library','Bookstore','Museum','School'], correct: 0 },
+        { q: 'Vad betyder "difficult" på svenska?', a: ['Svår','Lätt','Rolig','Tråkig'], correct: 0 },
+        { q: 'Hur säger man "I like football" på svenska?', a: ['Jag gillar fotboll','Jag spelar fotboll','Jag ser fotboll','Jag äter fotboll'], correct: 0 },
+        { q: 'Vad heter "måndag" på engelska?', a: ['Monday','Tuesday','Sunday','Wednesday'], correct: 0 },
+        { q: 'Vad betyder "friend" på svenska?', a: ['Vän','Fiende','Familj','Granne'], correct: 0 },
+        { q: 'Vad heter "januari" på engelska?', a: ['January','February','June','July'], correct: 0 },
+        { q: 'Vad betyder "quickly" på svenska?', a: ['Snabbt','Sakta','Starkt','Mjukt'], correct: 0 },
+        { q: 'Hur säger man "How old are you?"?', a: ['Hur gammal är du?','Vad heter du?','Var bor du?','Vad gör du?'], correct: 0 },
+        { q: 'Vad heter "regnbåge" på engelska?', a: ['Rainbow','Sunshine','Cloud','Storm'], correct: 0 },
+        { q: 'Vad betyder "to swim" på svenska?', a: ['Simma','Springa','Hoppa','Flyga'], correct: 0 },
+        { q: 'Vad är plural av "child" på engelska?', a: ['Children','Childs','Childrens','Child'], correct: 0 },
+      ],
+      svart: [
+        { q: 'Vad är det engelska idiomatiska uttrycket för "det regnar kraftigt"?', a: ["It's raining cats and dogs",'Heavy rain','Strong rain','Lots of rain'], correct: 0 },
+        { q: 'Vad heter det grammatiska fenomenet när ett verb tar ett objekt?', a: ['Transitive verb','Intransitive verb','Auxiliary verb','Modal verb'], correct: 0 },
+        { q: 'Vad heter "kunskap" som abstract noun på engelska?', a: ['Knowledge','Knowing','Known','Know'], correct: 0 },
+        { q: 'Vad är skillnaden mellan "affect" och "effect"?', a: ['"Affect" är vanligen verb, "effect" substantiv','"Effect" är vanligen verb, "affect" substantiv','De är synonymer','Ingen skillnad'], correct: 0 },
+        { q: 'Vad kallas den engelska prepositionsfrasen i "She is good at math"?', a: ['Prepositional phrase','Noun phrase','Verb phrase','Adjective phrase'], correct: 0 },
+        { q: 'Vilket av dessa är ett "false friend" (falskt vänord)?', a: ['"Gymnasium" (gym, ej gymnasium)','Dog (hund)','Cat (katt)','Sun (sol)'], correct: 0 },
+        { q: 'Hur bildar man "third conditional" på engelska?', a: ['If + had + V3, would have + V3','If + V2, would + V1','If + V1, will + V1','If + V, shall + V'], correct: 0 },
+        { q: 'Vad kallas ett ord som låter likadant som vad det beskriver?', a: ['Onomatopoeia','Alliteration','Simile','Metaphor'], correct: 0 },
+        { q: 'Vad är korrekt form av "who/whom" i "__ did you see?"?', a: ['Whom','Who','Whose','Which'], correct: 0 },
+        { q: 'Vad heter den engelska grammatikala termen för "ordningstal" (first, second)?', a: ['Ordinal numbers','Cardinal numbers','Nominal numbers','Sequential numbers'], correct: 0 },
+        { q: 'Vilket engelska ord är ett "gerund" i "Swimming is fun"?', a: ['Swimming','Is','Fun','Hela meningen'], correct: 0 },
+        { q: 'Vad kallas den retoriska figuren i "She sells sea shells"?', a: ['Alliteration','Rhyme','Assonance','Anaphora'], correct: 0 },
+      ],
+    },
+  };
+
+  // ── Select questions ──────────────────────────────────────────────────────
+  const amneKey = Object.keys(QB).find(k => AMNE.toLowerCase().includes(k)) || 'matte';
+  const svKey = SVARIGHET === 'latt' || SVARIGHET === 'lätt' ? 'latt'
+              : SVARIGHET === 'svart' || SVARIGHET === 'svårt' ? 'svart'
+              : 'lagom';
+
+  const pool = QB[amneKey]?.[svKey] || QB.matte.latt;
+  // Shuffle and pick 10
+  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 10);
+
+  // Shuffle answer options within each question
+  const questions = shuffled.map(q => {
+    const correct_ans = q.a[q.correct];
+    const shuffled_a = [...q.a].sort(() => Math.random() - 0.5);
+    return {
+      q: q.q,
+      a: shuffled_a,
+      correct: shuffled_a.indexOf(correct_ans),
+    };
+  });
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let current = 0;
+  let score = 0;
+  let answered = false;
+
+  const questionEl = document.getElementById('question-text');
+  const questionNumEl = document.getElementById('question-num');
+  const answerBtns = document.querySelectorAll('.ans-btn');
+  const feedbackEl = document.getElementById('feedback');
+  const progressFill = document.getElementById('progress-fill');
+  const scoreDisplay = document.getElementById('score-display');
+  const questionArea = document.getElementById('question-area');
+  const endScreen = document.getElementById('end-screen');
+  const starsEl = document.getElementById('stars-display');
+  const endTitle = document.getElementById('end-title');
+  const endSubtitle = document.getElementById('end-subtitle');
+  const restartBtn = document.getElementById('restart-btn');
+
+  function loadQuestion() {
+    if (current >= questions.length) { showEnd(); return; }
+    answered = false;
+    const q = questions[current];
+    questionNumEl.textContent = `Fråga ${current + 1} av ${questions.length}`;
+    questionEl.textContent = q.q;
+    feedbackEl.textContent = '';
+    answerBtns.forEach((btn, i) => {
+      btn.textContent = q.a[i];
+      btn.className = 'ans-btn';
+      btn.disabled = false;
+    });
+    progressFill.style.width = (current / questions.length * 100) + '%';
+    scoreDisplay.textContent = `${score} / ${current}`;
+  }
+
+  answerBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      const idx = parseInt(btn.dataset.idx);
+      const q = questions[current];
+      answerBtns.forEach(b => b.disabled = true);
+
+      if (idx === q.correct) {
+        score++;
+        btn.classList.add('correct');
+        feedbackEl.textContent = '✅ Rätt!';
+      } else {
+        btn.classList.add('wrong');
+        answerBtns[q.correct].classList.add('reveal');
+        feedbackEl.textContent = '❌ Fel!';
+      }
+
+      scoreDisplay.textContent = `${score} / ${current + 1}`;
+
+      setTimeout(() => {
+        current++;
+        if (current >= questions.length) {
+          showEnd();
+        } else {
+          loadQuestion();
+        }
+      }, 1400);
+    });
+  });
+
+  function showEnd() {
+    questionArea.style.display = 'none';
+    endScreen.style.display = 'flex';
+    progressFill.style.width = '100%';
+    scoreDisplay.textContent = `${score} / ${questions.length}`;
+
+    const pct = score / questions.length;
+    let stars, title, subtitle;
+    if (pct >= 0.9) {
+      stars = '⭐⭐⭐';
+      title = 'MÄSTERLIG! 🏆';
+      subtitle = `${score} av ${questions.length} rätt — du är ett geni!`;
+    } else if (pct >= 0.6) {
+      stars = '⭐⭐';
+      title = 'BRA JOBBAT! 🎉';
+      subtitle = `${score} av ${questions.length} rätt — imponerande!`;
+    } else {
+      stars = '⭐';
+      title = 'KUL FÖRSÖKT! 💪';
+      subtitle = `${score} av ${questions.length} rätt — öva så blir det bättre!`;
+    }
+
+    starsEl.textContent = stars;
+    endTitle.textContent = title;
+    endSubtitle.textContent = subtitle;
+    launchConfetti();
+  }
+
+  function launchConfetti() {
+    const colors = [ACCENT, '#ffd700', '#ff6b6b', '#51cf66', '#74c0fc'];
+    for (let i = 0; i < 50; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.width = (6 + Math.random() * 8) + 'px';
+        el.style.height = (6 + Math.random() * 8) + 'px';
+        el.style.animationDuration = (2 + Math.random() * 2) + 's';
+        el.style.animationDelay = (Math.random() * 0.5) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 30);
+    }
+  }
+
+  restartBtn.addEventListener('click', () => {
+    current = 0; score = 0;
+    questions.sort(() => Math.random() - 0.5);
+    endScreen.style.display = 'none';
+    questionArea.style.display = '';
+    loadQuestion();
+  });
+
+  loadQuestion();
+})();
+</script>
+</body>
+</html>

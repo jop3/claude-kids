@@ -128,6 +128,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'bradspel':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt brädspelsnamn på svenska (max 3 ord):
+- Tema: ${answers.tema}
+- Speltyp: ${answers.speltyp}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Piraternas Skatt"}`;
+
+    case 'bradspel_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa ett komplett brädspel i HTML och spara som /workspace/${name}.html
 
 Spelet ska vara:
@@ -149,6 +159,16 @@ Tekniska krav:
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
     case 'larospel':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt quiz-namn på svenska (max 3 ord):
+- Ämne: ${answers.amne}
+- Svårighet: ${answers.svarighet}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Mattegeni"}`;
+
+    case 'larospel_LEGACY_UNUSED':
       return `Du är Kompisen! Skapa ett komplett lärspel i HTML och spara som /workspace/${name}.html
 
 Spelet ska lära ut:

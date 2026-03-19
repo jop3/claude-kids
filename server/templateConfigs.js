@@ -272,6 +272,52 @@ export function getMusicConfig(answers, title) {
   };
 }
 
+export function getBradspelConfig(answers, title) {
+  const TEMA_META = {
+    banspel:  { accent: '#4a90d9', bg: ['#0a1a2e','#1a2e4a'] },
+    pirater:  { accent: '#c49a6c', bg: ['#1a0f00','#2e1a05'] },
+    rymd:     { accent: '#7986cb', bg: ['#00001a','#0d0d2e'] },
+    djungel:  { accent: '#43a047', bg: ['#0a1a0a','#1a2e1a'] },
+    saga:     { accent: '#ce93d8', bg: ['#0d001a','#1a0035'] },
+  };
+  const tema = (answers.tema || 'banspel').toLowerCase();
+  const temaKey = Object.keys(TEMA_META).find(k => tema.includes(k)) || 'banspel';
+  const meta = TEMA_META[temaKey];
+  const playersRaw = answers.spelare || '2';
+  const players = parseInt(playersRaw) || 2;
+  return {
+    TITLE:   title || 'Brädspel',
+    TEMA:    temaKey,
+    PLAYERS: players,
+    ACCENT:  meta.accent,
+    BG_TOP:  meta.bg[0],
+    BG_BOT:  meta.bg[1],
+  };
+}
+
+export function getLarospelConfig(answers, title) {
+  const AMNE_META = {
+    matte:    { icon: '➕', accent: '#e91e63', bg: '#0d0a1a' },
+    svenska:  { icon: '📖', accent: '#2196f3', bg: '#0a0d1a' },
+    geografi: { icon: '🌍', accent: '#4caf50', bg: '#0a1a0a' },
+    natur:    { icon: '🌱', accent: '#8bc34a', bg: '#0a1a08' },
+    historia: { icon: '🏛️', accent: '#ff9800', bg: '#1a0d00' },
+    engelska: { icon: '🇬🇧', accent: '#00bcd4', bg: '#001a1a' },
+  };
+  const amneKey = Object.keys(AMNE_META).find(k => (answers.amne || '').toLowerCase().includes(k)) || 'matte';
+  const meta = AMNE_META[amneKey];
+  const svMap = { latt: 'latt', lätt: 'latt', lagom: 'lagom', svart: 'svart', svårt: 'svart' };
+  const svarighet = svMap[(answers.svarighet || 'lagom').toLowerCase()] || 'lagom';
+  return {
+    TITLE:        title || amneKey.charAt(0).toUpperCase() + amneKey.slice(1) + ' Quiz',
+    AMNE:         amneKey.charAt(0).toUpperCase() + amneKey.slice(1),
+    SVARIGHET:    svarighet,
+    SUBJECT_ICON: meta.icon,
+    ACCENT:       meta.accent,
+    BG:           meta.bg,
+  };
+}
+
 export function getFilmstudioConfig(answers, title) {
   const GENRE_THEMES = {
     aventyr:     { color: '#ffd700', bg: ['#0d1a00','#1a3300'], ambient: 'epic' },
