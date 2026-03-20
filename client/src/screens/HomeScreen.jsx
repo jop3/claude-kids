@@ -6,6 +6,7 @@ import { getUnlocked, ACHIEVEMENTS } from '../lib/achievements.js';
 import { getProfile } from '../lib/creatorProfile.js';
 import { isMuted, toggleMuted } from '../lib/soundSettings.js';
 import { isClassroomMode, toggleClassroomMode } from '../lib/classroomMode.js';
+import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 
 function CategoryCanvas({ catId, bg }) {
   const canvasRef = useRef(null);
@@ -427,6 +428,40 @@ export default function HomeScreen({ navigate }) {
         {CATEGORIES.map(cat => (
           <CategoryCard key={cat.id} cat={cat} navigate={navigate} />
         ))}
+      </div>
+
+      {/* Surprise button */}
+      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={() => {
+            tap(); playTap();
+            const cats = CATEGORIES.filter(c => WIZARD_CONFIG[c.id]);
+            const cat = cats[Math.floor(Math.random() * cats.length)];
+            const cfg = WIZARD_CONFIG[cat.id];
+            const answers = {};
+            (cfg.steps || []).forEach(step => {
+              if (step.type === 'choice' && step.choices?.length) {
+                answers[step.id] = step.choices[Math.floor(Math.random() * step.choices.length)].label;
+              } else if (step.type === 'slider') {
+                answers[step.id] = step.min + Math.floor(Math.random() * (step.max - step.min + 1));
+              } else if (step.type === 'multiChoice' && step.choices?.length) {
+                answers[step.id] = [step.choices[0].label];
+              }
+            });
+            navigate('playground', { category: cat.id, answers });
+          }}
+          style={{
+            padding: '14px 36px', borderRadius: 20,
+            background: 'linear-gradient(135deg, #e94560, #f18f01)',
+            border: 'none', color: '#fff',
+            fontSize: '1.1rem', fontWeight: 800,
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(233,69,96,0.4)',
+            letterSpacing: '0.03em',
+          }}
+        >
+          🎲 Överraska mig!
+        </button>
       </div>
     </div>
   );

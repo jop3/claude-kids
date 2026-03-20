@@ -17,6 +17,8 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizCurrentQ, setQuizCurrentQ] = useState(null); // {question, answers}
   const [quizAnswered, setQuizAnswered] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapAnswers, setRecapAnswers] = useState(null);
   const abortRef = useRef(null);
 
   if (!config) {
@@ -31,6 +33,23 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   const steps = config.steps;
   const step = steps[currentStep];
   const totalSteps = steps.length;
+
+  // Recap panel
+  if (showRecap && recapAnswers) {
+    return (
+      <RecapPanel
+        config={config}
+        steps={steps}
+        answers={recapAnswers}
+        onBack={() => {
+          setShowRecap(false);
+          // Go back to last step
+          setCurrentStep(totalSteps - 1);
+        }}
+        onBuild={() => navigate('playground', { category, answers: recapAnswers })}
+      />
+    );
+  }
 
   // Load quiz question when entering quizBuilder step
   useEffect(() => {
@@ -139,7 +158,8 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
 
   function advanceStep(newAnswers) {
     if (currentStep + 1 >= totalSteps) {
-      navigate('playground', { category, answers: newAnswers });
+      setRecapAnswers(newAnswers);
+      setShowRecap(true);
       return;
     }
     setSlideForward(true);
@@ -588,6 +608,109 @@ function QuizBuilderStep({ step, qIdx, loading, currentQ, answered, onAnswer, th
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function RecapPanel({ config, steps, answers, onBack, onBuild }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      background: '#1a1a2e',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '32px 24px',
+      boxSizing: 'border-box',
+      gap: 24,
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 72, lineHeight: 1, marginBottom: 12 }}>{config.emoji}</div>
+        <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff' }}>
+          Redo att bygga!
+        </div>
+        <div style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
+          Här är dina val:
+        </div>
+      </div>
+
+      {/* Answer chips */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 10,
+        justifyContent: 'center',
+        maxWidth: 480,
+        width: '100%',
+      }}>
+        {steps.filter(s => s.type !== 'quizBuilder').map(s => {
+          const val = answers[s.id];
+          if (val == null) return null;
+          const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+          const choice = s.choices?.find(c => c.id === val || c.label === val);
+          const emoji = choice?.emoji ?? '';
+          return (
+            <div
+              key={s.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 999,
+                background: config.color + '33',
+                border: `2px solid ${config.color}`,
+                color: '#fff',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+              }}
+            >
+              {emoji && <span>{emoji}</span>}
+              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.75rem', marginRight: 2 }}>{s.question ?? s.id}:</span>
+              <span>{displayVal}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 360 }}>
+        <button
+          onClick={onBuild}
+          style={{
+            padding: '18px 0',
+            borderRadius: 18,
+            background: `linear-gradient(90deg, ${config.color}, ${config.color}cc)`,
+            border: 'none',
+            color: '#fff',
+            fontSize: '1.3rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            boxShadow: `0 6px 24px ${config.color}66`,
+            letterSpacing: '0.02em',
+          }}
+        >
+          🚀 Bygg det!
+        </button>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '14px 0',
+            borderRadius: 16,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: '#fff',
+            fontSize: '1rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ← Ändra
+        </button>
+      </div>
     </div>
   );
 }

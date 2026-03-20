@@ -310,6 +310,7 @@ export default function MyStuffScreen({ navigate, justSaved }) {
   const [projects, setProjects] = useState([]);
   const [profile, setProfile] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [filterCat, setFilterCat] = useState('all');
 
   useEffect(() => {
     setProjects(getProjects());
@@ -398,6 +399,37 @@ export default function MyStuffScreen({ navigate, justSaved }) {
         ) : <div style={{ width: 100 }} />}
       </div>
 
+      {/* Filter chips */}
+      {projects.length > 0 && (() => {
+        const cats = ['all', ...new Set(projects.map(p => p.category))];
+        return (
+          <div style={{
+            display: 'flex', gap: 8, padding: '0 24px 12px',
+            overflowX: 'auto', flexShrink: 0,
+          }}>
+            {cats.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilterCat(cat)}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, whiteSpace: 'nowrap',
+                  border: filterCat === cat
+                    ? `2px solid ${cat === 'all' ? '#fff' : (CAT_COLORS[cat] || '#fff')}`
+                    : '2px solid rgba(255,255,255,0.2)',
+                  background: filterCat === cat
+                    ? cat === 'all' ? 'rgba(255,255,255,0.15)' : (CAT_COLORS[cat] + '44')
+                    : 'transparent',
+                  color: '#fff', fontSize: '0.85rem', fontWeight: filterCat === cat ? 800 : 400,
+                  cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                {cat === 'all' ? 'Alla' : `${CAT_EMOJIS[cat] || ''} ${cat}`}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Content */}
       <div style={{ flex: 1, padding: '0 24px 32px', boxSizing: 'border-box' }}>
         {projects.length === 0 ? (
@@ -430,25 +462,28 @@ export default function MyStuffScreen({ navigate, justSaved }) {
               Skapa något!
             </button>
           </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 16,
-          }}
-            className="my-stuff-grid"
-          >
-            {projects.map((project, i) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                navigate={navigate}
-                onDeleted={refresh}
-                highlight={justSaved && i === 0}
-              />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const filtered = filterCat === 'all' ? projects : projects.filter(p => p.category === filterCat);
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 16,
+            }}
+              className="my-stuff-grid"
+            >
+              {filtered.map((project, i) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  navigate={navigate}
+                  onDeleted={refresh}
+                  highlight={justSaved && i === 0}
+                />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       <style>{`
