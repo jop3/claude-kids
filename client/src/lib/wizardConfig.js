@@ -622,6 +622,75 @@ export const WIZARD_CONFIG = {
     ],
   },
 
+  quiz: {
+    label: 'Quiz-skaparen',
+    emoji: '🧠',
+    color: '#e67e22',
+    steps: [
+      {
+        id: 'amne',
+        question: 'Vad ska quizet handla om?',
+        type: 'choice',
+        choices: [
+          { id: 'djur',     label: 'Djur',     emoji: '🐾' },
+          { id: 'mat',      label: 'Mat',      emoji: '🍕' },
+          { id: 'sport',    label: 'Sport',    emoji: '⚽' },
+          { id: 'film',     label: 'Film',     emoji: '🎬' },
+          { id: 'musik',    label: 'Musik',    emoji: '🎵' },
+          { id: 'geografi', label: 'Geografi', emoji: '🌍' },
+        ],
+      },
+      {
+        id: 'questions',
+        question: 'Bygg ditt quiz!',
+        type: 'quizBuilder',
+        questionCount: 5,
+      },
+    ],
+  },
+
+  pixelart: {
+    label: 'Pixel Art',
+    emoji: '🎨',
+    color: '#8e44ad',
+    steps: [
+      {
+        id: 'storlek',
+        question: 'Hur stor canvas?',
+        type: 'choice',
+        choices: [
+          { id: 'liten', label: 'Liten 16x16', emoji: '🔲' },
+          { id: 'lagom', label: 'Lagom 32x32', emoji: '⬛' },
+          { id: 'stor',  label: 'Stor 48x48',  emoji: '🟫' },
+        ],
+      },
+      {
+        id: 'palett',
+        question: 'Vilken faergpalett?',
+        type: 'choice',
+        choices: [
+          { id: 'regnbage', label: 'Regnbage',  emoji: '🌈' },
+          { id: 'neon',     label: 'Neon',      emoji: '⚡' },
+          { id: 'pastell',  label: 'Pastell',   emoji: '🌸' },
+          { id: 'svartvit', label: 'Svartvit',  emoji: '⬛' },
+          { id: 'havet',    label: 'Havet',     emoji: '🌊' },
+          { id: 'brand',    label: 'Brand',     emoji: '🔥' },
+          { id: 'skog',     label: 'Skog',      emoji: '🌲' },
+        ],
+      },
+      {
+        id: 'bakgrund',
+        question: 'Bakgrundsfaerg?',
+        type: 'choice',
+        choices: [
+          { id: 'svart',   label: 'Svart',       emoji: '⬛' },
+          { id: 'vit',     label: 'Vit',         emoji: '⬜' },
+          { id: 'rutnat',  label: 'Rutnat',      emoji: '▪️' },
+        ],
+      },
+    ],
+  },
+
   berattelse: {
     label: 'Berattelse',
     emoji: '📖',

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{TITLE}}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(135deg, {{BG_TOP}}, {{BG_BOT}});
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+    color: #fff;
+  }
+
+  /* Progress */
+  #progress-wrap { width: 100%; height: 5px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+  #progress-bar  { height: 5px; background: {{ACCENT}}; transition: width 0.4s ease; }
+
+  /* Header */
+  #header {
+    padding: 10px 16px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 520px;
+    flex-shrink: 0;
+  }
+  h1 {
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+    font-weight: 900;
+    color: {{ACCENT}};
+    text-shadow: 0 0 12px {{ACCENT}}88;
+    flex: 1;
+    text-align: center;
+  }
+  #score-pill {
+    background: {{ACCENT}}22;
+    border: 1.5px solid {{ACCENT}}66;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: {{ACCENT}};
+    white-space: nowrap;
+  }
+
+  /* Question card */
+  #question-wrap {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 520px;
+    padding: 8px 16px;
+  }
+  #question-box {
+    background: rgba(255,255,255,0.1);
+    border-radius: 16px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    padding: 16px 18px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #question-text {
+    font-size: clamp(0.9rem, 2.8vw, 1.15rem);
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  #q-num {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    padding: 4px 0 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Answer buttons */
+  #answers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 6px 16px 8px;
+    width: 100%;
+    max-width: 520px;
+    flex: 1;
+    align-content: start;
+  }
+  .answer-btn {
+    padding: 14px 10px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    line-height: 1.3;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .answer-btn:active { transform: scale(0.96); }
+  .answer-btn.correct { background: #2ecc7188; border-color: #2ecc71; }
+  .answer-btn.wrong   { background: #e74c3c88; border-color: #e74c3c; }
+
+  /* Feedback */
+  #feedback {
+    min-height: 32px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 2px 16px;
+    flex-shrink: 0;
+  }
+
+  /* Win overlay */
+  #win-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    z-index: 50;
+    text-align: center;
+    padding: 24px;
+  }
+  #win-emoji  { font-size: 4rem; }
+  #win-score  { font-size: 2rem; font-weight: 900; color: {{ACCENT}}; }
+  #win-stars  { font-size: 2.2rem; letter-spacing: 4px; }
+  #win-msg    { font-size: 1rem; color: rgba(255,255,255,0.7); max-width: 300px; }
+  #play-again {
+    padding: 14px 36px;
+    background: {{ACCENT}};
+    border: none; border-radius: 14px;
+    color: #000; font-size: 1rem; font-weight: 900;
+    cursor: pointer; touch-action: manipulation; margin-top: 8px;
+  }
+
+  .confetti-piece {
+    position: fixed; border-radius: 2px;
+    animation: fall linear forwards; pointer-events: none; z-index: 100;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-wrap"><div id="progress-bar" style="width:0%"></div></div>
+
+<div id="header">
+  <h1>{{TITLE}}</h1>
+  <div id="score-pill">⭐ <span id="score-val">0</span></div>
+</div>
+
+<div id="question-wrap">
+  <div id="q-num">FRÅGA <span id="q-current">1</span> / <span id="q-total">5</span></div>
+  <div id="question-box"><div id="question-text">Laddar...</div></div>
+</div>
+
+<div id="answers-grid"></div>
+<div id="feedback"></div>
+
+<div id="win-overlay">
+  <div id="win-emoji">🏆</div>
+  <div id="win-score"></div>
+  <div id="win-stars"></div>
+  <div id="win-msg"></div>
+  <button id="play-again">Spela igen!</button>
+</div>
+
+<script>
+(function () {
+  const ACCENT = '{{ACCENT}}';
+
+  let questions = [];
+  try {
+    questions = JSON.parse(document.getElementById('questions-data').textContent);
+  } catch (e) {
+    questions = [
+      { question: 'Vilket djur skäller?', answers: [{text:'Katt',correct:false},{text:'Hund',correct:true},{text:'Ko',correct:false},{text:'Häst',correct:false}] },
+    ];
+  }
+
+  const total = questions.length;
+  let current = 0, score = 0, answered = false;
+
+  const qCurrentEl  = document.getElementById('q-current');
+  const qTotalEl    = document.getElementById('q-total');
+  const questionEl  = document.getElementById('question-text');
+  const answersGrid = document.getElementById('answers-grid');
+  const feedbackEl  = document.getElementById('feedback');
+  const scoreEl     = document.getElementById('score-val');
+  const progressBar = document.getElementById('progress-bar');
+
+  qTotalEl.textContent = total;
+
+  function showQuestion(idx) {
+    answered = false;
+    feedbackEl.textContent = '';
+    const q = questions[idx];
+    qCurrentEl.textContent = idx + 1;
+    questionEl.textContent = q.question;
+    progressBar.style.width = (idx / total * 100) + '%';
+
+    answersGrid.innerHTML = '';
+    // Shuffle answers for display
+    const shuffled = [...q.answers].sort(() => Math.random() - 0.5);
+    shuffled.forEach(ans => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = ans.text;
+      btn.addEventListener('click', () => handleAnswer(btn, ans.correct, shuffled));
+      answersGrid.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, isCorrect, allAnswers) {
+    if (answered) return;
+    answered = true;
+
+    const btns = answersGrid.querySelectorAll('.answer-btn');
+    btns.forEach(b => {
+      const txt = b.textContent;
+      const ans = allAnswers.find(a => a.text === txt);
+      if (ans?.correct) b.classList.add('correct');
+    });
+
+    if (isCorrect) {
+      btn.classList.add('correct');
+      score++;
+      scoreEl.textContent = score;
+      feedbackEl.textContent = '✅ Rätt!';
+      feedbackEl.style.color = '#2ecc71';
+    } else {
+      btn.classList.add('wrong');
+      const correct = allAnswers.find(a => a.correct);
+      feedbackEl.textContent = `❌ Rätt svar: ${correct?.text || '?'}`;
+      feedbackEl.style.color = '#e74c3c';
+    }
+
+    setTimeout(() => {
+      current++;
+      if (current >= total) {
+        progressBar.style.width = '100%';
+        setTimeout(showWin, 300);
+      } else {
+        showQuestion(current);
+      }
+    }, 1200);
+  }
+
+  function showWin() {
+    const overlay = document.getElementById('win-overlay');
+    const pct = score / total;
+    const stars = pct >= 0.9 ? '⭐⭐⭐' : pct >= 0.6 ? '⭐⭐' : '⭐';
+    const msgs = ['Bra jobbat! Öva mer så blir det ännu bättre!', 'Snyggt! Du kan det här!', 'Fantastiskt! Du är ett quiz-geni!'];
+    const msgIdx = pct >= 0.9 ? 2 : pct >= 0.6 ? 1 : 0;
+
+    document.getElementById('win-score').textContent = `${score} / ${total} rätt`;
+    document.getElementById('win-stars').textContent = stars;
+    document.getElementById('win-msg').textContent = msgs[msgIdx];
+    overlay.style.display = 'flex';
+
+    if (pct >= 0.6) launchConfetti();
+    window.parent?.postMessage({ type: 'highscore', score }, '*');
+  }
+
+  document.getElementById('play-again').addEventListener('click', () => {
+    document.getElementById('win-overlay').style.display = 'none';
+    current = 0; score = 0; answered = false;
+    scoreEl.textContent = 0;
+    showQuestion(0);
+  });
+
+  function launchConfetti() {
+    const colors = [ACCENT, '#ffd700', '#ff6b6b', '#51cf66', '#74c0fc'];
+    for (let i = 0; i < 50; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.top = '-10px';
+        el.style.background = colors[i % colors.length];
+        el.style.width  = (6 + Math.random() * 8) + 'px';
+        el.style.height = (6 + Math.random() * 8) + 'px';
+        el.style.animationDuration = (2 + Math.random() * 2) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4500);
+      }, i * 30);
+    }
+  }
+
+  showQuestion(0);
+})();
+</script>
+<script id="questions-data" type="application/json">{{QUESTIONS_JSON}}</script>
+</body>
+</html>

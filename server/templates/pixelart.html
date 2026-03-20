@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{TITLE}}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+    color: #fff;
+  }
+
+  h1 {
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    font-weight: 900;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd70088;
+    padding: 8px 0 4px;
+    letter-spacing: 1px;
+  }
+
+  /* Toolbar */
+  #toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .tool-btn {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .tool-btn.active {
+    border-color: #ffd700;
+    background: rgba(255,215,0,0.2);
+    color: #ffd700;
+  }
+  .tool-btn:active { opacity: 0.7; }
+
+  #grid-size-label {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Canvas wrapper */
+  #canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  #pixel-canvas {
+    cursor: crosshair;
+    image-rendering: pixelated;
+    touch-action: none;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+  }
+
+  /* Palette */
+  #palette-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 4px 12px;
+    max-width: 520px;
+    width: 100%;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .swatch.selected {
+    border-color: #fff;
+    transform: scale(1.2);
+  }
+  .swatch:active { transform: scale(0.95); }
+
+  /* Bottom actions */
+  #actions {
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #save-btn {
+    background: #ffd700;
+    border-color: #ffd700;
+    color: #000;
+  }
+  #save-btn:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<h1>{{TITLE}}</h1>
+
+<div id="toolbar">
+  <button class="tool-btn active" data-tool="penna">✏️ Penna</button>
+  <button class="tool-btn" data-tool="sudd">🧹 Sudd</button>
+  <button class="tool-btn" data-tool="fyll">🪣 Fyll</button>
+  <button class="tool-btn" data-tool="linje">📏 Linje</button>
+  <button class="tool-btn" id="grid-toggle">⊞ Grid</button>
+  <button class="tool-btn" id="undo-btn">↩ Ångra</button>
+  <button class="tool-btn" id="redo-btn">↪ Gör om</button>
+</div>
+<span id="grid-size-label" style="padding:2px 0 4px;font-size:0.7rem;color:rgba(255,255,255,0.4)">{{GRID_SIZE}}×{{GRID_SIZE}} px</span>
+
+<div id="canvas-wrap">
+  <canvas id="pixel-canvas"></canvas>
+</div>
+
+<div id="palette-row"></div>
+
+<div id="actions">
+  <button class="action-btn" id="clear-btn">🗑️ Rensa allt</button>
+  <button class="action-btn" id="save-btn">💾 Spara bild</button>
+</div>
+
+<script>
+(function () {
+  const GRID_SIZE = parseInt('{{GRID_SIZE}}') || 32;
+  const BG_COLOR  = '{{BG_COLOR}}';
+  const PALETTE   = JSON.parse('{{PALETTE_COLORS}}');
+
+  const canvas  = document.getElementById('pixel-canvas');
+  const ctx     = canvas.getContext('2d');
+  const wrap    = document.getElementById('canvas-wrap');
+
+  // Grid state: array of color strings ('' = transparent/bg)
+  let grid = new Array(GRID_SIZE * GRID_SIZE).fill('');
+
+  const CELL_SIZE = Math.max(6, Math.floor(Math.min(window.innerWidth * 0.92, window.innerHeight * 0.52, 480) / GRID_SIZE));
+  const canvasSize = CELL_SIZE * GRID_SIZE;
+
+  canvas.width  = canvasSize;
+  canvas.height = canvasSize;
+  canvas.style.width  = canvasSize + 'px';
+  canvas.style.height = canvasSize + 'px';
+
+  let currentColor  = PALETTE[0];
+  let currentTool   = 'penna';
+  let showGrid      = true;
+  let drawing       = false;
+  let lineStart     = null;
+  let linePreview   = null;
+  const history     = [];
+  const redoStack   = [];
+
+  // ── Palette ──────────────────────────────────────────────────────────────
+  const paletteRow = document.getElementById('palette-row');
+  PALETTE.forEach((color, i) => {
+    const sw = document.createElement('button');
+    sw.className = 'swatch' + (i === 0 ? ' selected' : '');
+    sw.style.background = color;
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      currentColor = color;
+    });
+    paletteRow.appendChild(sw);
+  });
+
+  // Eraser swatch (transparent)
+  const eraserSw = document.createElement('button');
+  eraserSw.className = 'swatch';
+  eraserSw.style.background = BG_COLOR || '#fff';
+  eraserSw.style.border = '2px dashed #aaa';
+  eraserSw.title = 'Suddgummi';
+  eraserSw.textContent = '';
+  eraserSw.addEventListener('click', () => {
+    currentTool = 'sudd';
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-tool="sudd"]').classList.add('active');
+  });
+  paletteRow.appendChild(eraserSw);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render(previewLine) {
+    // Background
+    ctx.fillStyle = BG_COLOR || '#fff';
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    // Cells
+    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+      if (!grid[i]) continue;
+      const x = (i % GRID_SIZE) * CELL_SIZE;
+      const y = Math.floor(i / GRID_SIZE) * CELL_SIZE;
+      ctx.fillStyle = grid[i];
+      ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+    }
+
+    // Line preview
+    if (previewLine) {
+      previewLine.cells.forEach(idx => {
+        if (idx < 0 || idx >= GRID_SIZE * GRID_SIZE) return;
+        const x = (idx % GRID_SIZE) * CELL_SIZE;
+        const y = Math.floor(idx / GRID_SIZE) * CELL_SIZE;
+        ctx.fillStyle = previewLine.color + 'aa';
+        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+      });
+    }
+
+    // Grid lines
+    if (showGrid) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x <= canvasSize; x += CELL_SIZE) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasSize); ctx.stroke();
+      }
+      for (let y = 0; y <= canvasSize; y += CELL_SIZE) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasSize, y); ctx.stroke();
+      }
+    }
+  }
+
+  render();
+
+  // ── Coord helpers ─────────────────────────────────────────────────────────
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvasSize / rect.width;
+    const scaleY = canvasSize / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = Math.floor((clientX - rect.left) * scaleX / CELL_SIZE);
+    const y = Math.floor((clientY - rect.top)  * scaleY / CELL_SIZE);
+    if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return null;
+    return { x, y, idx: y * GRID_SIZE + x };
+  }
+
+  // Bresenham line cells
+  function lineCells(x0, y0, x1, y1) {
+    const cells = [];
+    let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx - dy;
+    while (true) {
+      cells.push(y0 * GRID_SIZE + x0);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx)  { err += dx; y0 += sy; }
+    }
+    return cells;
+  }
+
+  // ── History ───────────────────────────────────────────────────────────────
+  function saveHistory() {
+    history.push([...grid]);
+    if (history.length > 30) history.shift();
+    redoStack.length = 0;
+  }
+
+  document.getElementById('undo-btn').addEventListener('click', () => {
+    if (!history.length) return;
+    redoStack.push([...grid]);
+    grid = history.pop();
+    render();
+  });
+  document.getElementById('redo-btn').addEventListener('click', () => {
+    if (!redoStack.length) return;
+    history.push([...grid]);
+    grid = redoStack.pop();
+    render();
+  });
+
+  // ── Flood fill ────────────────────────────────────────────────────────────
+  function floodFill(startIdx, fillColor) {
+    const targetColor = grid[startIdx];
+    if (targetColor === fillColor) return;
+    const stack = [startIdx];
+    const visited = new Set();
+    while (stack.length) {
+      const idx = stack.pop();
+      if (visited.has(idx) || idx < 0 || idx >= GRID_SIZE * GRID_SIZE) continue;
+      if (grid[idx] !== targetColor) continue;
+      visited.add(idx);
+      grid[idx] = fillColor;
+      const x = idx % GRID_SIZE, y = Math.floor(idx / GRID_SIZE);
+      if (x > 0) stack.push(idx - 1);
+      if (x < GRID_SIZE - 1) stack.push(idx + 1);
+      if (y > 0) stack.push(idx - GRID_SIZE);
+      if (y < GRID_SIZE - 1) stack.push(idx + GRID_SIZE);
+    }
+  }
+
+  // ── Draw ──────────────────────────────────────────────────────────────────
+  function applyCell(cell) {
+    if (!cell) return;
+    if (currentTool === 'penna') {
+      grid[cell.idx] = currentColor;
+    } else if (currentTool === 'sudd') {
+      grid[cell.idx] = '';
+    }
+    render();
+  }
+
+  function onPointerDown(e) {
+    e.preventDefault();
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    saveHistory();
+    drawing = true;
+
+    if (currentTool === 'fyll') {
+      floodFill(cell.idx, currentColor);
+      render();
+      drawing = false;
+      return;
+    }
+    if (currentTool === 'linje') {
+      lineStart = cell;
+      return;
+    }
+    applyCell(cell);
+  }
+
+  function onPointerMove(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+
+    if (currentTool === 'linje' && lineStart) {
+      const cells = lineCells(lineStart.x, lineStart.y, cell.x, cell.y);
+      linePreview = { cells, color: currentColor };
+      render(linePreview);
+      return;
+    }
+    applyCell(cell);
+  }
+
+  function onPointerUp(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    drawing = false;
+
+    if (currentTool === 'linje' && lineStart) {
+      const cell = cellFromEvent(e) || lineStart;
+      const cells = lineCells(lineStart.x, lineStart.y, cell.x, cell.y);
+      cells.forEach(idx => { grid[idx] = currentColor; });
+      lineStart = null;
+      linePreview = null;
+      render();
+      return;
+    }
+  }
+
+  canvas.addEventListener('mousedown',  onPointerDown);
+  canvas.addEventListener('mousemove',  onPointerMove);
+  canvas.addEventListener('mouseup',    onPointerUp);
+  canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+  canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
+  canvas.addEventListener('touchend',   onPointerUp,   { passive: false });
+
+  // ── Toolbar ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTool = btn.dataset.tool;
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.getElementById('grid-toggle').addEventListener('click', function () {
+    showGrid = !showGrid;
+    this.classList.toggle('active', showGrid);
+    render();
+  });
+  document.getElementById('grid-toggle').classList.add('active');
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    saveHistory();
+    grid = new Array(GRID_SIZE * GRID_SIZE).fill('');
+    render();
+  });
+
+  document.getElementById('save-btn').addEventListener('click', () => {
+    // Export without grid lines
+    const wasShowGrid = showGrid;
+    showGrid = false;
+    render();
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'pixelart.png';
+      a.click();
+      showGrid = wasShowGrid;
+      render();
+    });
+  });
+})();
+</script>
+</body>
+</html>

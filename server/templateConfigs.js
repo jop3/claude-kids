@@ -512,6 +512,52 @@ export function getSnapConfig(answers, title) {
   };
 }
 
+export function getQuizConfig(answers, title) {
+  const TEMA_THEMES = {
+    djur:      { bg: ['#1a3a1a','#2a5a2a'], accent: '#8bc34a' },
+    mat:       { bg: ['#3a1a00','#5a2a00'], accent: '#ff9800' },
+    sport:     { bg: ['#001a3a','#002a5a'], accent: '#29b6f6' },
+    film:      { bg: ['#1a001a','#2a002a'], accent: '#e040fb' },
+    musik:     { bg: ['#0d0d2b','#1a1a4e'], accent: '#7986cb' },
+    geografi:  { bg: ['#001a1a','#002a2a'], accent: '#26c6da' },
+  };
+  const tema = (answers.amne || 'djur').toLowerCase();
+  const themeData = Object.entries(TEMA_THEMES).find(([k]) => tema.includes(k))?.[1]
+    || TEMA_THEMES.djur;
+  const questionsJson = answers.questions ? JSON.stringify(answers.questions) : '[]';
+  return {
+    TITLE:         title || 'Mitt Quiz',
+    BG_TOP:        themeData.bg[0],
+    BG_BOT:        themeData.bg[1],
+    ACCENT:        themeData.accent,
+    QUESTIONS_JSON: questionsJson,
+  };
+}
+
+export function getPixelartConfig(answers, title) {
+  const PALETTES = {
+    regnbage:  ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#1abc9c','#e91e63','#ff5722','#795548','#607d8b','#ffffff','#000000','#bdc3c7','#2c3e50','#f39c12'],
+    neon:      ['#ff00ff','#00ffff','#ff4500','#39ff14','#ff69b4','#ffff00','#ff1493','#00ff7f','#7fff00','#ff6347','#4169e1','#ffffff','#ff0080','#00ff80','#8000ff','#ff8000'],
+    pastell:   ['#ffb3ba','#ffdfba','#ffffba','#baffc9','#bae1ff','#e8baff','#ffc0cb','#ffd700','#98fb98','#87ceeb','#dda0dd','#f0e68c','#e6e6fa','#fff0f5','#f5deb3','#ffffff'],
+    svartvit:  ['#000000','#111111','#222222','#333333','#444444','#555555','#666666','#777777','#888888','#999999','#aaaaaa','#bbbbbb','#cccccc','#dddddd','#eeeeee','#ffffff'],
+    havet:     ['#001a3e','#003066','#004a99','#0062cc','#0080ff','#0099ff','#33b5ff','#66ccff','#99ddff','#cceeff','#e6f7ff','#ffffff','#00868a','#00b4ba','#2ec4b6','#cbf3f0'],
+    brand:     ['#1a0000','#4d0000','#800000','#b30000','#e60000','#ff1a1a','#ff4d4d','#ff8080','#ff8c00','#ffa500','#ffd700','#ffff00','#ffffff','#333333','#666666','#999999'],
+    skog:      ['#0a1f0a','#1a3d1a','#2e5d2e','#3d7a3d','#4d9e4d','#5cb85c','#7ec87e','#a5d6a7','#c8e6c9','#e8f5e9','#fff8e1','#f57f17','#795548','#5d4037','#4e342e','#3e2723'],
+  };
+  const palName = (answers.palett || 'regnbage').toLowerCase().replace(/[åä]/g,'a').replace(/ö/g,'o');
+  const palette = PALETTES[palName] || PALETTES.regnbage;
+  const sizeMap = { liten: 16, lagom: 32, stor: 48 };
+  const gridSize = sizeMap[(answers.storlek || 'lagom').toLowerCase()] || 32;
+  const bgMap = { vit: '#ffffff', svart: '#1a1a1a', rutnat: '#f0f0f0', transparent: '#f8f8f8' };
+  const bgColor = bgMap[(answers.bakgrund || 'svart').toLowerCase()] || '#1a1a1a';
+  return {
+    TITLE:          title || 'Pixel Art',
+    GRID_SIZE:      gridSize,
+    BG_COLOR:       bgColor,
+    PALETTE_COLORS: JSON.stringify(palette),
+  };
+}
+
 export function getBeratelseConfig(answers, title, chaptersJson) {
   const GENRE_THEMES = {
     aventyr:        { bg: ['#0d1f3c','#1a3a6e'], accent: '#ffd700' },

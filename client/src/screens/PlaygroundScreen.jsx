@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig, getObbyConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig, getBeratelseConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getObbyConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig, getBeratelseConfig, getPixelartConfig, getQuizConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1308,6 +1308,154 @@ function drawHemsida(ctx, w, h, s, dt, t) {
   drawStickFigure(ctx, s.charX * w, charY, 1.1, s.color, 3);
 }
 
+// ─── Scene: quiz ─────────────────────────────────────────────────────────────
+function initQuiz(answers) {
+  const amne = answers?.amne || 'djur';
+  const amneEmojis = { djur:'🐾', mat:'🍕', sport:'⚽', film:'🎬', musik:'🎵', geografi:'🌍' };
+  const emoji = amneEmojis[amne] || '🧠';
+  const bubbles = Array.from({ length: 12 }, (_, i) => ({
+    label: ['?','!','A','B','C','D'][i % 6],
+    x: Math.random(), y: Math.random(),
+    vx: rand(-0.02, 0.02), vy: rand(-0.03, -0.01),
+    r: rand(18, 32),
+    phase: Math.random() * Math.PI * 2,
+    color: ['#e67e22','#f1c40f','#e74c3c','#3498db','#2ecc71','#9b59b6'][i % 6],
+  }));
+  return { amne, emoji, bubbles };
+}
+
+function drawQuiz(ctx, w, h, s, dt, t) {
+  ctx.fillStyle = '#1a0a00';
+  ctx.fillRect(0, 0, w, h);
+
+  const glow = ctx.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.4, w * 0.6);
+  glow.addColorStop(0, '#e67e2230');
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, w, h);
+
+  // Floating quiz bubbles
+  s.bubbles.forEach(b => {
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.y < -0.1) { b.y = 1.05; b.x = Math.random(); }
+    if (b.x < -0.1 || b.x > 1.1) b.vx *= -1;
+
+    const scale = 0.85 + 0.15 * Math.sin(t * 1.5 + b.phase);
+    ctx.save();
+    ctx.translate(b.x * w, b.y * h);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(b.r * 0.9)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b.label, 0, 1);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  });
+
+  // Big brain emoji center
+  const pulse = 1 + 0.06 * Math.sin(t * 2);
+  const emojiSize = Math.round(Math.min(w, h) * 0.22);
+  ctx.save();
+  ctx.translate(w / 2, h * 0.45);
+  ctx.scale(pulse, pulse);
+  ctx.font = `${emojiSize}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(s.emoji, 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ─── Scene: pixelart ─────────────────────────────────────────────────────────
+function initPixelart(answers) {
+  const palName = (answers?.palett || 'regnbage').toLowerCase();
+  const PALETTE_SAMPLES = {
+    regnbage: ['#e74c3c','#f1c40f','#2ecc71','#3498db','#9b59b6'],
+    neon:     ['#ff00ff','#00ffff','#39ff14','#ff69b4','#ffff00'],
+    pastell:  ['#ffb3ba','#baffc9','#bae1ff','#ffffba','#e8baff'],
+    svartvit: ['#000','#333','#666','#999','#fff'],
+    havet:    ['#001a3e','#0080ff','#00b4ba','#cbf3f0','#ffffff'],
+    brand:    ['#e60000','#ff8c00','#ffd700','#ffffff','#333333'],
+    skog:     ['#1a3d1a','#5cb85c','#a5d6a7','#795548','#fff8e1'],
+  };
+  const colors = PALETTE_SAMPLES[palName] || PALETTE_SAMPLES.regnbage;
+  const GRID = 8; // tiny preview grid
+  const pixels = Array.from({ length: GRID * GRID }, () =>
+    Math.random() < 0.4 ? colors[Math.floor(Math.random() * colors.length)] : null
+  );
+  return { colors, pixels, GRID, drawT: 0, cursor: { x: 0, y: 0, vx: 2, vy: 1.5 } };
+}
+
+function drawPixelart(ctx, w, h, s, dt, t) {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, w, h);
+
+  const cellSize = Math.min(w, h) * 0.55 / s.GRID;
+  const offX = (w - cellSize * s.GRID) / 2;
+  const offY = (h - cellSize * s.GRID) / 2;
+
+  // Slowly fill pixels
+  s.drawT += dt * 3;
+  const filled = Math.min(Math.floor(s.drawT), s.GRID * s.GRID);
+  for (let i = 0; i < filled; i++) {
+    if (!s.pixels[i]) continue;
+    const gx = i % s.GRID, gy = Math.floor(i / s.GRID);
+    ctx.fillStyle = s.pixels[i];
+    ctx.fillRect(offX + gx * cellSize + 1, offY + gy * cellSize + 1, cellSize - 2, cellSize - 2);
+  }
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= s.GRID; x++) {
+    ctx.beginPath(); ctx.moveTo(offX + x * cellSize, offY); ctx.lineTo(offX + x * cellSize, offY + s.GRID * cellSize); ctx.stroke();
+  }
+  for (let y = 0; y <= s.GRID; y++) {
+    ctx.beginPath(); ctx.moveTo(offX, offY + y * cellSize); ctx.lineTo(offX + s.GRID * cellSize, offY + y * cellSize); ctx.stroke();
+  }
+
+  // Moving cursor
+  s.cursor.x += s.cursor.vx * dt * 40;
+  s.cursor.y += s.cursor.vy * dt * 30;
+  if (s.cursor.x < offX || s.cursor.x > offX + s.GRID * cellSize) s.cursor.vx *= -1;
+  if (s.cursor.y < offY || s.cursor.y > offY + s.GRID * cellSize) s.cursor.vy *= -1;
+
+  // Pencil cursor
+  ctx.fillStyle = '#ffd700';
+  ctx.font = `${Math.round(cellSize * 1.6)}px serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('✏️', s.cursor.x, s.cursor.y);
+
+  // Palette swatches below grid
+  const swSize = Math.round(Math.min(w, h) * 0.06);
+  const swGap = 6;
+  const swTotal = s.colors.length * (swSize + swGap) - swGap;
+  const swX0 = (w - swTotal) / 2;
+  const swY = offY + s.GRID * cellSize + 16;
+  s.colors.forEach((c, i) => {
+    const pulse = 1 + 0.1 * Math.sin(t * 2 + i * 0.8);
+    const sz = swSize * pulse;
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.roundRect(swX0 + i * (swSize + swGap) + (swSize - sz) / 2, swY + (swSize - sz) / 2, sz, sz, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#fff4';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
 // ─── Scene: berattelse ───────────────────────────────────────────────────────
 const GENRE_EMOJIS = {
   aventyr: ['⚔️','🗺️','🏰','🐉','💎'],
@@ -1440,6 +1588,8 @@ const SCENES = {
   animation:  { init: initAnimation,  draw: drawAnimation },
   hemsida:    { init: initHemsida,    draw: drawHemsida },
   berattelse: { init: initBerattelse, draw: drawBerattelse },
+  pixelart:   { init: initPixelart,   draw: drawPixelart },
+  quiz:       { init: initQuiz,       draw: drawQuiz },
 };
 
 // ─── Building animation styles ────────────────────────────────────────────────
@@ -1751,6 +1901,46 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ templateName: 'rostlab', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'quiz') {
+                  let title = 'Mitt Quiz';
+                  try { const p = JSON.parse(accText.trim()); if (p.title) title = p.title; } catch {}
+                  const config = getQuizConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'quiz', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'pixelart') {
+                  let title = 'Pixel Art';
+                  try { const p = JSON.parse(accText.trim()); if (p.title) title = p.title; } catch {}
+                  const config = getPixelartConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'pixelart', config }),
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();

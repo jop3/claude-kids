@@ -1,3 +1,18 @@
+export function buildQuizQuestion(amne, questionNum) {
+  return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Skapa en quizfråga nummer ${questionNum} om ämnet: ${amne}
+Frågan ska passa barn 9-12 år, vara på svenska, och ha 4 svarsalternativ.
+
+Svara exakt med detta format:
+{"question":"Frågan här?","answers":[{"text":"Svar A","correct":false},{"text":"Svar B","correct":true},{"text":"Svar C","correct":false},{"text":"Svar D","correct":false}]}
+
+Regler:
+- Exakt ett svar har "correct":true
+- Svaren ska blandas (rätt svar inte alltid på samma position)
+- Inga specialtecken som bryter JSON`;
+}
+
 export function buildPrompt(category, answers, projectName) {
   const name = projectName || 'skapelse';
 
@@ -301,6 +316,25 @@ Tekniska krav:
 - Glad bakgrundsmusik (Web Audio, enkel melodi som kan stängas av)
 
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
+
+    case 'quiz':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt quiz-namn på svenska (max 3 ord):
+- Ämne: ${answers.amne}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Djurquizet"}`;
+
+    case 'pixelart':
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt pixel art-namn på svenska (max 3 ord):
+- Storlek: ${answers.storlek}
+- Palett: ${answers.palett}
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Neon Pixel Art"}`;
 
     case 'berattelse': {
       const chapters = parseInt(answers.langd) || 5;

@@ -15,6 +15,8 @@ const CATEGORIES = [
   { id: 'larospel',   name: 'Lärospel',      emoji: '🧠', bg: '#00897b' },
   { id: 'rostlab',    name: 'Röstlab',       emoji: '🎤', bg: '#e53935' },
   { id: 'berattelse', name: 'Berattelse',    emoji: '📖', bg: '#c0392b' },
+  { id: 'pixelart',   name: 'Pixel Art',     emoji: '🎨', bg: '#8e44ad' },
+  { id: 'quiz',       name: 'Quiz-skaparen', emoji: '🧠', bg: '#e67e22' },
 ];
 
 export default function HomeScreen({ navigate }) {

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
+import { buildQuizQuestion } from '../lib/promptBuilder.js';
 
 export default function WizardScreen({ category, navigate, answers: initialAnswers = {} }) {
   const config = WIZARD_CONFIG[category];
@@ -11,6 +12,12 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   const [tappingId, setTappingId] = useState(null);
   const [sliderValue, setSliderValue] = useState(null);
   const [multiSelected, setMultiSelected] = useState([]);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizStep, setQuizStep] = useState(0); // which question we're on (0-4)
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizCurrentQ, setQuizCurrentQ] = useState(null); // {question, answers}
+  const [quizAnswered, setQuizAnswered] = useState(false);
+  const abortRef = useRef(null);
 
   if (!config) {
     return (
@@ -24,6 +31,99 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
   const steps = config.steps;
   const step = steps[currentStep];
   const totalSteps = steps.length;
+
+  // Load quiz question when entering quizBuilder step
+  useEffect(() => {
+    if (step.type !== 'quizBuilder') return;
+    setQuizStep(0);
+    setQuizQuestions([]);
+    setQuizCurrentQ(null);
+    setQuizAnswered(false);
+    loadQuizQuestion(0, answers.amne);
+  }, [currentStep]);
+
+  function loadQuizQuestion(qIdx, amne) {
+    setQuizLoading(true);
+    setQuizCurrentQ(null);
+    setQuizAnswered(false);
+
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const prompt = buildQuizQuestion(amne, qIdx + 1);
+    let accText = '';
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: prompt }),
+      signal: controller.signal,
+    }).then(resp => {
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      function pump() {
+        reader.read().then(({ done, value }) => {
+          if (done) return;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const obj = JSON.parse(line.slice(6));
+              if (obj.type === 'text') accText += obj.text;
+              if (obj.type === 'done') {
+                try {
+                  const q = JSON.parse(accText.trim());
+                  setQuizCurrentQ(q);
+                  setQuizLoading(false);
+                } catch {
+                  // fallback question
+                  setQuizCurrentQ({
+                    question: `Fråga ${qIdx + 1}?`,
+                    answers: [{text:'A',correct:true},{text:'B',correct:false},{text:'C',correct:false},{text:'D',correct:false}],
+                  });
+                  setQuizLoading(false);
+                }
+              }
+            } catch {}
+          }
+          pump();
+        }).catch(() => {});
+      }
+      pump();
+    }).catch(() => { setQuizLoading(false); });
+  }
+
+  function handleQuizAnswerTap(answerIdx) {
+    if (quizAnswered || !quizCurrentQ) return;
+    setQuizAnswered(true);
+
+    // Store question with correct answer index
+    const newQ = {
+      question: quizCurrentQ.question,
+      answers: quizCurrentQ.answers,
+    };
+    const updatedQs = [...quizQuestions, newQ];
+    setQuizQuestions(updatedQs);
+
+    const questionCount = step.questionCount || 5;
+    const nextIdx = quizStep + 1;
+
+    setTimeout(() => {
+      if (nextIdx >= questionCount) {
+        // All questions collected — save and advance
+        const newAnswers = { ...answers, questions: updatedQs };
+        setAnswers(newAnswers);
+        advanceStep(newAnswers);
+      } else {
+        setQuizStep(nextIdx);
+        loadQuizQuestion(nextIdx, answers.amne);
+      }
+    }, 800);
+  }
 
   // Init slider/multi state when step changes
   useEffect(() => {
@@ -238,6 +338,18 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
           </>
         )}
 
+        {step.type === 'quizBuilder' && (
+          <QuizBuilderStep
+            step={step}
+            qIdx={quizStep}
+            loading={quizLoading}
+            currentQ={quizCurrentQ}
+            answered={quizAnswered}
+            onAnswer={handleQuizAnswerTap}
+            themeColor={themeColor}
+          />
+        )}
+
         {step.type === 'slider' && (
           <SliderStep
             step={step}
@@ -389,6 +501,93 @@ function SliderStep({ step, value, onChange, themeColor, onNext }) {
       )}
 
       <NextButton onClick={onNext} themeColor={themeColor} label="Nästa →" />
+    </div>
+  );
+}
+
+function QuizBuilderStep({ step, qIdx, loading, currentQ, answered, onAnswer, themeColor }) {
+  const total = step.questionCount || 5;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, alignItems: 'center' }}>
+      {/* Mini progress */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: i < qIdx ? themeColor : i === qIdx ? '#fff' : 'rgba(255,255,255,0.2)',
+            transition: 'background 0.3s',
+          }} />
+        ))}
+      </div>
+      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+        Fråga {qIdx + 1} av {total} — Tryck på rätt svar!
+      </div>
+
+      {loading && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div style={{ fontSize: '3rem', animation: 'bounce 1s ease-in-out infinite' }}>🧠</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem' }}>Hämtar fråga...</div>
+        </div>
+      )}
+
+      {!loading && currentQ && (
+        <>
+          {/* Question */}
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: 14,
+            border: '1.5px solid rgba(255,255,255,0.15)',
+            padding: '16px 18px',
+            width: '100%',
+            maxWidth: 480,
+            textAlign: 'center',
+            fontSize: 'clamp(0.9rem, 2.8vw, 1.1rem)',
+            fontWeight: 700,
+            lineHeight: 1.45,
+          }}>
+            {currentQ.question}
+          </div>
+
+          {/* Answer cards — tap to mark correct */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 10,
+            width: '100%',
+            maxWidth: 480,
+          }}>
+            {currentQ.answers.map((ans, i) => (
+              <button
+                key={i}
+                onClick={() => onAnswer(i)}
+                disabled={answered}
+                style={{
+                  padding: '14px 10px',
+                  borderRadius: 14,
+                  border: `2px solid ${ans.correct && answered ? '#2ecc71' : 'rgba(255,255,255,0.2)'}`,
+                  background: ans.correct && answered ? '#2ecc7188' : 'rgba(255,255,255,0.1)',
+                  color: '#fff',
+                  fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)',
+                  fontWeight: 600,
+                  cursor: answered ? 'default' : 'pointer',
+                  lineHeight: 1.3,
+                  textAlign: 'center',
+                  transition: 'background 0.2s, border-color 0.2s',
+                  touchAction: 'manipulation',
+                }}
+              >
+                {ans.text}
+              </button>
+            ))}
+          </div>
+
+          {answered && (
+            <div style={{ color: '#2ecc71', fontWeight: 700, fontSize: '1rem' }}>
+              ✅ Markerat! Nästa fråga kommer...
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
