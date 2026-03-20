@@ -1606,6 +1606,10 @@ const buildingStyles = `
   0%   { opacity: 0; transform: scale(0.5); }
   100% { opacity: 1; transform: scale(1); }
 }
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 `;
 
 // ─── Animated dots ────────────────────────────────────────────────────────────
@@ -2101,56 +2105,36 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
           pointerEvents: 'none',
         }}>
           <div style={{
-            background: 'rgba(0,0,0,0.60)',
+            background: 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(12px)',
             borderRadius: 24,
-            padding: '32px 44px',
+            padding: '28px 36px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
             minWidth: 280, maxWidth: 360,
             border: '1px solid rgba(255,255,255,0.12)',
             boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-            position: 'relative',
           }}>
-            {/* Slow-spinning gear behind emoji */}
-            <div style={{
-              position: 'absolute', fontSize: 96, opacity: 0.08,
-              animation: 'spinGear 8s linear infinite',
-              userSelect: 'none', pointerEvents: 'none',
-            }}>
-              ⚙️
-            </div>
-
             {/* Bouncing category emoji */}
-            <div style={{
-              fontSize: 64, lineHeight: 1,
-              animation: 'bounce 1.2s ease-in-out infinite',
-              position: 'relative',
-            }}>
+            <div style={{ fontSize: 56, lineHeight: 1, animation: 'bounce 1.2s ease-in-out infinite' }}>
               {catEmoji}
             </div>
 
             {/* Title */}
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
               Bygger ditt {catLabel}...
             </div>
 
-            {/* Tool icons appearing one by one */}
-            <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-              <span style={{
-                fontSize: 28,
-                opacity: 0,
-                animation: 'fadeInTool 0.4s ease forwards 1s',
-              }}>🔧</span>
-              <span style={{
-                fontSize: 28,
-                opacity: 0,
-                animation: 'fadeInTool 0.4s ease forwards 2s',
-              }}>⚙️</span>
-              <span style={{
-                fontSize: 28,
-                opacity: 0,
-                animation: 'fadeInTool 0.4s ease forwards 3s',
-              }}>✨</span>
+            {/* Shimmer skeleton bars */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              {[1, 0.75, 0.55].map((w, i) => (
+                <div key={i} style={{
+                  height: 10, borderRadius: 6,
+                  width: `${w * 100}%`,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.06) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: `shimmer 1.5s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
             </div>
           </div>
         </div>

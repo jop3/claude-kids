@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { checkAchievements } from '../lib/achievements.js';
+import { isMuted } from '../lib/soundSettings.js';
 
 export default function PlayerScreen({ file, projectId, navigate }) {
   const [copied, setCopied] = useState(false);
@@ -71,7 +72,7 @@ export default function PlayerScreen({ file, projectId, navigate }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000' }}>
       <iframe
-        src={`/preview/${file}`}
+        src={`/preview/${file}${isMuted() ? '?muted=true' : ''}`}
         style={{ width: '100%', height: '100%', border: 'none' }}
         title="Ditt skapelse"
       />
