@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Musik Studio</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #1a0020;
+  min-height: 100vh;
+  font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+#studio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 480px;
+  padding: 32px 24px;
+}
+#title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #ff69b4;
+  text-shadow: 0 0 20px #ff69b488;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+#genre-badge {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+/* Equalizer */
+#eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  padding: 0 8px;
+}
+.bar {
+  width: 18px;
+  border-radius: 4px 4px 0 0;
+  background: #ff69b4;
+  opacity: 0.85;
+  transition: height 0.08s ease;
+  min-height: 4px;
+}
+/* Play button */
+#play-btn {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #ff69b4;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  box-shadow: 0 0 32px #ff69b488, 0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+  color: #fff;
+}
+#play-btn:active { transform: scale(0.93); }
+#play-btn.playing {
+  box-shadow: 0 0 50px #ff69b4cc, 0 4px 20px rgba(0,0,0,0.4);
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes pulse {
+  from { box-shadow: 0 0 32px #ff69b488, 0 4px 20px rgba(0,0,0,0.4); }
+  to   { box-shadow: 0 0 60px #ff69b4dd, 0 0 80px #ff69b444; }
+}
+/* Instrument chips */
+#instruments {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.instrument-chip {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid #ff69b466;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* BPM */
+#bpm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+#bpm-num {
+  color: #ff69b4;
+  font-size: 1.1rem;
+}
+/* Variation buttons */
+#variations {
+  display: flex;
+  gap: 8px;
+}
+.var-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 8px 16px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.var-btn:hover, .var-btn.active {
+  background: #ff69b444;
+  border-color: #ff69b4;
+}
+/* Floating notes */
+.note {
+  position: fixed;
+  font-size: 1.4rem;
+  pointer-events: none;
+  animation: floatNote linear forwards;
+  opacity: 0;
+}
+@keyframes floatNote {
+  0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
+  15%  { opacity: 0.8; }
+  85%  { opacity: 0.6; }
+  100% { opacity: 0; transform: translateY(-160px) rotate(25deg); }
+}
+</style>
+</head>
+<body>
+<div id="studio">
+  <div id="genre-badge">pop STUDIO</div>
+  <div id="title">Musik Studio</div>
+  <div id="eq">
+    <!-- bars injected by JS -->
+  </div>
+  <button id="play-btn" onclick="togglePlay()">▶</button>
+  <div id="instruments">
+    <!-- chips injected by JS -->
+  </div>
+  <div id="bpm-row">
+    TEMPO <span id="bpm-num">144</span> BPM
+  </div>
+  <div id="variations">
+    <button class="var-btn active" onclick="setVariation(0,this)">🎵 Beat 1</button>
+    <button class="var-btn" onclick="setVariation(1,this)">🎶 Beat 2</button>
+    <button class="var-btn" onclick="setVariation(2,this)">🎸 Beat 3</button>
+    <button class="var-btn" onclick="setVariation(3,this)">⚡ Beat 4</button>
+  </div>
+</div>
+
+<script>
+const CFG = {
+  title:    'Musik Studio',
+  genre:    'pop',
+  bpm:      parseInt('144') || 120,
+  inst1:    'piano',
+  inst2:    'trummor',
+  accent:   '#ff69b4',
+};
+
+// ─── Instrument emoji map ─────────────────────────────────────────────────────
+const INST_EMOJIS = {
+  piano: '🎹', trummor: '🥁', gitarr: '🎸', synth: '🎛️', trumpet: '🎺', violin: '🎻',
+};
+
+// ─── Init equalizer bars ──────────────────────────────────────────────────────
+const NUM_BARS = 12;
+const eqEl = document.getElementById('eq');
+for (let i = 0; i < NUM_BARS; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  bar.style.height = '4px';
+  eqEl.appendChild(bar);
+}
+const bars = eqEl.querySelectorAll('.bar');
+
+// ─── Init instrument chips ────────────────────────────────────────────────────
+const instEl = document.getElementById('instruments');
+[CFG.inst1, CFG.inst2].forEach(inst => {
+  const chip = document.createElement('div');
+  chip.className = 'instrument-chip';
+  chip.textContent = (INST_EMOJIS[inst] || '🎵') + ' ' + inst.charAt(0).toUpperCase() + inst.slice(1);
+  instEl.appendChild(chip);
+});
+
+// ─── Web Audio ────────────────────────────────────────────────────────────────
+let AC, masterGain, playing = false;
+let beatInterval = null;
+let currentVariation = 0;
+let beatStep = 0;
+
+// 4 beat variations — each is an array of 16-step patterns per instrument
+// [kick, snare, hihat, melody]
+const VARIATIONS = [
+  // Beat 1: straight 4/4
+  { kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+    snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hihat:[1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    mel:  [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0] },
+  // Beat 2: syncopated
+  { kick: [1,0,0,1, 0,0,1,0, 1,0,0,0, 0,1,0,0],
+    snare:[0,0,1,0, 0,1,0,0, 0,0,1,0, 0,1,0,0],
+    hihat:[1,1,0,1, 1,0,1,1, 1,1,0,1, 1,0,1,1],
+    mel:  [1,0,0,1, 0,0,0,0, 1,0,1,0, 0,0,1,0] },
+  // Beat 3: half-time feel
+  { kick: [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    snare:[0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    hihat:[1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    mel:  [1,0,1,0, 0,1,0,0, 1,0,0,1, 0,0,1,0] },
+  // Beat 4: driving 8ths
+  { kick: [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1],
+    hihat:[1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1],
+    mel:  [1,0,0,0, 1,0,0,1, 0,0,1,0, 1,0,0,0] },
+];
+
+// Melody note frequencies (based on genre pentatonic)
+const GENRE_SCALES = {
+  pop:         [523, 587, 659, 784, 880],   // C major pent
+  hiphop:      [220, 247, 277, 330, 370],   // A minor pent
+  rock:        [196, 220, 262, 294, 330],   // G minor pent
+  elektronisk: [440, 494, 554, 659, 740],   // A major pent
+  jazz:        [311, 349, 392, 466, 523],   // Eb major pent
+  klassisk:    [264, 297, 330, 396, 440],   // C major pent (lower)
+};
+const SCALE = GENRE_SCALES[CFG.genre] || GENRE_SCALES.pop;
+
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = AC.createGain();
+  masterGain.gain.value = 0.6;
+  masterGain.connect(AC.destination);
+}
+
+function playKick(time) {
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.connect(g); g.connect(masterGain);
+  o.frequency.setValueAtTime(150, time);
+  o.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+  g.gain.setValueAtTime(1.2, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+  o.start(time); o.stop(time + 0.2);
+}
+
+function playSnare(time) {
+  const buf = AC.createBuffer(1, AC.sampleRate * 0.15, AC.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+  const src = AC.createBufferSource();
+  src.buffer = buf;
+  const g = AC.createGain();
+  src.connect(g); g.connect(masterGain);
+  g.gain.setValueAtTime(0.7, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+  src.start(time); src.stop(time + 0.15);
+}
+
+function playHihat(time) {
+  const buf = AC.createBuffer(1, AC.sampleRate * 0.05, AC.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+  const src = AC.createBufferSource();
+  src.buffer = buf;
+  const f = AC.createBiquadFilter();
+  f.type = 'highpass'; f.frequency.value = 8000;
+  const g = AC.createGain();
+  src.connect(f); f.connect(g); g.connect(masterGain);
+  g.gain.setValueAtTime(0.25, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+  src.start(time); src.stop(time + 0.06);
+}
+
+function playMelNote(time, stepIdx) {
+  const freq = SCALE[stepIdx % SCALE.length];
+  const inst = [CFG.inst1, CFG.inst2][stepIdx % 2];
+  const types = { piano: 'sine', gitarr: 'sawtooth', synth: 'square', violin: 'sine', trumpet: 'triangle' };
+  const type = types[inst] || 'sine';
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.connect(g); g.connect(masterGain);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.35, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+  o.start(time); o.stop(time + 0.25);
+}
+
+function setVariation(idx, btn) {
+  currentVariation = idx;
+  beatStep = 0;
+  document.querySelectorAll('.var-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let eqAnimFrame = null;
+let eqPhases = Array.from({ length: NUM_BARS }, (_, i) => i * 0.42);
+
+function animateEQ(playing) {
+  if (!playing) {
+    bars.forEach(b => { b.style.height = '4px'; });
+    return;
+  }
+  const now = Date.now() / 1000;
+  bars.forEach((b, i) => {
+    const h = 8 + 72 * Math.abs(Math.sin(now * (3 + i * 0.3) + eqPhases[i]));
+    b.style.height = h + 'px';
+  });
+  eqAnimFrame = requestAnimationFrame(() => animateEQ(playing));
+}
+
+function spawnNote() {
+  const el = document.createElement('div');
+  el.className = 'note';
+  el.textContent = ['♩','♪','♫','♬'][Math.floor(Math.random() * 4)];
+  el.style.left = (20 + Math.random() * 60) + 'vw';
+  el.style.bottom = (20 + Math.random() * 30) + 'vh';
+  el.style.color = CFG.accent;
+  el.style.animationDuration = (1.5 + Math.random() * 1) + 's';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+let noteSpawnInterval = null;
+
+function togglePlay() {
+  initAudio();
+  if (AC.state === 'suspended') AC.resume();
+  playing = !playing;
+  const btn = document.getElementById('play-btn');
+  if (playing) {
+    btn.textContent = '⏸';
+    btn.classList.add('playing');
+    const stepDuration = 60 / CFG.bpm / 4; // 16th note
+    let startTime = AC.currentTime;
+    function scheduleBeat() {
+      if (!playing) return;
+      const v = VARIATIONS[currentVariation];
+      const step = beatStep % 16;
+      const t = startTime;
+      if (v.kick[step])  playKick(t);
+      if (v.snare[step]) playSnare(t);
+      if (v.hihat[step]) playHihat(t);
+      if (v.mel[step])   playMelNote(t, beatStep);
+      beatStep++;
+      startTime += stepDuration;
+      beatInterval = setTimeout(scheduleBeat, (startTime - AC.currentTime - 0.01) * 1000);
+    }
+    scheduleBeat();
+    animateEQ(true);
+    noteSpawnInterval = setInterval(spawnNote, 600);
+  } else {
+    btn.textContent = '▶';
+    btn.classList.remove('playing');
+    clearTimeout(beatInterval);
+    cancelAnimationFrame(eqAnimFrame);
+    clearInterval(noteSpawnInterval);
+    animateEQ(false);
+  }
+}
+</script>
+</body>
+</html>

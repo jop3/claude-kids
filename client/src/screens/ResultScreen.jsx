@@ -11,7 +11,16 @@ const popIn = `
 
 export default function ResultScreen({ category, answers, file, thumb, error, navigate }) {
   const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
+
+  function handleShare() {
+    const url = window.location.origin + '/preview/' + file;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const config = WIZARD_CONFIG[category] ?? {};
   const catLabel = config.label ?? category ?? 'skapelse';
@@ -126,6 +135,24 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
             }}
           >
             💾 Spara
+          </button>
+
+          <button
+            onClick={handleShare}
+            style={{
+              padding: '14px 0', borderRadius: 16,
+              background: copied
+                ? 'linear-gradient(90deg, #00796b, #26a69a)'
+                : 'linear-gradient(90deg, #e65100, #ff9800)',
+              border: 'none', color: '#fff',
+              fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer',
+              boxShadow: copied
+                ? '0 4px 16px rgba(0,121,107,0.35)'
+                : '0 4px 16px rgba(230,81,0,0.35)',
+              transition: 'background 0.3s, box-shadow 0.3s',
+            }}
+          >
+            {copied ? '✓ Kopierat!' : '🔗 Dela'}
           </button>
         </div>
 

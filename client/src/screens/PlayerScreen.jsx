@@ -1,6 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function PlayerScreen({ file, projectId, navigate }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+    function handleMessage(e) {
+      if (e.data?.type === 'highscore' && typeof e.data.score === 'number') {
+        try {
+          const projects = JSON.parse(localStorage.getItem('claude-kids-projects') || '[]');
+          const idx = projects.findIndex(p => p.id === projectId);
+          if (idx >= 0) {
+            const prev = projects[idx].highscore;
+            // For memory, lower is better; for everything else, higher is better
+            const isMemory = projects[idx].answers?.speltyp === 'memory';
+            const isBetter = prev == null
+              || (isMemory ? e.data.score < prev : e.data.score > prev);
+            if (isBetter) {
+              projects[idx].highscore = e.data.score;
+              localStorage.setItem('claude-kids-projects', JSON.stringify(projects));
+            }
+          }
+        } catch {}
+      }
+    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [projectId]);
+
+  function handleShare() {
+    const url = window.location.origin + '/preview/' + file;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
   const backScreen = projectId ? 'myStuff' : 'home';
   const backLabel = projectId ? '← Mina Saker' : '← Hem';
 
@@ -48,6 +82,21 @@ export default function PlayerScreen({ file, projectId, navigate }) {
         }}
       >
         {backLabel}
+      </button>
+      <button
+        onClick={handleShare}
+        style={{
+          position: 'fixed', top: 12, right: 12,
+          background: copied ? 'rgba(0,121,107,0.85)' : 'rgba(0,0,0,0.6)',
+          color: '#fff',
+          border: '2px solid rgba(255,255,255,0.3)',
+          borderRadius: 12, padding: '8px 16px',
+          fontSize: '0.9rem', cursor: 'pointer',
+          backdropFilter: 'blur(4px)',
+          transition: 'background 0.3s',
+        }}
+      >
+        {copied ? '✓ Kopierat!' : '🔗 Dela'}
       </button>
     </div>
   );

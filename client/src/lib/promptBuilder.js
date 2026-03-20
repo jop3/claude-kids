@@ -60,7 +60,8 @@ Tekniska krav:
 - Förvalda färger baserat på vald palett (visa 8-12 färgknappar)
 - Penseltjocklek-slider
 - Ångra/Gör om (undo/redo, minst 20 steg)
-- Spara/Ladda ned bild-knapp (as PNG)
+- VIKTIGT: Inkludera en "Spara bild 💾" knapp som anropar canvas.toBlob() och triggar nedladdning av ritningen som PNG med filnamnet "min-ritning.png". Exakt såhär:
+  savBtn.onclick = () => { canvas.toBlob(blob => { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='min-ritning.png'; a.click(); }); };
 - En inspirationsbild eller startritning som matchar motivet (ritad med canvas, inte bild)
 - Stort canvas-område, alla knappar längs sidorna, touch-vänligt
 
@@ -108,6 +109,26 @@ Baserat på dessa val, skapa ett roligt spelnamn på svenska (max 3 ord):
 
 Svara exakt så här (byt ut värdet för title):
 {"title": "Djurminnet"}`;
+      }
+      if (answers.speltyp === 'snap') {
+        return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt spelnamn på svenska (max 3 ord):
+- Tema: ${answers.tema}
+- Speltyp: Snap
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Djur-Snap!"}`;
+      }
+      if (answers.speltyp === 'toptrumps') {
+        return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Baserat på dessa val, skapa ett roligt spelnamn på svenska (max 3 ord):
+- Tema: ${answers.tema}
+- Speltyp: Top Trumps
+
+Svara exakt så här (byt ut värdet för title):
+{"title": "Djur Top Trumps"}`;
       }
       return `Du är Kompisen! Skapa ett komplett kortspel i HTML och spara som /workspace/${name}.html
 

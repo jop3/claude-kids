@@ -178,6 +178,24 @@ function ProjectCard({ project, navigate, onDeleted, highlight }) {
         {project.name}
       </div>
 
+      {/* Highscore badge */}
+      {project.highscore != null && (
+        <div style={{
+          background: 'rgba(0,0,0,0.35)',
+          borderRadius: 10,
+          padding: '3px 10px',
+          fontSize: '0.8rem',
+          fontWeight: 800,
+          color: '#ffd700',
+          width: '100%',
+          textAlign: 'center',
+        }}>
+          {project.category === 'kortspel' && project.answers?.speltyp === 'memory'
+            ? `⏱ ${project.highscore}s`
+            : `🏆 ${project.highscore}`}
+        </div>
+      )}
+
       {/* Bottom row */}
       <div style={{
         display: 'flex',

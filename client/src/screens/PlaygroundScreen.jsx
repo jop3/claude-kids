@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1450,6 +1450,46 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ templateName: 'memory', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'kortspel' && answers?.speltyp === 'snap') {
+                  let title = 'Snap!';
+                  try { const p = JSON.parse(accText.trim()); if (p.title) title = p.title; } catch {}
+                  const config = getSnapConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'snap', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'kortspel' && answers?.speltyp === 'toptrumps') {
+                  let title = 'Top Trumps';
+                  try { const p = JSON.parse(accText.trim()); if (p.title) title = p.title; } catch {}
+                  const config = getTopTrumpsConfig(answers ?? {}, title);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'toptrumps', config }),
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();

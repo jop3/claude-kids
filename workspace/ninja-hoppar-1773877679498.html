@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ninja Hoppar</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: linear-gradient(180deg, #0d0d2b, #1a1a4e);
+  min-height: 100vh;
+  overflow: hidden;
+  font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+  user-select: none;
+  touch-action: none;
+}
+canvas { display:block; position:fixed; inset:0; width:100%; height:100%; }
+#ui {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+}
+#play-btn {
+  background: #ff6b6b;
+  border: none;
+  border-radius: 50%;
+  width: 60px; height: 60px;
+  font-size: 1.6rem;
+  cursor: pointer;
+  box-shadow: 0 0 20px #ff6b6b99;
+  color: #fff;
+  transition: transform 0.1s;
+}
+#play-btn:active { transform: scale(0.9); }
+#char-label {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+#tap-hint {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.8rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="char-label">Ninja</div>
+  <button id="play-btn" onclick="togglePlay()">⏸</button>
+  <div id="tap-hint">Tryck var som helst för extra effekt!</div>
+</div>
+
+<script>
+const CFG = {
+  charEmoji: '??',
+  charName:  'Ninja',
+  bgTop:     '#0d0d2b',
+  bgBot:     '#1a1a4e',
+  rorelse:   'hoppa',
+  effekt:    'konfetti',
+  accent:    '#ff6b6b',
+  world:     'rymden',
+};
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+let playing = true;
+let t = 0;
+let lastTs = null;
+let rafId = null;
+let charX, charY;
+let flyAngle = 0;
+let figureT = 0;
+let particles = [];
+let burstQueue = 0;
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  charX = W / 2;
+  charY = H * 0.5;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Particle system ──────────────────────────────────────────────────────────
+function spawnParticles(count, cx, cy, burst) {
+  const colors = {
+    konfetti:  ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6','#ff69b4'],
+    stjarnor:  ['#ffd700','#fff8dc','#fff'],
+    eld:       ['#ff4500','#ff8c00','#ffd700','#ff2200'],
+    bubblor:   ['#aef4ff','#bde8ff','#cef','#a0e0ff'],
+    regnbage:  ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'],
+    blixt:     ['#fff','#ffff00','#00ffff','#fff0aa'],
+    sno:       ['#ffffff','#ddeeff','#bbddff'],
+    hjartan:   ['#ff69b4','#ff1493','#ff80ab','#ffb6c1'],
+    musik:     ['#ffd700','#ff69b4','#00e5ff','#69f0ae'],
+    magi:      ['#ea80fc','#b388ff','#ffd740','#69f0ae','#fff'],
+  };
+  const eff = CFG.effekt;
+  const pool = colors[eff] || colors.konfetti;
+
+  for (let i = 0; i < count; i++) {
+    const angle = burst ? (Math.random() * Math.PI * 2) : (Math.random() * Math.PI * 2);
+    const speed = burst ? (2 + Math.random() * 5) : (0.5 + Math.random() * 2);
+    const vx = Math.cos(angle) * speed * (burst ? 1 : 0.3);
+    const baseVy = eff === 'eld' ? -(1 + Math.random() * 3) : (eff === 'bubblor' || eff === 'hjartan' || eff === 'musik' ? -(0.5 + Math.random() * 2) : (Math.random() - 0.3) * speed);
+    particles.push({
+      x: cx || W * (0.2 + Math.random() * 0.6),
+      y: cy || H * 0.3,
+      vx,
+      vy: burst ? (Math.sin(angle) * speed) : baseVy,
+      size: 4 + Math.random() * (burst ? 16 : 10),
+      color: pool[Math.floor(Math.random() * pool.length)],
+      life: 1,
+      decay: 0.008 + Math.random() * 0.015,
+      shape: eff === 'konfetti' ? 'rect' : (eff === 'bubblor' ? 'circle_outline' : (eff === 'blixt' ? 'line' : (eff === 'hjartan' ? 'heart' : (eff === 'musik' ? 'note' : 'circle')))),
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.2,
+    });
+  }
+}
+
+// Continuous ambient spawn
+function maybeSpawnAmbient() {
+  const eff = CFG.effekt;
+  const cx = charX, cy = charY;
+  if (eff === 'konfetti' && Math.random() < 0.15)  spawnParticles(2, W * Math.random(), -10, false);
+  if (eff === 'stjarnor' && Math.random() < 0.1)   spawnParticles(1, W * Math.random(), H * Math.random() * 0.7, false);
+  if (eff === 'eld' && Math.random() < 0.25)        spawnParticles(2, cx + (Math.random()-0.5)*40, cy, false);
+  if (eff === 'bubblor' && Math.random() < 0.12)   spawnParticles(1, cx + (Math.random()-0.5)*80, cy + 20, false);
+  if (eff === 'sno' && Math.random() < 0.2)         spawnParticles(2, W * Math.random(), -10, false);
+  if (eff === 'hjartan' && Math.random() < 0.1)    spawnParticles(1, cx + (Math.random()-0.5)*60, cy, false);
+  if (eff === 'musik' && Math.random() < 0.08)     spawnParticles(1, cx + (Math.random()-0.5)*50, cy - 20, false);
+  if (eff === 'magi' && Math.random() < 0.12)      spawnParticles(2, cx + (Math.random()-0.5)*60, cy + (Math.random()-0.5)*40, false);
+}
+
+// ─── Background decorations ───────────────────────────────────────────────────
+function drawBackground() {
+  // gradient
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, CFG.bgTop);
+  g.addColorStop(1, CFG.bgBot);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  const world = CFG.world;
+
+  if (world === 'rymden' || world === 'dromvarlden') {
+    // twinkling stars
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 137.5) % 1) * W;
+      const sy = ((i * 97.3) % 0.75) * H;
+      const a = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.2 + i * 0.7));
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // planet
+    ctx.fillStyle = 'rgba(100,80,200,0.35)';
+    ctx.beginPath();
+    ctx.arc(W * 0.82, H * 0.15, 48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(180,160,255,0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(W * 0.82, H * 0.15, 72, 14, -0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (world === 'djungeln') {
+    // trees as dark triangles
+    const treePositions = [0.05,0.15,0.25,0.72,0.82,0.92];
+    treePositions.forEach((tx, i) => {
+      const treeH = H * (0.22 + (i % 3) * 0.06);
+      const treeW = W * 0.08;
+      const baseY = H * 0.78;
+      ctx.fillStyle = `rgba(10,40,10,${0.5 + (i%2)*0.2})`;
+      ctx.beginPath();
+      ctx.moveTo(tx * W, baseY - treeH);
+      ctx.lineTo(tx * W - treeW/2, baseY);
+      ctx.lineTo(tx * W + treeW/2, baseY);
+      ctx.closePath();
+      ctx.fill();
+    });
+    // vines
+    ctx.strokeStyle = 'rgba(20,80,20,0.4)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 4; i++) {
+      const vx = W * (0.1 + i * 0.25);
+      ctx.beginPath();
+      ctx.moveTo(vx, 0);
+      for (let y = 0; y < H * 0.6; y += 20) {
+        ctx.lineTo(vx + Math.sin(y * 0.08 + i) * 14, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  if (world === 'havet') {
+    // wave layers
+    for (let layer = 0; layer < 3; layer++) {
+      const baseY = H * (0.72 + layer * 0.06);
+      const amp = 14 - layer * 3;
+      const speed = 1.5 + layer * 0.5;
+      const alpha = 0.15 + layer * 0.12;
+      ctx.fillStyle = `rgba(0,100,200,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 8) {
+        const y = baseY + Math.sin((x * 0.015) + t * speed) * amp;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  if (world === 'staden') {
+    // skyline silhouettes
+    const buildings = [
+      {x:0.02,w:0.08,h:0.35},{x:0.12,w:0.06,h:0.5},{x:0.2,w:0.1,h:0.4},
+      {x:0.32,w:0.07,h:0.55},{x:0.41,w:0.09,h:0.38},{x:0.52,w:0.06,h:0.48},
+      {x:0.6,w:0.11,h:0.42},{x:0.73,w:0.08,h:0.52},{x:0.83,w:0.07,h:0.36},{x:0.92,w:0.08,h:0.44},
+    ];
+    buildings.forEach(b => {
+      ctx.fillStyle = 'rgba(20,20,40,0.7)';
+      ctx.fillRect(b.x*W, H*(1-b.h), b.w*W, H*b.h);
+      // windows
+      ctx.fillStyle = `rgba(255,220,100,${0.2 + 0.4*Math.abs(Math.sin(t*0.5 + b.x*10))})`;
+      for (let wy = H*(1-b.h)+8; wy < H-20; wy += 16) {
+        for (let wx = b.x*W+4; wx < (b.x+b.w)*W-8; wx += 12) {
+          if (Math.abs((wx + wy) % 5) > 1) ctx.fillRect(wx, wy, 6, 8);
+        }
+      }
+    });
+  }
+
+  if (world === 'vulkanen') {
+    // lava glow at bottom
+    const lavag = ctx.createLinearGradient(0, H*0.7, 0, H);
+    lavag.addColorStop(0, 'rgba(200,60,0,0)');
+    lavag.addColorStop(1, 'rgba(255,100,0,0.5)');
+    ctx.fillStyle = lavag;
+    ctx.fillRect(0, H*0.7, W, H*0.3);
+    // volcano silhouette
+    ctx.fillStyle = 'rgba(60,20,0,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(W*0.15, H);
+    ctx.lineTo(W*0.35, H*0.35);
+    ctx.lineTo(W*0.55, H);
+    ctx.closePath();
+    ctx.fill();
+    // lava drips from top
+    for (let i = 0; i < 5; i++) {
+      const drip = ((t * 0.3 + i * 0.2) % 1);
+      const dx = W*(0.3 + (i - 2)*0.04);
+      ctx.fillStyle = `rgba(255,${80+i*20},0,${0.8-drip*0.5})`;
+      ctx.beginPath();
+      ctx.ellipse(dx, H*(0.35 + drip*0.3), 5, 10+drip*20, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // ground line (except havet/rymden)
+  if (world !== 'havet' && world !== 'rymden' && world !== 'dromvarlden') {
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, H * 0.82, W, H * 0.18);
+  }
+
+  // rainbow arc for regnbage effect
+  if (CFG.effekt === 'regnbage') {
+    const rainbowColors = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'];
+    rainbowColors.forEach((col, i) => {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 8;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(charX, charY + 20, 60 + i * 12, Math.PI, 2 * Math.PI);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─── Character movement ───────────────────────────────────────────────────────
+function updateChar(dt) {
+  figureT += dt;
+  const rorelse = CFG.rorelse;
+
+  switch (rorelse) {
+    case 'hoppa':
+      charX = W / 2;
+      charY = H * 0.58 - Math.abs(Math.sin(figureT * 2.5)) * H * 0.20;
+      break;
+    case 'dansa':
+      charX = W / 2 + Math.sin(figureT * 1.8) * W * 0.12;
+      charY = H * 0.58 + Math.sin(figureT * 3.6) * 14;
+      break;
+    case 'flyga':
+      flyAngle += dt * 1.1;
+      charX = W / 2 + Math.cos(flyAngle) * W * 0.25;
+      charY = H * 0.42 + Math.sin(flyAngle * 2) * H * 0.16;
+      break;
+    case 'snurra':
+      charX = W / 2;
+      charY = H * 0.52;
+      break;
+    case 'vinka':
+      charX = W / 2;
+      charY = H * 0.55;
+      break;
+    case 'springa':
+      charX = ((figureT * 0.12) % 1.3 - 0.15) * W;
+      charY = H * 0.58;
+      break;
+    case 'simma':
+      charX = W / 2 + Math.sin(figureT * 1.2) * W * 0.3;
+      charY = H * 0.5 + Math.cos(figureT * 1.2) * H * 0.06;
+      break;
+    case 'studsa':
+      charX = W / 2;
+      charY = H * 0.62 - Math.abs(Math.sin(figureT * 5)) * H * 0.10;
+      break;
+    case 'smyga':
+      charX = ((figureT * 0.05) % 1.2 - 0.1) * W;
+      charY = H * 0.62;
+      break;
+    default:
+      charX = W / 2;
+      charY = H * 0.55;
+  }
+}
+
+// ─── Draw character emoji ─────────────────────────────────────────────────────
+function drawChar() {
+  const rorelse = CFG.rorelse;
+  const size = Math.min(W, H) * 0.12;
+  ctx.save();
+  ctx.translate(charX, charY);
+
+  if (rorelse === 'snurra') ctx.rotate(figureT * 3);
+  if (rorelse === 'dansa')  ctx.rotate(Math.sin(figureT * 3) * 0.25);
+  if (rorelse === 'simma')  ctx.rotate(Math.sin(figureT * 1.2) * 0.2);
+
+  ctx.font = `${size}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // shadow
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#000';
+  ctx.fillText(CFG.charEmoji, 3, 5);
+  ctx.globalAlpha = 1;
+
+  ctx.fillText(CFG.charEmoji, 0, 0);
+  ctx.restore();
+
+  // shadow on ground
+  if (CFG.world !== 'havet' && CFG.world !== 'rymden') {
+    const shadowY = H * 0.82;
+    const dist = Math.max(0, shadowY - charY);
+    const shadowAlpha = Math.max(0, 0.4 - dist / (H * 0.5));
+    const shadowW = size * 0.5 * (1 - dist / (H * 0.5));
+    if (shadowW > 0 && shadowAlpha > 0) {
+      ctx.globalAlpha = shadowAlpha;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(charX, shadowY - 4, shadowW, shadowW * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ─── Draw particles ────────────────────────────────────────────────────────────
+function drawParticles(dt) {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x  += p.vx * dt * 60;
+    p.y  += p.vy * dt * 60;
+    p.vy += (CFG.effekt === 'konfetti' || CFG.effekt === 'sno') ? dt * 30 : // gravity for falling
+             (CFG.effekt === 'eld' || CFG.effekt === 'bubblor' || CFG.effekt === 'hjartan' || CFG.effekt === 'musik') ? -dt * 5 : dt * 15;
+    p.life -= p.decay;
+    p.angle += p.spin;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life) * 0.9;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.angle);
+
+    if (p.shape === 'rect') {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size * 0.6);
+    } else if (p.shape === 'circle') {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size/2, 0, Math.PI*2);
+      ctx.fill();
+    } else if (p.shape === 'circle_outline') {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size/2, 0, Math.PI*2);
+      ctx.stroke();
+    } else if (p.shape === 'line') {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(p.vx * 8, p.vy * 8);
+      ctx.stroke();
+    } else if (p.shape === 'heart') {
+      ctx.fillStyle = p.color;
+      ctx.font = `${p.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♥', 0, 0);
+    } else if (p.shape === 'note') {
+      ctx.fillStyle = p.color;
+      ctx.font = `${p.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♪', 0, 0);
+    } else {
+      // star default
+      ctx.fillStyle = p.color;
+      ctx.font = `${p.size + 2}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', 0, 0);
+    }
+    ctx.restore();
+  });
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────────────
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  if (playing) {
+    t += dt;
+    updateChar(dt);
+    maybeSpawnAmbient();
+    if (burstQueue > 0) {
+      spawnParticles(30, charX, charY, true);
+      burstQueue--;
+    }
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawParticles(dt);
+  drawChar();
+
+  rafId = requestAnimationFrame(loop);
+}
+rafId = requestAnimationFrame(loop);
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
+  if (playing) lastTs = null;
+}
+
+function triggerBurst(e) {
+  if (e.target.id === 'play-btn') return;
+  burstQueue++;
+}
+canvas.addEventListener('click', triggerBurst);
+canvas.addEventListener('touchstart', triggerBurst, { passive: true });
+</script>
+</body>
+</html>

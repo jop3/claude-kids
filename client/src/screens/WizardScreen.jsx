@@ -207,7 +207,7 @@ export default function WizardScreen({ category, navigate, answers: initialAnswe
       </div>
 
       {/* Step content */}
-      <div style={{ ...slideStyle, flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px', overflowY: 'auto' }}>
+      <div style={{ ...slideStyle, flex: 1, display: 'flex', flexDirection: 'column', padding: '4px 16px 16px', overflowY: 'auto' }}>
         {step.type === 'choice' && (
           <ChoiceGrid
             choices={step.choices}

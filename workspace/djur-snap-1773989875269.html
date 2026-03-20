@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Djur-Snap!</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: linear-gradient(135deg, #1a3a1a, #2a5a2a);
+  min-height:100vh;
+  font-family:'Arial Rounded MT Bold', Arial, sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  overflow:hidden; user-select:none;
+}
+#header {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  padding:12px 20px; background:rgba(0,0,0,0.4);
+}
+.pill {
+  background:rgba(0,0,0,0.5); border-radius:20px;
+  padding:8px 18px; color:#fff; font-size:1rem; font-weight:bold;
+}
+#arena {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:16px; width:100%; padding:16px;
+}
+#piles {
+  display:flex; gap:24px; align-items:center; justify-content:center;
+}
+.pile-area {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.pile-label {
+  color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:bold;
+  text-transform:uppercase; letter-spacing:0.05em;
+}
+.card-pile {
+  width:90px; height:120px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:3rem; position:relative;
+  border:3px solid rgba(255,255,255,0.25);
+  background:#2d6a2d;
+  box-shadow:0 6px 24px rgba(0,0,0,0.5);
+  transition: transform 0.15s;
+}
+.card-pile.empty {
+  background:rgba(255,255,255,0.06);
+  border-style:dashed;
+  font-size:1.5rem; color:rgba(255,255,255,0.3);
+}
+.card-pile.flip-in {
+  animation: flipIn 0.25s ease;
+}
+@keyframes flipIn {
+  0%   { transform:rotateY(90deg) scale(0.8); }
+  100% { transform:rotateY(0deg) scale(1); }
+}
+#snap-zone {
+  position:relative; width:140px; height:140px;
+  border-radius:50%;
+  border:4px dashed rgba(255,255,255,0.3);
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,0.25); font-size:1rem; font-weight:bold;
+  text-align:center; letter-spacing:0.05em;
+}
+#snap-zone.match {
+  border-color:#8bc34a;
+  box-shadow:0 0 40px #8bc34a;
+  color:#8bc34a;
+  animation:pulse 0.6s ease infinite;
+}
+@keyframes pulse {
+  0%,100% { transform:scale(1); }
+  50%      { transform:scale(1.06); }
+}
+#snap-btn {
+  width:160px; height:80px; border-radius:24px;
+  background:linear-gradient(90deg, #8bc34a, #fff3);
+  border:none; color:#fff; font-size:1.8rem; font-weight:900;
+  cursor:pointer; box-shadow:0 6px 24px rgba(0,0,0,0.4);
+  transition:transform 0.1s, box-shadow 0.1s;
+  display:none;
+}
+#snap-btn:active { transform:scale(0.93); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+#flip-btn {
+  padding:18px 48px; border-radius:20px;
+  background:linear-gradient(90deg,#1565c0,#42a5f5);
+  border:none; color:#fff; font-size:1.3rem; font-weight:800;
+  cursor:pointer; box-shadow:0 4px 18px rgba(21,101,192,0.5);
+  transition:transform 0.1s;
+}
+#flip-btn:active { transform:scale(0.95); }
+#flip-btn:disabled { opacity:0.4; cursor:default; transform:none; }
+#message {
+  min-height:40px; font-size:1.5rem; font-weight:900;
+  color:#fff; text-align:center;
+  text-shadow:0 2px 8px rgba(0,0,0,0.6);
+  transition:opacity 0.3s;
+}
+#overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.85);
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:20px; z-index:100;
+}
+#overlay.show { display:flex; }
+#overlay h1 { color:#fff; font-size:2.4rem; text-align:center; }
+#overlay p  { color:rgba(255,255,255,0.75); font-size:1.1rem; text-align:center; }
+#overlay button {
+  padding:16px 48px; border-radius:18px;
+  background:linear-gradient(90deg,#8bc34a,#fff3);
+  border:none; color:#fff; font-size:1.2rem; font-weight:800;
+  cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+.count-badge {
+  position:absolute; top:-8px; right:-8px;
+  background:#8bc34a; color:#fff;
+  border-radius:12px; padding:2px 8px;
+  font-size:0.75rem; font-weight:900;
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="pill">Du: <span id="player-count">0</span> kort</div>
+  <div class="pill">Djur-Snap!</div>
+  <div class="pill">Dator: <span id="cpu-count">0</span> kort</div>
+</div>
+
+<div id="arena">
+  <div id="message">Tryck Vänd för att börja!</div>
+
+  <div id="piles">
+    <div class="pile-area">
+      <div class="pile-label">Dator</div>
+      <div class="card-pile empty" id="cpu-pile">🤖</div>
+      <div class="pile-label"><span id="cpu-pile-count">0</span> st</div>
+    </div>
+
+    <div id="snap-zone">SNAP!</div>
+
+    <div class="pile-area">
+      <div class="pile-label">Du</div>
+      <div class="card-pile empty" id="player-pile">👤</div>
+      <div class="pile-label"><span id="player-pile-count">0</span> st</div>
+    </div>
+  </div>
+
+  <button id="snap-btn">SNAP! ⚡</button>
+  <button id="flip-btn">Vänd! 🃏</button>
+</div>
+
+<div id="overlay">
+  <h1 id="ov-title"></h1>
+  <p id="ov-text"></p>
+  <button onclick="startGame()">Spela igen!</button>
+</div>
+
+<script>
+const THEME = 'djur';
+const EMOJI_SETS = {
+  djur:     ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐸','🐙','🦋','🐝','🦄','🦕','🐬','🦈','🦓','🦒','🦘','🦔','🐧','🦅','🦜','🐡','🦞','🦀'],
+  rymden:   ['🚀','⭐','🌙','🪐','☄️','🛸','🌌','🔭','👨‍🚀','🌟','💫','🌠','🛰️','🌍','🌕','🌒','🌞','🌑','🪨','🔱','🌠','⚡','🌀','💥','🌈','☀️','🌊','🏔️','❄️','🔥'],
+  pirater:  ['⚓','🏴‍☠️','🗡️','💀','🦜','🗺️','💰','🏝️','⚔️','🔭','🪝','🚢','💎','🌊','🔱','🏹','🥃','🪙','🧭','🎯','🏰','🌅','⛵','🌴','🔒','🎲','🦅','🪬','🌙','🪩'],
+  framtiden:['🤖','🚀','🌐','💡','🔋','🛸','🧬','💻','🌌','⚡','🔬','🛰️','🧪','🦾','🌡️','📡','🔭','🏙️','🧠','📱','🖥️','🎮','💾','📺','🔌','🧲','🔦','🕹️','🎯','💠'],
+  hajar:    ['🦈','🐋','🐬','🐙','🦑','🦐','🐡','🦀','🦞','🐚','🌊','🐳','🐟','🐠','🦭','🪸','🏊','⚓','🌊','🚢','🐊','🐢','🦎','🐍','🦦','🦈','🌊','🫧','🧜','🐡'],
+  sagofigurer:['🧚','🧜','🧌','🧝','🧙','🦄','🐉','🦋','✨','🌟','🏰','🗡️','💎','🌙','🍄','🌈','🔮','🧿','🪄','🌺','🌸','🌻','🌹','🍀','🦁','🦊','🐝','🌙','⭐','💫'],
+  jul:      ['🎄','⛄','🎁','🎅','🦌','🔔','🕯️','❄️','⭐','🧦','🎶','🍪','🎠','🧣','🤶','🏔️','🌟','✨','🎿','⛷️','🛷','🎉','🧤','🎊','🫐','🍎','🧁','🍫','🥛','🎀'],
+  halloween:['🎃','👻','🕷️','🦇','💀','🕯️','🌙','🌕','🕸️','🧛','🧟','🔮','🪄','🩸','🦉','🌑','🌿','⚰️','🔪','🦴','🧪','🧨','🌑','🪦','🧸','🎭','🌊','🔥','💀','🌑'],
+  default:  ['😀','😎','🤩','😜','🥳','😍','🤪','😝','🥸','😏','😄','😂','🤗','😇','🥰','😋','🤔','😤','😮','🎉','🎊','🎈','🎯','⭐','💫','✨','🌈','🎀','🎁','🏆'],
+};
+
+function getEmojis() {
+  const t = THEME.toLowerCase();
+  for (const [k,v] of Object.entries(EMOJI_SETS)) {
+    if (t.includes(k)) return v;
+  }
+  return EMOJI_SETS.default;
+}
+
+// Audio
+let AC;
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(freq, dur, type='sine', vol=0.2) {
+  if (!AC) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = type; o.frequency.value = freq;
+    const now = AC.currentTime;
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+dur);
+    o.start(now); o.stop(now+dur);
+  } catch(e){}
+}
+function playFlip()  { beep(440,0.08,'square',0.15); }
+function playSnap()  { [600,900,1200].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'sine',0.25),i*40)); }
+function playWin()   { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'sine',0.2),i*100)); }
+function playLose()  { [300,200,150].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'sawtooth',0.25),i*100)); }
+function playMiss()  { beep(200,0.2,'sawtooth',0.3); }
+
+// Game state
+let playerDeck=[], cpuDeck=[];
+let playerPile=[], cpuPile=[];
+let matchPending=false, gameOver=false;
+let cpuTimeout=null;
+
+const emojis = getEmojis();
+
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function startGame() {
+  initAudio();
+  document.getElementById('overlay').classList.remove('show');
+  // Build deck of 30 cards (pairs of 15 emojis)
+  const pool = shuffle([...emojis]).slice(0,15);
+  const deck = shuffle([...pool,...pool]);
+  playerDeck = deck.slice(0,15);
+  cpuDeck    = deck.slice(15);
+  playerPile = []; cpuPile = [];
+  matchPending = false; gameOver = false;
+  if (cpuTimeout) clearTimeout(cpuTimeout);
+  cpuTimeout = null;
+
+  updateUI();
+  showMessage('Tryck Vänd för att börja!');
+  document.getElementById('snap-btn').style.display = 'none';
+  document.getElementById('flip-btn').disabled = false;
+  document.getElementById('snap-zone').classList.remove('match');
+}
+
+function updateUI() {
+  document.getElementById('player-count').textContent = playerDeck.length;
+  document.getElementById('cpu-count').textContent = cpuDeck.length;
+  document.getElementById('player-pile-count').textContent = playerPile.length;
+  document.getElementById('cpu-pile-count').textContent = cpuPile.length;
+
+  const pp = document.getElementById('player-pile');
+  const cp = document.getElementById('cpu-pile');
+
+  if (playerPile.length > 0) {
+    pp.textContent = playerPile[playerPile.length-1];
+    pp.classList.remove('empty');
+    pp.classList.add('flip-in');
+    setTimeout(()=>pp.classList.remove('flip-in'),300);
+  } else {
+    pp.textContent = '👤'; pp.classList.add('empty');
+  }
+  if (cpuPile.length > 0) {
+    cp.textContent = cpuPile[cpuPile.length-1];
+    cp.classList.remove('empty');
+    cp.classList.add('flip-in');
+    setTimeout(()=>cp.classList.remove('flip-in'),300);
+  } else {
+    cp.textContent = '🤖'; cp.classList.add('empty');
+  }
+}
+
+function showMessage(msg, dur=0) {
+  const el = document.getElementById('message');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (dur > 0) setTimeout(()=>{ el.style.opacity='0.3'; }, dur);
+}
+
+function checkMatch() {
+  if (playerPile.length > 0 && cpuPile.length > 0) {
+    const pt = playerPile[playerPile.length-1];
+    const ct = cpuPile[cpuPile.length-1];
+    if (pt === ct) {
+      matchPending = true;
+      document.getElementById('snap-zone').classList.add('match');
+      document.getElementById('snap-btn').style.display = 'block';
+      showMessage('SNAP! Vem är snabbast? ⚡');
+      // CPU tries to snap after random delay
+      const delay = 800 + Math.random() * 1400;
+      cpuTimeout = setTimeout(cpuSnap, delay);
+    }
+  }
+}
+
+function doFlip() {
+  if (gameOver || matchPending) return;
+  initAudio();
+  playFlip();
+
+  // Player flips
+  if (playerDeck.length > 0) {
+    playerPile.push(playerDeck.pop());
+  } else if (playerPile.length > 0) {
+    // Recycle pile
+    playerDeck = shuffle([...playerPile]);
+    playerPile = [];
+    playerPile.push(playerDeck.pop());
+    showMessage('Kortleken är slut — blandar om!');
+  } else {
+    endGame(false);
+    return;
+  }
+
+  // CPU flips after short delay
+  setTimeout(() => {
+    if (gameOver || matchPending) return;
+    if (cpuDeck.length > 0) {
+      cpuPile.push(cpuDeck.pop());
+    } else if (cpuPile.length > 0) {
+      cpuDeck = shuffle([...cpuPile]);
+      cpuPile = [];
+      cpuPile.push(cpuDeck.pop());
+    } else {
+      endGame(true);
+      return;
+    }
+    updateUI();
+    checkMatch();
+  }, 300);
+
+  updateUI();
+}
+
+function playerSnap() {
+  if (!matchPending || gameOver) {
+    if (!matchPending) { playMiss(); showMessage('Nej! Inte SNAP nu! ❌', 1200); }
+    return;
+  }
+  initAudio();
+  if (cpuTimeout) { clearTimeout(cpuTimeout); cpuTimeout=null; }
+  playSnap();
+  const won = [...playerPile, ...cpuPile];
+  playerDeck.push(...shuffle(won));
+  playerPile=[]; cpuPile=[];
+  matchPending=false;
+  document.getElementById('snap-zone').classList.remove('match');
+  document.getElementById('snap-btn').style.display='none';
+  showMessage('SNAP! Du fick ' + won.length + ' kort! 🎉');
+  updateUI();
+  checkWinLose();
+}
+
+function cpuSnap() {
+  if (!matchPending || gameOver) return;
+  playMiss();
+  const won = [...playerPile, ...cpuPile];
+  cpuDeck.push(...shuffle(won));
+  playerPile=[]; cpuPile=[];
+  matchPending=false;
+  document.getElementById('snap-zone').classList.remove('match');
+  document.getElementById('snap-btn').style.display='none';
+  showMessage('Datorn slog SNAP! 🤖 Försök snabbare!');
+  updateUI();
+  checkWinLose();
+}
+
+function checkWinLose() {
+  if (cpuDeck.length === 0 && cpuPile.length === 0) endGame(true);
+  else if (playerDeck.length === 0 && playerPile.length === 0) endGame(false);
+}
+
+function endGame(playerWon) {
+  gameOver = true;
+  if (cpuTimeout) clearTimeout(cpuTimeout);
+  document.getElementById('snap-btn').style.display='none';
+  document.getElementById('flip-btn').disabled = true;
+  if (playerWon) {
+    playWin();
+    document.getElementById('ov-title').textContent = '🏆 Du vann!';
+    document.getElementById('ov-text').textContent = 'Du samlade alla kort — SNAP-mästare!';
+  } else {
+    playLose();
+    document.getElementById('ov-title').textContent = '🤖 Datorn vann!';
+    document.getElementById('ov-text').textContent = 'Nästa gång är du snabbare!';
+  }
+  setTimeout(()=>document.getElementById('overlay').classList.add('show'), 1000);
+}
+
+document.getElementById('flip-btn').onclick = doFlip;
+document.getElementById('snap-btn').onclick = playerSnap;
+// Also allow tapping snap zone
+document.getElementById('snap-zone').onclick = playerSnap;
+
+startGame();
+</script>
+</body>
+</html>

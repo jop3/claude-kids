@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}}</title>
+<title>Mitt Spel</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#111; overflow:hidden; display:flex; align-items:center; justify-content:center;
@@ -16,14 +16,14 @@ canvas { display:block; touch-action:none; }
 #overlay { position:fixed; inset:0; display:flex; flex-direction:column;
            align-items:center; justify-content:center; z-index:20;
            background:rgba(0,0,0,0.75); }
-#overlay h1 { font-size:3rem; color:#fff; text-shadow:0 0 20px {{ACCENT}};
+#overlay h1 { font-size:3rem; color:#fff; text-shadow:0 0 20px #f18f01;
               margin-bottom:12px; }
 #overlay p  { font-size:1.2rem; color:#ddd; margin-bottom:28px; text-align:center; max-width:340px; }
-#overlay .score-big { font-size:2.5rem; color:{{ACCENT}}; margin-bottom:8px; }
+#overlay .score-big { font-size:2.5rem; color:#f18f01; margin-bottom:8px; }
 #overlay button { font-size:1.3rem; font-weight:bold; padding:16px 48px;
                   border:none; border-radius:20px; cursor:pointer;
-                  background:{{ACCENT}}; color:#fff;
-                  box-shadow:0 4px 20px {{ACCENT}}88;
+                  background:#f18f01; color:#fff;
+                  box-shadow:0 4px 20px #f18f0188;
                   transition:transform 0.1s; }
 #overlay button:active { transform:scale(0.95); }
 </style>
@@ -36,26 +36,26 @@ canvas { display:block; touch-action:none; }
 </div>
 <canvas id="c"></canvas>
 <div id="overlay">
-  <h1>{{TITLE}}</h1>
+  <h1>Mitt Spel</h1>
   <p>Tryck på skärmen eller mellanslag för att hoppa! Dubbeltryck för dubbel-hopp!</p>
   <button id="start-btn">▶ Kör!</button>
 </div>
 <script>
 // ─── CONFIG (injected) ───────────────────────────────────────────────────────
 const CFG = {
-  title:        '{{TITLE}}',
-  bgTop:        '{{WORLD_BG_TOP}}',
-  bgBot:        '{{WORLD_BG_BOT}}',
-  groundColor:  '{{GROUND_COLOR}}',
-  obstacleColor:'{{OBSTACLE_COLOR}}',
-  accent:       '{{ACCENT}}',
-  playerColor:  '{{PLAYER_COLOR}}',
-  playerShape:  '{{PLAYER_SHAPE}}',
-  coinColor:    '{{COIN_COLOR}}',
-  gravity:       parseFloat('{{GRAVITY}}')      || 0.6,
-  jumpForce:     parseFloat('{{JUMP_FORCE}}')   || -14,
-  initSpeed:     parseFloat('{{INIT_SPEED}}')   || 5,
-  maxSpeed:      parseFloat('{{MAX_SPEED}}')    || 14,
+  title:        'Mitt Spel',
+  bgTop:        '#0d2b0d',
+  bgBot:        '#1a4e1a',
+  groundColor:  '#2d4a1b',
+  obstacleColor:'#5d4037',
+  accent:       '#f18f01',
+  playerColor:  '#78909c',
+  playerShape:  'robot',
+  coinColor:    '#ffd700',
+  gravity:       parseFloat('0.550')      || 0.6,
+  jumpForce:     parseFloat('-12')   || -14,
+  initSpeed:     parseFloat('5.0')   || 5,
+  maxSpeed:      parseFloat('12.5')    || 14,
 };
 
 // ─── CANVAS SETUP ────────────────────────────────────────────────────────────
@@ -594,7 +594,6 @@ function takeDamage() {
     const hi = Math.max(hiScore, score);
     localStorage.setItem('runner_hi', hi);
     hiScore = hi;
-    try { window.parent.postMessage({ type: 'highscore', score }, '*'); } catch(e) {}
     setTimeout(() => {
       showOverlay(
         `<h1>Game Over!</h1><div class="score-big">⭐ ${score}</div>`,

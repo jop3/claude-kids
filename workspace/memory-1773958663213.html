@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}}</title>
+<title>Memory</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
-  background: linear-gradient(135deg, {{BG_TOP}}, {{BG_BOT}});
+  background: linear-gradient(135deg, #1a3a1a, #2a5a2a);
   min-height:100vh;
   font-family:'Arial Rounded MT Bold', Arial, sans-serif;
   display:flex; flex-direction:column; align-items:center;
@@ -49,20 +49,20 @@ body {
   -webkit-backface-visibility: hidden;
 }
 .card-back {
-  background: {{CARD_BACK}};
+  background: #2d6a2d;
   border: 3px solid rgba(255,255,255,0.2);
   box-shadow: 0 4px 14px rgba(0,0,0,0.4);
   font-size:2rem;
 }
 .card-front {
   transform: rotateY(180deg);
-  background: {{CARD_FRONT}};
+  background: #ffffff;
   border: 3px solid rgba(255,255,255,0.35);
   box-shadow: 0 4px 14px rgba(0,0,0,0.4);
   font-size:2.5rem;
 }
 .card.matched .card-front {
-  background: {{MATCHED_COLOR}};
+  background: #4caf50;
   border-color: rgba(255,255,255,0.6);
   animation: matchPop 0.4s ease forwards;
 }
@@ -87,14 +87,14 @@ body {
   flex-direction:column; align-items:center; justify-content:center;
   z-index:20;
 }
-#win h1 { font-size:3.5rem; color:#fff; text-shadow:0 0 30px {{ACCENT}}; margin-bottom:8px; }
+#win h1 { font-size:3.5rem; color:#fff; text-shadow:0 0 30px #8bc34a; margin-bottom:8px; }
 #win .stars { font-size:3rem; margin:12px 0; }
 #win p { color:#ddd; font-size:1.3rem; margin-bottom:28px; text-align:center; max-width:320px; }
 #win button {
   font-size:1.3rem; font-weight:bold; padding:16px 48px;
   border:none; border-radius:20px; cursor:pointer;
-  background:{{ACCENT}}; color:#fff;
-  box-shadow:0 4px 20px {{ACCENT}}88;
+  background:#8bc34a; color:#fff;
+  box-shadow:0 4px 20px #8bc34a88;
   transition:transform 0.1s;
 }
 #win button:active { transform:scale(0.95); }
@@ -112,7 +112,7 @@ body {
 <body>
 <div id="header">
   <div class="pill">🃏 <span id="pairs-left">0</span> kvar</div>
-  <div class="pill" id="title-pill">{{TITLE}}</div>
+  <div class="pill" id="title-pill">Memory</div>
   <div class="pill">🔁 <span id="moves">0</span> drag</div>
 </div>
 <div id="board">
@@ -128,10 +128,10 @@ body {
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const CFG = {
-  title:     '{{TITLE}}',
-  theme:     '{{THEME}}',
-  pairs:      parseInt('{{PAIRS}}')  || 8,
-  accent:    '{{ACCENT}}',
+  title:     'Memory',
+  theme:     'djur',
+  pairs:      parseInt('6')  || 8,
+  accent:    '#8bc34a',
 };
 
 // ─── EMOJI SETS BY THEME ─────────────────────────────────────────────────────
@@ -303,7 +303,6 @@ function onCardClick(id, el) {
 
 function showWin() {
   playWin();
-  try { window.parent.postMessage({ type: 'highscore', score: moves }, '*'); } catch(e) {}
   // Star rating: 3 stars ≤ pairs+2 moves, 2 stars ≤ pairs*2, else 1
   const stars = moves <= CFG.pairs + 2 ? '⭐⭐⭐' : moves <= CFG.pairs * 2 ? '⭐⭐' : '⭐';
   const msgs = {

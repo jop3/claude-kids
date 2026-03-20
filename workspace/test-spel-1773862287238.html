@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>{{TITLE}}</title>
+<title>Test Spel</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#111; overflow:hidden; display:flex; flex-direction:column;
@@ -19,13 +19,13 @@ canvas { display:block; touch-action:none; }
 #overlay { position:fixed; inset:0; display:flex; flex-direction:column;
            align-items:center; justify-content:center; z-index:20;
            background:rgba(0,0,0,0.75); }
-#overlay h1 { font-size:3rem; color:#fff; text-shadow:0 0 20px {{ACCENT}};
+#overlay h1 { font-size:3rem; color:#fff; text-shadow:0 0 20px #e94560;
               margin-bottom:12px; }
 #overlay p  { font-size:1.2rem; color:#ddd; margin-bottom:28px; text-align:center; max-width:320px; }
 #overlay button { font-size:1.3rem; font-weight:bold; padding:16px 48px;
                   border:none; border-radius:20px; cursor:pointer;
-                  background:{{ACCENT}}; color:#fff;
-                  box-shadow:0 4px 20px {{ACCENT}}88;
+                  background:#e94560; color:#fff;
+                  box-shadow:0 4px 20px #e9456088;
                   transition:transform 0.1s; }
 #overlay button:active { transform:scale(0.95); }
 /* touch d-pad */
@@ -36,10 +36,10 @@ canvas { display:block; touch-action:none; }
                -webkit-user-select:none; touch-action:none; }
 #dpad button:active { background:rgba(255,255,255,0.38); }
 #jump-btn { position:fixed; bottom:24px; right:20px; width:80px; height:80px;
-            border-radius:50%; border:none; background:{{ACCENT}}cc;
+            border-radius:50%; border:none; background:#e94560cc;
             color:#fff; font-size:2rem; cursor:pointer; display:none;
             z-index:15; touch-action:none; user-select:none; -webkit-user-select:none; }
-#jump-btn:active { background:{{ACCENT}}; }
+#jump-btn:active { background:#e94560; }
 </style>
 </head>
 <body>
@@ -61,29 +61,29 @@ canvas { display:block; touch-action:none; }
 </div>
 <button id="jump-btn">🆙</button>
 <div id="overlay">
-  <h1>{{TITLE}}</h1>
+  <h1>Test Spel</h1>
   <p>Piltangenter eller WASD för att röra sig, mellanslag/upp för att hoppa!</p>
   <button id="start-btn">▶ Spela!</button>
 </div>
 <script>
 // ─── CONFIG (injected) ───────────────────────────────────────────────────────
 const CFG = {
-  title:          "{{TITLE}}",
-  worldBg:        ["{{WORLD_BG_TOP}}", "{{WORLD_BG_BOT}}"],
-  groundColor:    "{{GROUND_COLOR}}",
-  platformColor:  "{{PLATFORM_COLOR}}",
-  accentColor:    "{{ACCENT}}",
-  playerColor:    "{{PLAYER_COLOR}}",
-  playerShape:    "{{PLAYER_SHAPE}}",   // ninja|robot|dino|unicorn|alien|pirate
-  enemyColor:     "{{ENEMY_COLOR}}",
-  enemyEnabled:   {{ENEMY_ENABLED}},
-  enemySpeed:     {{ENEMY_SPEED}},
-  gravity:        {{GRAVITY}},
-  jumpForce:      {{JUMP_FORCE}},
-  moveSpeed:      {{MOVE_SPEED}},
-  levelCount:     {{LEVEL_COUNT}},
-  coinColor:      "{{COIN_COLOR}}",
-  starParticles:  "{{ACCENT}}",
+  title:          "Test Spel",
+  worldBg:        ["#0d0d2b", "#1a1a4e"],
+  groundColor:    "#2d1b69",
+  platformColor:  "#6c3bbd",
+  accentColor:    "#e94560",
+  playerColor:    "#e94560",
+  playerShape:    "ninja",   // ninja|robot|dino|unicorn|alien|pirate
+  enemyColor:     "#e53935",
+  enemyEnabled:   false,
+  enemySpeed:     2.5,
+  gravity:        0.525,
+  jumpForce:      12.5,
+  moveSpeed:      5.25,
+  levelCount:     4,
+  coinColor:      "#ffd700",
+  starParticles:  "#e94560",
 };
 
 // ─── CANVAS SETUP ────────────────────────────────────────────────────────────
@@ -348,7 +348,6 @@ function checkGoal() {
       spawnParticles(W/2, H/2, CFG.accentColor, 40);
       playSound('win');
       showOverlay('🏆 Klart!', 'Du klarade alla ' + CFG.levelCount + ' nivåer!<br>Poäng: ' + score, 'Spela igen!');
-      try { window.parent.postMessage({ type: 'highscore', score }, '*'); } catch(e) {}
     }
   }
 }
@@ -392,7 +391,6 @@ function loseLife() {
   if (lives <= 0) {
     state = 'dead';
     showOverlay('💀 Game Over', 'Poäng: ' + score, 'Försök igen!');
-    try { window.parent.postMessage({ type: 'highscore', score }, '*'); } catch(e) {}
   } else {
     // Respawn at start of level
     player.x = 80; player.y = levelData.floorY - 48;

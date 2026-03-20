@@ -478,3 +478,44 @@ export function getMemoryConfig(answers, title) {
     PAIRS:         pairs,
   };
 }
+
+export function getSnapConfig(answers, title) {
+  const SNAP_THEMES = {
+    djur:     { bg: ['#1a3a1a','#2a5a2a'], card: '#2d6a2d', accent: '#8bc34a' },
+    rymden:   { bg: ['#0d0d2b','#1a1a4e'], card: '#1a237e', accent: '#7986cb' },
+    pirater:  { bg: ['#1a0f00','#2e1a00'], card: '#5d4037', accent: '#ffd54f' },
+    framtiden:{ bg: ['#001a2e','#002e4e'], card: '#0d47a1', accent: '#00e5ff' },
+    hajar:    { bg: ['#001a3e','#003388'], card: '#0d47a1', accent: '#00b0ff' },
+    sagofigurer:{ bg: ['#0d001a','#200040'], card: '#6a1b9a', accent: '#ea80fc' },
+    jul:      { bg: ['#001a00','#003300'], card: '#1b5e20', accent: '#ff5722' },
+    halloween:{ bg: ['#0d0000','#1a0500'], card: '#4a148c', accent: '#ff6d00' },
+  };
+  const tema = (answers.tema || '').toLowerCase();
+  const themeData = Object.entries(SNAP_THEMES).find(([k]) => tema.includes(k))?.[1]
+    || SNAP_THEMES.djur;
+  return {
+    TITLE:    title || 'Snap!',
+    BG_TOP:   themeData.bg[0],
+    BG_BOT:   themeData.bg[1],
+    CARD_BACK: themeData.card,
+    ACCENT:   themeData.accent,
+    THEME:    Object.keys(SNAP_THEMES).find(k => tema.includes(k)) || 'djur',
+  };
+}
+
+export function getTopTrumpsConfig(answers, title) {
+  const TT_THEMES = {
+    djur:   { bg: ['#1a3a1a','#2a5a2a'], accent: '#8bc34a' },
+    rymden: { bg: ['#0d0d2b','#1a1a4e'], accent: '#7986cb' },
+  };
+  const tema = (answers.tema || '').toLowerCase();
+  const themeData = Object.entries(TT_THEMES).find(([k]) => tema.includes(k))?.[1]
+    || { bg: ['#0d0d2b','#1a1a4e'], accent: '#ce93d8' };
+  return {
+    TITLE:  title || 'Top Trumps',
+    BG_TOP: themeData.bg[0],
+    BG_BOT: themeData.bg[1],
+    ACCENT: themeData.accent,
+    THEME:  Object.keys(TT_THEMES).find(k => tema.includes(k)) || 'default',
+  };
+}

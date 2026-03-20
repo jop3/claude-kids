@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Brädspel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(135deg, #001a2e, #002e4e);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  h1 {
+    font-size: clamp(1rem, 3.5vw, 1.4rem);
+    font-weight: 900;
+    color: #00e5ff;
+    text-shadow: 0 0 12px #00e5ff88;
+    padding: 10px 0 4px;
+    letter-spacing: 1px;
+  }
+
+  /* Board canvas */
+  #board-canvas {
+    width: min(96vw, 460px);
+    height: min(96vw, 460px);
+    border-radius: 16px;
+    border: 3px solid #00e5ff66;
+    box-shadow: 0 0 20px #00e5ff44;
+    touch-action: none;
+  }
+
+  /* Player info row */
+  #players-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px;
+    max-width: 460px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .player-card {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: rgba(255,255,255,0.08);
+    text-align: center;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .player-card.active {
+    border-color: #00e5ff;
+    background: #00e5ff22;
+  }
+  .player-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+  }
+  .player-pos {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Dice area */
+  #dice-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  #dice {
+    width: 70px;
+    height: 70px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 0 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #222;
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: 3px solid #00e5ff;
+  }
+  #dice.rolling {
+    animation: roll-dice 0.5s ease-in-out;
+  }
+  @keyframes roll-dice {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-15deg) scale(1.1); }
+    50% { transform: rotate(15deg) scale(0.9); }
+    75% { transform: rotate(-10deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+
+  #roll-btn {
+    padding: 12px 32px;
+    background: #00e5ff;
+    border: none;
+    border-radius: 14px;
+    color: #000;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 14px #00e5ff55;
+    touch-action: manipulation;
+    transition: opacity 0.2s;
+  }
+  #roll-btn:disabled { opacity: 0.4; cursor: default; }
+
+  #status-text {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 0 16px;
+    min-height: 1.2em;
+  }
+
+  /* Win overlay */
+  #win-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 50;
+    text-align: center;
+    padding: 24px;
+  }
+  #win-emoji { font-size: 5rem; }
+  #win-text { font-size: 1.8rem; font-weight: 900; color: #00e5ff; }
+  #win-sub { font-size: 1rem; color: rgba(255,255,255,0.65); }
+  #play-again-btn {
+    padding: 16px 40px;
+    background: #00e5ff;
+    border: none;
+    border-radius: 16px;
+    color: #000;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .confetti-piece {
+    position: fixed;
+    border-radius: 2px;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Brädspel</h1>
+
+<canvas id="board-canvas"></canvas>
+
+<div id="players-row"></div>
+
+<div id="dice-area">
+  <div id="dice">🎲</div>
+  <button id="roll-btn">Kasta tärning!</button>
+  <div id="status-text">Tryck för att starta spelet!</div>
+</div>
+
+<div id="win-overlay">
+  <div id="win-emoji">🏆</div>
+  <div id="win-text"></div>
+  <div id="win-sub"></div>
+  <button id="play-again-btn">Spela igen!</button>
+</div>
+
+<script>
+(function() {
+  const TEMA = 'framtiden';
+  const PLAYERS = parseInt('2') || 2;
+  const ACCENT = '#00e5ff';
+
+  // ── Theme definitions ─────────────────────────────────────────────────────
+  const THEMES = {
+    banspel: {
+      squares: ['#4a90d9','#5ba3e8','#3a7abd','#6ab4f5','#2d6fa8'],
+      special: { star: '⭐', skull: '💀', lightning: '⚡' },
+    },
+    pirater: {
+      squares: ['#8d6748','#a07850','#6b4f35','#c49a6c','#7a5a3a'],
+      special: { star: '⚓', skull: '☠️', lightning: '🦜' },
+    },
+    rymd: {
+      squares: ['#1a237e','#283593','#0d1b6e','#3949ab','#1a2a7a'],
+      special: { star: '🌟', skull: '🕳️', lightning: '🚀' },
+    },
+    djungel: {
+      squares: ['#2e7d32','#388e3c','#1b5e20','#43a047','#27662a'],
+      special: { star: '🍃', skull: '🐍', lightning: '🐒' },
+    },
+    saga: {
+      squares: ['#6a1b9a','#7b1fa2','#4a148c','#8e24aa','#5e1590'],
+      special: { star: '✨', skull: '🧟', lightning: '🧚' },
+    },
+  };
+
+  const themeKey = Object.keys(THEMES).find(k => TEMA.toLowerCase().includes(k)) || 'banspel';
+  const theme = THEMES[themeKey];
+
+  // ── Board layout ──────────────────────────────────────────────────────────
+  const TOTAL_SQUARES = 24;
+  const SPECIAL_SQUARES = {
+    5:  { type: 'skull',     msg: 'Gå tillbaka 2!' },
+    10: { type: 'star',      msg: 'Flytta fram 3!' },
+    15: { type: 'skull',     msg: 'Gå tillbaka 2!' },
+    18: { type: 'lightning', msg: 'Extra tur!' },
+    20: { type: 'star',      msg: 'Flytta fram 3!' },
+  };
+
+  // ── Player setup ──────────────────────────────────────────────────────────
+  const PLAYER_COLORS = ['#ff6b6b','#4ecdc4','#ffd700','#a29bfe'];
+  const PLAYER_NAMES = ['Spelare 1','Spelare 2','Spelare 3','Spelare 4'];
+
+  const players = Array.from({ length: PLAYERS }, (_, i) => ({
+    pos: 0,
+    color: PLAYER_COLORS[i],
+    name: PLAYER_NAMES[i],
+    animPos: 0,
+    animTarget: 0,
+    animating: false,
+    extraTurn: false,
+  }));
+
+  let currentPlayer = 0;
+  let gameOver = false;
+  let rolling = false;
+
+  // ── Canvas ────────────────────────────────────────────────────────────────
+  const canvas = document.getElementById('board-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    const size = Math.min(window.innerWidth * 0.96, 460);
+    canvas.width = size * devicePixelRatio;
+    canvas.height = size * devicePixelRatio;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    render();
+  }
+
+  function getSquarePos(idx, size) {
+    // Winding snake path: 6 columns × 4 rows
+    const cols = 6, rows = 4;
+    const sqW = size / cols, sqH = size / rows;
+    const row = Math.floor(idx / cols);
+    const col = (row % 2 === 0) ? (idx % cols) : (cols - 1 - idx % cols);
+    return {
+      x: col * sqW,
+      y: row * sqH,
+      w: sqW,
+      h: sqH,
+    };
+  }
+
+  function render() {
+    const size = canvas.width / devicePixelRatio;
+    ctx.clearRect(0, 0, size, size);
+
+    // Draw squares
+    for (let i = 0; i < TOTAL_SQUARES; i++) {
+      const p = getSquarePos(i, size);
+      const colorIdx = i % theme.squares.length;
+      ctx.fillStyle = theme.squares[colorIdx];
+      ctx.beginPath();
+      roundRect(ctx, p.x + 2, p.y + 2, p.w - 4, p.h - 4, 6);
+      ctx.fill();
+
+      // Border
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Square number
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `bold ${Math.round(size * 0.03)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(i + 1, p.x + p.w / 2, p.y + 5);
+
+      // Special square emoji
+      if (SPECIAL_SQUARES[i + 1]) {
+        const sp = SPECIAL_SQUARES[i + 1];
+        const emoji = theme.special[sp.type];
+        ctx.font = `${Math.round(size * 0.055)}px serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, p.x + p.w / 2, p.y + p.h / 2 + 4);
+      }
+
+      // Finish square
+      if (i === TOTAL_SQUARES - 1) {
+        ctx.font = `${Math.round(size * 0.06)}px serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🏁', p.x + p.w / 2, p.y + p.h / 2 + 4);
+      }
+    }
+
+    // Draw player pieces
+    const offsets = [
+      { dx: 0.2, dy: 0.2 },
+      { dx: 0.6, dy: 0.2 },
+      { dx: 0.2, dy: 0.65 },
+      { dx: 0.6, dy: 0.65 },
+    ];
+
+    players.forEach((pl, i) => {
+      if (pl.pos >= TOTAL_SQUARES) return;
+      const sq = getSquarePos(pl.pos, size);
+      const off = offsets[i % offsets.length];
+      const px = sq.x + sq.w * off.dx;
+      const py = sq.y + sq.h * off.dy;
+      const r = size * 0.035;
+
+      // Shadow
+      ctx.beginPath();
+      ctx.arc(px, py + 2, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fill();
+
+      // Piece
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fillStyle = pl.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Player number
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${Math.round(r * 1.2)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, px, py + 1);
+    });
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  // ── Player cards ──────────────────────────────────────────────────────────
+  const playersRow = document.getElementById('players-row');
+  const playerCards = players.map((pl, i) => {
+    const card = document.createElement('div');
+    card.className = 'player-card' + (i === 0 ? ' active' : '');
+    card.innerHTML = `<div class="player-name" style="color:${pl.color}">${pl.name}</div><div class="player-pos">Ruta 0</div>`;
+    playersRow.appendChild(card);
+    return card;
+  });
+
+  function updatePlayerCards() {
+    playerCards.forEach((card, i) => {
+      card.classList.toggle('active', i === currentPlayer);
+      card.querySelector('.player-pos').textContent = `Ruta ${players[i].pos}`;
+    });
+  }
+
+  // ── Dice ──────────────────────────────────────────────────────────────────
+  const diceEl = document.getElementById('dice');
+  const rollBtn = document.getElementById('roll-btn');
+  const statusEl = document.getElementById('status-text');
+
+  const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+  function rollDice() {
+    if (rolling || gameOver) return;
+    rolling = true;
+    rollBtn.disabled = true;
+
+    let ticks = 0;
+    const interval = setInterval(() => {
+      diceEl.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
+      ticks++;
+      if (ticks >= 8) {
+        clearInterval(interval);
+        const result = Math.floor(Math.random() * 6) + 1;
+        diceEl.textContent = DICE_FACES[result - 1];
+        diceEl.classList.add('rolling');
+        setTimeout(() => diceEl.classList.remove('rolling'), 500);
+        setTimeout(() => movePlayer(result), 300);
+      }
+    }, 60);
+  }
+
+  function movePlayer(steps) {
+    const pl = players[currentPlayer];
+    const newPos = Math.min(pl.pos + steps, TOTAL_SQUARES - 1);
+
+    // Animate step by step
+    let step = 0;
+    const interval = setInterval(() => {
+      if (pl.pos < newPos) {
+        pl.pos++;
+        render();
+      }
+      step++;
+      if (step >= steps || pl.pos >= newPos) {
+        clearInterval(interval);
+        pl.pos = newPos;
+        render();
+        handleLanding(newPos);
+      }
+    }, 180);
+  }
+
+  function handleLanding(pos) {
+    const pl = players[currentPlayer];
+    let extraTurn = false;
+
+    if (pos === TOTAL_SQUARES - 1) {
+      // Win!
+      setTimeout(() => showWin(currentPlayer), 400);
+      rolling = false;
+      return;
+    }
+
+    const special = SPECIAL_SQUARES[pos + 1];
+    if (special) {
+      statusEl.textContent = special.msg;
+      if (special.type === 'star') {
+        setTimeout(() => {
+          pl.pos = Math.min(pl.pos + 3, TOTAL_SQUARES - 1);
+          render();
+          if (pl.pos === TOTAL_SQUARES - 1) { showWin(currentPlayer); return; }
+          nextTurn();
+        }, 900);
+        return;
+      } else if (special.type === 'skull') {
+        setTimeout(() => {
+          pl.pos = Math.max(pl.pos - 2, 0);
+          render();
+          nextTurn();
+        }, 900);
+        return;
+      } else if (special.type === 'lightning') {
+        extraTurn = true;
+        statusEl.textContent = 'Extra tur!';
+      }
+    }
+
+    if (!extraTurn) {
+      nextTurn();
+    } else {
+      statusEl.textContent = `${pl.name} får en extra tur!`;
+      rolling = false;
+      rollBtn.disabled = false;
+    }
+  }
+
+  function nextTurn() {
+    currentPlayer = (currentPlayer + 1) % PLAYERS;
+    updatePlayerCards();
+    statusEl.textContent = `${players[currentPlayer].name}s tur — kasta tärningen!`;
+    rolling = false;
+    rollBtn.disabled = false;
+  }
+
+  rollBtn.addEventListener('click', rollDice);
+
+  function showWin(playerIdx) {
+    gameOver = true;
+    const pl = players[playerIdx];
+    const overlay = document.getElementById('win-overlay');
+    document.getElementById('win-text').textContent = `${pl.name} vinner! 🎉`;
+    document.getElementById('win-sub').textContent = 'Grattis! Du nådde målet!';
+    overlay.style.display = 'flex';
+    launchConfetti();
+  }
+
+  document.getElementById('play-again-btn').addEventListener('click', () => {
+    players.forEach(pl => { pl.pos = 0; });
+    currentPlayer = 0;
+    gameOver = false;
+    rolling = false;
+    rollBtn.disabled = false;
+    document.getElementById('win-overlay').style.display = 'none';
+    statusEl.textContent = 'Tryck för att starta spelet!';
+    updatePlayerCards();
+    render();
+  });
+
+  function launchConfetti() {
+    const colors = [ACCENT, '#ffd700', '#ff6b6b', '#51cf66', '#74c0fc'];
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.top = '-10px';
+        el.style.background = colors[i % colors.length];
+        el.style.width = (6 + Math.random() * 8) + 'px';
+        el.style.height = (6 + Math.random() * 8) + 'px';
+        el.style.animationDuration = (2 + Math.random() * 2) + 's';
+        el.style.animationDelay = (Math.random() * 0.8) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 25);
+    }
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  updatePlayerCards();
+  statusEl.textContent = `${players[0].name}s tur — kasta tärningen!`;
+})();
+</script>
+</body>
+</html>

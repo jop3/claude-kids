@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Djur Top Trumps</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: linear-gradient(135deg, #1a3a1a, #2a5a2a);
+  min-height:100vh;
+  font-family:'Arial Rounded MT Bold', Arial, sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  overflow:hidden; user-select:none;
+}
+#header {
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  padding:10px 18px; background:rgba(0,0,0,0.4);
+}
+.pill {
+  background:rgba(0,0,0,0.5); border-radius:20px;
+  padding:6px 16px; color:#fff; font-size:0.95rem; font-weight:bold;
+}
+#arena {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; width:100%; padding:12px;
+  max-width:440px; margin:0 auto;
+}
+#cards-area {
+  display:flex; gap:16px; align-items:stretch; justify-content:center;
+  width:100%;
+}
+.card-wrapper {
+  flex:1; display:flex; flex-direction:column; gap:0;
+  border-radius:20px; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  max-width:200px;
+}
+.card-header {
+  padding:14px; text-align:center;
+  font-size:2.2rem; background:rgba(0,0,0,0.4);
+}
+.card-name {
+  font-size:0.85rem; color:rgba(255,255,255,0.85);
+  font-weight:bold; padding:4px 0;
+}
+.card-stat {
+  padding:10px 14px; display:flex; justify-content:space-between;
+  align-items:center; cursor:pointer;
+  border-top:1px solid rgba(255,255,255,0.08);
+  transition:background 0.15s;
+  background:rgba(255,255,255,0.04);
+  position:relative;
+}
+.card-stat:hover { background:rgba(255,255,255,0.1); }
+.card-stat.selected { background:#8bc34a44; }
+.card-stat.winner { background:#00c85344; }
+.card-stat.loser  { background:#e9456044; }
+.stat-label { color:rgba(255,255,255,0.75); font-size:0.8rem; font-weight:bold; }
+.stat-val   { color:#fff; font-size:1.1rem; font-weight:900; }
+.stat-bar {
+  position:absolute; left:0; bottom:0; height:3px;
+  background:#8bc34a; transition:width 0.4s ease;
+}
+.cpu-card .card-stat { cursor:default; }
+.cpu-card .card-stat:hover { background:rgba(255,255,255,0.04); }
+.card-label {
+  background:rgba(0,0,0,0.5); color:rgba(255,255,255,0.6);
+  font-size:0.75rem; text-align:center; padding:6px;
+  font-weight:bold; text-transform:uppercase; letter-spacing:0.06em;
+}
+#message {
+  min-height:44px; font-size:1.35rem; font-weight:900;
+  color:#fff; text-align:center;
+  text-shadow:0 2px 8px rgba(0,0,0,0.6);
+  padding:0 12px;
+}
+#next-btn {
+  padding:14px 48px; border-radius:18px;
+  background:linear-gradient(90deg,#1565c0,#42a5f5);
+  border:none; color:#fff; font-size:1.1rem; font-weight:800;
+  cursor:pointer; box-shadow:0 4px 18px rgba(21,101,192,0.5);
+  display:none;
+}
+#next-btn:active { transform:scale(0.96); }
+#overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.88);
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:20px; z-index:100;
+}
+#overlay.show { display:flex; }
+#overlay h1 { color:#fff; font-size:2.4rem; text-align:center; }
+#overlay p  { color:rgba(255,255,255,0.75); font-size:1.1rem; text-align:center; }
+#overlay button {
+  padding:16px 48px; border-radius:18px;
+  background:linear-gradient(90deg,#8bc34a,#fff3);
+  border:none; color:#fff; font-size:1.2rem; font-weight:800;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="pill">Du: <span id="player-count">10</span></div>
+  <div class="pill">Djur Top Trumps</div>
+  <div class="pill">Dator: <span id="cpu-count">10</span></div>
+</div>
+
+<div id="arena">
+  <div id="message">Välj en kategori att slåss om!</div>
+
+  <div id="cards-area">
+    <div class="card-wrapper" id="player-card">
+      <div class="card-label">Du spelar</div>
+      <div class="card-header" id="player-emoji">?</div>
+      <div class="card-name" style="text-align:center;color:rgba(255,255,255,0.7);padding:4px"></div>
+      <div id="player-stats"></div>
+    </div>
+    <div class="card-wrapper cpu-card" id="cpu-card">
+      <div class="card-label">Datorns kort</div>
+      <div class="card-header" id="cpu-emoji">🎴</div>
+      <div class="card-name" style="text-align:center;color:rgba(255,255,255,0.7);padding:4px"></div>
+      <div id="cpu-stats"></div>
+    </div>
+  </div>
+
+  <button id="next-btn" onclick="nextRound()">Nästa runda ▶</button>
+</div>
+
+<div id="overlay">
+  <h1 id="ov-title"></h1>
+  <p id="ov-text"></p>
+  <button onclick="startGame()">Spela igen!</button>
+</div>
+
+<script>
+const THEME = 'djur';
+
+const CARD_SETS = {
+  djur: {
+    stats: ['Styrka','Snabbhet','Intelligens','Storlek'],
+    cards: [
+      {e:'🦁',n:'Lejon',     v:[9,7,5,8]},
+      {e:'🐘',n:'Elefant',   v:[9,4,7,10]},
+      {e:'🐯',n:'Tiger',     v:[8,8,6,7]},
+      {e:'🦊',n:'Räv',       v:[4,7,9,3]},
+      {e:'🦈',n:'Haj',       v:[8,9,4,7]},
+      {e:'🦅',n:'Örn',       v:[6,8,6,5]},
+      {e:'🐺',n:'Varg',      v:[7,8,7,5]},
+      {e:'🦒',n:'Giraff',    v:[5,5,4,10]},
+      {e:'🐊',n:'Krokodil',  v:[8,5,3,7]},
+      {e:'🦓',n:'Zebra',     v:[4,8,4,6]},
+      {e:'🦔',n:'Igelkott',  v:[3,4,6,1]},
+      {e:'🐻',n:'Björn',     v:[9,5,5,9]},
+      {e:'🐬',n:'Delfin',    v:[5,9,10,6]},
+      {e:'🦘',n:'Känguru',   v:[6,8,5,7]},
+      {e:'🦁',n:'Vit Lejon', v:[9,8,6,8]},
+      {e:'🐆',n:'Gepard',    v:[6,10,5,5]},
+      {e:'🦂',n:'Skorpion',  v:[6,5,3,1]},
+      {e:'🦩',n:'Flamingo',  v:[2,5,4,4]},
+      {e:'🦦',n:'Utter',     v:[4,7,8,3]},
+      {e:'🦝',n:'Tvättbjörn',v:[3,5,8,3]},
+    ]
+  },
+  rymden: {
+    stats: ['Storlek','Temp (K)','Avstånd','Månar'],
+    cards: [
+      {e:'☀️',n:'Solen',     v:[10,10,1,0]},
+      {e:'🌍',n:'Jorden',    v:[5,5,3,1]},
+      {e:'🪐',n:'Saturnus',  v:[9,2,7,9]},
+      {e:'🔴',n:'Mars',      v:[4,3,4,2]},
+      {e:'🔵',n:'Neptunus',  v:[8,1,9,8]},
+      {e:'💛',n:'Venus',     v:[5,9,2,0]},
+      {e:'🟤',n:'Jupiter',   v:[10,4,6,10]},
+      {e:'⚫',n:'Merkurius', v:[2,7,1,0]},
+      {e:'🟠',n:'Uranus',    v:[7,1,8,7]},
+      {e:'🌙',n:'Månen',     v:[2,2,1,0]},
+      {e:'☄️',n:'Komet',     v:[1,6,10,0]},
+      {e:'⭐',n:'Proxima',   v:[3,6,10,0]},
+      {e:'🌑',n:'Pluto',     v:[1,1,9,1]},
+      {e:'💥',n:'Supernova', v:[10,10,10,0]},
+      {e:'🕳️',n:'Svart Hål', v:[10,10,10,0]},
+      {e:'🌌',n:'Nebulosa',  v:[10,5,8,0]},
+      {e:'🌠',n:'Meteor',    v:[1,5,7,0]},
+      {e:'🔭',n:'Teleskop',  v:[1,1,1,0]},
+      {e:'🛸',n:'UFO',       v:[3,4,6,0]},
+      {e:'🚀',n:'Raket',     v:[1,4,5,0]},
+    ]
+  },
+  default: {
+    stats: ['Kraft','Fart','Magi','Tur'],
+    cards: [
+      {e:'🐉',n:'Drake',    v:[10,7,9,6]},
+      {e:'🧙',n:'Trollkare', v:[5,4,10,8]},
+      {e:'🧜',n:'Sjöjungfru',v:[4,8,7,9]},
+      {e:'🧝',n:'Alv',      v:[6,9,8,7]},
+      {e:'🦄',n:'Enhörning', v:[5,7,10,10]},
+      {e:'🧌',n:'Troll',    v:[9,3,3,2]},
+      {e:'🧚',n:'Fe',        v:[2,8,9,9]},
+      {e:'🦸',n:'Superhjälte',v:[9,8,6,5]},
+      {e:'🧛',n:'Vampyr',   v:[8,7,8,4]},
+      {e:'🧟',n:'Zombie',   v:[7,2,2,1]},
+      {e:'🧞',n:'Ande',     v:[6,6,10,7]},
+      {e:'🦊',n:'Räven',    v:[4,9,7,8]},
+      {e:'🐺',n:'Varulv',   v:[8,8,4,3]},
+      {e:'🏹',n:'Bågskytt', v:[6,7,5,6]},
+      {e:'⚔️',n:'Riddare',  v:[8,5,4,5]},
+      {e:'🧲',n:'Magnet',   v:[3,4,8,7]},
+      {e:'💎',n:'Kristall', v:[4,4,9,10]},
+      {e:'🔮',n:'Kristallkula',v:[2,3,10,8]},
+      {e:'🌟',n:'Stjärna',  v:[5,7,8,9]},
+      {e:'🎯',n:'Mästare',  v:[7,7,7,7]},
+    ]
+  }
+};
+
+function getCards() {
+  const t = THEME.toLowerCase();
+  if (t.includes('djur')) return CARD_SETS.djur;
+  if (t.includes('rymden') || t.includes('space')) return CARD_SETS.rymden;
+  return CARD_SETS.default;
+}
+
+// Audio
+let AC;
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(f,d,type='sine',vol=0.2) {
+  if (!AC) return;
+  try {
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type=type; o.frequency.value=f;
+    const n=AC.currentTime;
+    g.gain.setValueAtTime(vol,n); g.gain.exponentialRampToValueAtTime(0.001,n+d);
+    o.start(n); o.stop(n+d);
+  } catch(e){}
+}
+function playWin()  { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'sine',0.2),i*80)); }
+function playLose() { [300,200,150].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'sawtooth',0.25),i*100)); }
+function playDraw() { beep(440,0.2,'triangle',0.15); }
+function playEnd()  { [784,659,523,392].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'sine',0.2),i*120)); }
+
+const DATA = getCards();
+let playerDeck=[], cpuDeck=[], roundOver=false;
+
+function shuffle(a) {
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function startGame() {
+  initAudio();
+  document.getElementById('overlay').classList.remove('show');
+  const cards = shuffle([...DATA.cards]);
+  playerDeck = cards.slice(0,10);
+  cpuDeck    = cards.slice(10);
+  roundOver = false;
+  document.getElementById('next-btn').style.display='none';
+  showRound();
+}
+
+function showRound() {
+  if (!playerDeck.length || !cpuDeck.length) { endGame(); return; }
+  roundOver = false;
+  document.getElementById('next-btn').style.display='none';
+
+  const pc = playerDeck[playerDeck.length-1];
+  const cc = cpuDeck[cpuDeck.length-1];
+
+  document.getElementById('player-emoji').textContent = pc.e;
+  document.getElementById('cpu-emoji').textContent    = '🎴';
+
+  const psEl = document.getElementById('player-stats');
+  const csEl = document.getElementById('cpu-stats');
+
+  psEl.innerHTML = DATA.stats.map((s,i) => `
+    <div class="card-stat" data-idx="${i}" onclick="choose(${i})">
+      <span class="stat-label">${s}</span>
+      <span class="stat-val">${pc.v[i]}</span>
+      <div class="stat-bar" style="width:${pc.v[i]*10}%"></div>
+    </div>`).join('');
+
+  csEl.innerHTML = DATA.stats.map((s,i) => `
+    <div class="card-stat" data-idx="${i}">
+      <span class="stat-label">${s}</span>
+      <span class="stat-val" id="cpu-val-${i}">?</span>
+      <div class="stat-bar" style="width:0%"></div>
+    </div>`).join('');
+
+  document.getElementById('player-count').textContent = playerDeck.length;
+  document.getElementById('cpu-count').textContent    = cpuDeck.length;
+  document.getElementById('message').textContent = 'Välj en kategori att slåss om!';
+}
+
+function choose(idx) {
+  if (roundOver) return;
+  roundOver = true;
+  initAudio();
+
+  const pc = playerDeck[playerDeck.length-1];
+  const cc = cpuDeck[cpuDeck.length-1];
+  const pv = pc.v[idx], cv = cc.v[idx];
+
+  // Reveal CPU card
+  document.getElementById('cpu-emoji').textContent = cc.e;
+  DATA.stats.forEach((_,i) => {
+    const el = document.getElementById('cpu-val-'+i);
+    if (el) {
+      el.textContent = cc.v[i];
+      el.parentElement.querySelector('.stat-bar').style.width = (cc.v[i]*10)+'%';
+    }
+  });
+
+  // Highlight chosen stat
+  document.querySelectorAll('#player-stats .card-stat').forEach(el => {
+    el.classList.remove('selected','winner','loser');
+  });
+  document.querySelectorAll('#cpu-stats .card-stat').forEach(el => {
+    el.classList.remove('selected','winner','loser');
+  });
+
+  const pStat = document.querySelector(`#player-stats .card-stat[data-idx="${idx}"]`);
+  const cStat = document.querySelector(`#cpu-stats .card-stat[data-idx="${idx}"]`);
+
+  let msg;
+  if (pv > cv) {
+    playWin();
+    playerDeck.unshift(cpuDeck.pop());
+    playerDeck.unshift(playerDeck.pop());
+    pStat && pStat.classList.add('winner');
+    cStat && cStat.classList.add('loser');
+    msg = `Du vann! ${pv} > ${cv} 🎉`;
+  } else if (cv > pv) {
+    playLose();
+    cpuDeck.unshift(playerDeck.pop());
+    cpuDeck.unshift(cpuDeck.pop());
+    pStat && pStat.classList.add('loser');
+    cStat && cStat.classList.add('winner');
+    msg = `Datorn vann! ${cv} > ${pv} 😤`;
+  } else {
+    playDraw();
+    playerDeck.pop(); cpuDeck.pop();
+    msg = `Oavgjort! Båda ${pv} — inget kort! 🤝`;
+  }
+
+  document.getElementById('message').textContent = msg;
+  document.getElementById('player-count').textContent = playerDeck.length;
+  document.getElementById('cpu-count').textContent    = cpuDeck.length;
+
+  if (!playerDeck.length || !cpuDeck.length) {
+    setTimeout(endGame, 1200);
+  } else {
+    document.getElementById('next-btn').style.display = 'block';
+  }
+}
+
+function nextRound() { showRound(); }
+
+function endGame() {
+  playEnd();
+  const pl = playerDeck.length, cl = cpuDeck.length;
+  let title, text;
+  if (pl > cl) {
+    title = '🏆 Du vann!';
+    text  = `Du har ${pl} kort — Top Trumps-mästare!`;
+  } else if (cl > pl) {
+    title = '🤖 Datorn vann!';
+    text  = `Datorn har ${cl} kort. Bättre lycka nästa gång!`;
+  } else {
+    title = '🤝 Oavgjort!';
+    text  = 'Lika många kort vardera — jämt spel!';
+  }
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-text').textContent  = text;
+  setTimeout(()=>document.getElementById('overlay').classList.add('show'), 800);
+}
+
+startGame();
+</script>
+</body>
+</html>
