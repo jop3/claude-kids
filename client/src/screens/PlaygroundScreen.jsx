@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig, getObbyConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getObbyConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig, getBeratelseConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1308,6 +1308,125 @@ function drawHemsida(ctx, w, h, s, dt, t) {
   drawStickFigure(ctx, s.charX * w, charY, 1.1, s.color, 3);
 }
 
+// ─── Scene: berattelse ───────────────────────────────────────────────────────
+const GENRE_EMOJIS = {
+  aventyr: ['⚔️','🗺️','🏰','🐉','💎'],
+  komedi:  ['😂','🤡','🎭','💥','🤪'],
+  skrack:  ['👻','🕷️','🦇','💀','🌑'],
+  saga:    ['🧙','✨','🌟','🦄','🌈'],
+  scifi:   ['🚀','👽','🤖','⭐','🌌'],
+  karlekshistoria: ['❤️','🌹','💫','🦋','🌸'],
+};
+
+function initBerattelse(answers) {
+  const genre = (answers?.genre || 'aventyr').toLowerCase();
+  const emojis = GENRE_EMOJIS[genre] || GENRE_EMOJIS.aventyr;
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    emoji: emojis[i % emojis.length],
+    x: Math.random(),
+    y: Math.random(),
+    vx: rand(-0.015, 0.015),
+    vy: rand(-0.025, -0.005),
+    phase: Math.random() * Math.PI * 2,
+    size: rand(18, 36),
+  }));
+  return { genre, emojis, particles, pageT: 0, pageFlip: 0 };
+}
+
+function drawBerattelse(ctx, w, h, s, dt, t) {
+  // Dark gradient background
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, '#0d1f3c');
+  g.addColorStop(1, '#1a3a6e');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // Floating genre emojis
+  s.particles.forEach(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.y < -0.1) { p.y = 1.05; p.x = Math.random(); }
+    if (p.x < -0.1 || p.x > 1.1) p.vx *= -1;
+    const scale = 0.8 + 0.2 * Math.sin(t * 1.5 + p.phase);
+    ctx.save();
+    ctx.translate(p.x * w, p.y * h);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = 0.5;
+    ctx.font = `${p.size}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.emoji, 0, 0);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+
+  // Book shape
+  const bx = w * 0.5, by = h * 0.5;
+  const bw = w * 0.6, bh = h * 0.55;
+  s.pageFlip += dt * 0.8;
+
+  // Left page
+  ctx.fillStyle = '#fffde7';
+  ctx.beginPath();
+  ctx.roundRect(bx - bw / 2, by - bh / 2, bw / 2 - 2, bh, [8, 0, 0, 8]);
+  ctx.fill();
+
+  // Right page (with page turn ripple)
+  const ripple = Math.sin(s.pageFlip) * 4;
+  ctx.fillStyle = '#fff8e1';
+  ctx.beginPath();
+  ctx.moveTo(bx + 2, by - bh / 2);
+  ctx.lineTo(bx + bw / 2, by - bh / 2);
+  ctx.arcTo(bx + bw / 2, by - bh / 2, bx + bw / 2, by + bh / 2, 8);
+  ctx.lineTo(bx + bw / 2, by + bh / 2);
+  ctx.arcTo(bx + bw / 2, by + bh / 2, bx + 2, by + bh / 2, 8);
+  ctx.bezierCurveTo(bx + bw * 0.3, by + bh / 2 + ripple, bx + 2, by + ripple, bx + 2, by - bh / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Spine
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(bx - 3, by - bh / 2, 6, bh);
+
+  // Lines on left page
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const ly = by - bh * 0.35 + i * bh * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(bx - bw * 0.43, ly);
+    ctx.lineTo(bx - bw * 0.07, ly);
+    ctx.stroke();
+  }
+
+  // Lines on right page
+  for (let i = 0; i < 6; i++) {
+    const ly = by - bh * 0.35 + i * bh * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(bx + bw * 0.07, ly);
+    ctx.lineTo(bx + bw * 0.43, ly);
+    ctx.stroke();
+  }
+
+  // Big emoji on left page
+  const emojiIdx = Math.floor(t * 0.6) % s.emojis.length;
+  ctx.font = `${Math.round(bh * 0.32)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = 0.8;
+  ctx.fillText(s.emojis[emojiIdx], bx - bw * 0.25, by);
+  ctx.globalAlpha = 1;
+
+  // Shadow under book
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(bx, by + bh / 2 + 10, bw * 0.45, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
 // ─── Scene dispatcher ─────────────────────────────────────────────────────────
 const SCENES = {
   spel:       { init: initSpel,       draw: drawSpel },
@@ -1320,6 +1439,7 @@ const SCENES = {
   rostlab:    { init: initRostlab,    draw: drawRostlab },
   animation:  { init: initAnimation,  draw: drawAnimation },
   hemsida:    { init: initHemsida,    draw: drawHemsida },
+  berattelse: { init: initBerattelse, draw: drawBerattelse },
 };
 
 // ─── Building animation styles ────────────────────────────────────────────────
@@ -1631,6 +1751,31 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ templateName: 'rostlab', config }),
+                    signal: controller.signal,
+                  });
+                  const renderData = await renderResp.json();
+                  clearInterval(progressInterval);
+                  if (stateRef.current) stateRef.current.streamProgress = 1;
+                  if (renderData.file) {
+                    navigate('result', { category, answers, file: renderData.file, thumb: getThumb() });
+                  } else {
+                    navigate('result', { category, answers, error: true });
+                  }
+                  return;
+                }
+                if (category === 'berattelse') {
+                  let title = 'Min Berattelse';
+                  let chaptersJson = '[]';
+                  try {
+                    const parsed = JSON.parse(accText.trim());
+                    if (parsed.title) title = parsed.title;
+                    if (parsed.chapters) chaptersJson = JSON.stringify(parsed.chapters);
+                  } catch {}
+                  const config = getBeratelseConfig(answers ?? {}, title, chaptersJson);
+                  const renderResp = await fetch('/api/render-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ templateName: 'berattelse', config }),
                     signal: controller.signal,
                   });
                   const renderData = await renderResp.json();

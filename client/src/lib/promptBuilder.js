@@ -302,6 +302,32 @@ Tekniska krav:
 
 Spara filen till /workspace/${name}.html — skriv inget annat, bara skapa filen!`;
 
+    case 'berattelse': {
+      const chapters = parseInt(answers.langd) || 5;
+      return `Svara BARA med ett JSON-objekt, inget annat. Inga förklaringar.
+
+Skriv en kort berattelse for barn 9-12 ar pa svenska.
+- Genre: ${answers.genre}
+- Hjalte: ${answers.hjalte}
+- Miljo: ${answers.miljo}
+- Antal kapitel: ${chapters}
+
+Svara exakt med detta JSON-format (byt ut all text):
+{
+  "title": "Titeln pa berattelsen",
+  "chapters": [
+    { "emoji": "⚔️", "title": "Kapitelnamn", "text": ["Stycke 1 med 2-3 meningar.", "Stycke 2 med 2-3 meningar."] }
+  ]
+}
+
+Regler:
+- Exakt ${chapters} kapitel i arrayen
+- Varje kapitel har ett passande emoji, ett kort namn, och 2 textstycken
+- Varje stycke ar 2-3 meningar, enkelt sprak
+- Sista kapitlet avslutar berattelsen bra
+- Inga specialtecken i JSON som bryter parsning`;
+    }
+
     default:
       return `Du är Kompisen! Skapa något coolt i HTML och spara som /workspace/${name}.html
 

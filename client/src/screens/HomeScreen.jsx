@@ -14,6 +14,7 @@ const CATEGORIES = [
   { id: 'bradspel',   name: 'Brädspel',      emoji: '🎲', bg: '#8d6748' },
   { id: 'larospel',   name: 'Lärospel',      emoji: '🧠', bg: '#00897b' },
   { id: 'rostlab',    name: 'Röstlab',       emoji: '🎤', bg: '#e53935' },
+  { id: 'berattelse', name: 'Berattelse',    emoji: '📖', bg: '#c0392b' },
 ];
 
 export default function HomeScreen({ navigate }) {

@@ -540,3 +540,24 @@ export function getTopTrumpsConfig(answers, title) {
     THEME:  Object.keys(TT_THEMES).find(k => tema.includes(k)) || 'default',
   };
 }
+
+export function getBeratelseConfig(answers, title, chaptersJson) {
+  const GENRE_THEMES = {
+    aventyr:        { bg: ['#0d1f3c','#1a3a6e'], accent: '#ffd700' },
+    komedi:         { bg: ['#1a0d2b','#3d1a5e'], accent: '#ff9800' },
+    skrack:         { bg: ['#0d0000','#1a0000'], accent: '#e53935' },
+    saga:           { bg: ['#0d1a0d','#1a3d1a'], accent: '#ce93d8' },
+    scifi:          { bg: ['#0d0d2b','#1a1a4e'], accent: '#00e5ff' },
+    karlekshistoria:{ bg: ['#1a0a14','#3d1a2e'], accent: '#f48fb1' },
+  };
+  const genre = (answers.genre || '').toLowerCase().replace(/[åä]/g,'a').replace(/ö/g,'o');
+  const themeData = Object.entries(GENRE_THEMES).find(([k]) => genre.includes(k))?.[1]
+    || GENRE_THEMES.aventyr;
+  return {
+    TITLE:    title || 'Min Berattelse',
+    BG_TOP:   themeData.bg[0],
+    BG_BOT:   themeData.bg[1],
+    ACCENT:   themeData.accent,
+    CHAPTERS: chaptersJson || '[]',
+  };
+}

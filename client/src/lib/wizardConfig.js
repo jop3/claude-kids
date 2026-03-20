@@ -621,4 +621,67 @@ export const WIZARD_CONFIG = {
       },
     ],
   },
+
+  berattelse: {
+    label: 'Berattelse',
+    emoji: '📖',
+    color: '#c0392b',
+    steps: [
+      {
+        id: 'genre',
+        question: 'Vilken sorts berattelse?',
+        type: 'choice',
+        choices: [
+          { id: 'aventyr',         label: 'Aventyr',         emoji: '⚔️' },
+          { id: 'komedi',          label: 'Komedi',          emoji: '😂' },
+          { id: 'skrack',          label: 'Skrack',          emoji: '👻' },
+          { id: 'saga',            label: 'Saga',            emoji: '🧙' },
+          { id: 'scifi',           label: 'Sci-fi',          emoji: '🚀' },
+          { id: 'karlekshistoria', label: 'Karlekshistoria',  emoji: '❤️' },
+        ],
+      },
+      {
+        id: 'hjalte',
+        question: 'Vem ar hjalten?',
+        type: 'choice',
+        choices: [
+          { id: 'ninja',       label: 'Ninja',       emoji: '🥷' },
+          { id: 'robot',       label: 'Robot',       emoji: '🤖' },
+          { id: 'dinosaurie',  label: 'Dinosaurie',  emoji: '🦕' },
+          { id: 'enhornin',    label: 'Enhornin',    emoji: '🦄' },
+          { id: 'rymdalien',   label: 'Rymdalien',   emoji: '👽' },
+          { id: 'pirat',       label: 'Pirat',       emoji: '🏴‍☠️' },
+          { id: 'haxan',       label: 'Haxan',       emoji: '🧙‍♀️' },
+          { id: 'riddaren',    label: 'Riddaren',    emoji: '⚔️' },
+          { id: 'astronauten', label: 'Astronauten', emoji: '👨‍🚀' },
+          { id: 'draken',      label: 'Draken',      emoji: '🐉' },
+        ],
+      },
+      {
+        id: 'miljo',
+        question: 'Var utspelar sig berattelsen?',
+        type: 'choice',
+        choices: [
+          { id: 'rymden',       label: 'Rymden',       emoji: '🚀' },
+          { id: 'djungeln',     label: 'Djungeln',     emoji: '🌿' },
+          { id: 'havet',        label: 'Havet',        emoji: '🌊' },
+          { id: 'medeltiden',   label: 'Medeltiden',   emoji: '🏰' },
+          { id: 'framtiden',    label: 'Framtiden',    emoji: '🤖' },
+          { id: 'skogen',       label: 'Skogen',       emoji: '🌲' },
+          { id: 'undervattnet', label: 'Undervattnet', emoji: '🐠' },
+          { id: 'sagolandet',   label: 'Sagolandet',   emoji: '✨' },
+        ],
+      },
+      {
+        id: 'langd',
+        question: 'Hur lang berattelse?',
+        type: 'choice',
+        choices: [
+          { id: '3', label: 'Kort',  emoji: '📄' },
+          { id: '5', label: 'Lagom', emoji: '📃' },
+          { id: '8', label: 'Lang',  emoji: '📚' },
+        ],
+      },
+    ],
+  },
 };
