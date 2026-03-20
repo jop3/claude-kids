@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { buildPrompt } from '../lib/promptBuilder.js';
-import { getSpelConfig, getRunnerConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig } from '../lib/templateConfigs.js';
+import { getSpelConfig, getRunnerConfig, getObbyConfig, getMemoryConfig, getMusicConfig, getAnimationConfig, getHemsidaConfig, getRostlabConfig, getFilmstudioConfig, getLarospelConfig, getBradspelConfig, getSnapConfig, getTopTrumpsConfig } from '../lib/templateConfigs.js';
 
 // ─── World background colors ────────────────────────────────────────────────
 const WORLD_COLORS = {
@@ -1419,10 +1419,13 @@ export default function PlaygroundScreen({ category, answers, navigate }) {
                   } catch {}
                   const speltyp = answers?.speltyp ?? '';
                   const isRunner = speltyp.toLowerCase().includes('runner');
+                  const isObby   = speltyp.toLowerCase().includes('obby');
                   const config = isRunner
                     ? getRunnerConfig(answers ?? {}, title)
+                    : isObby
+                    ? getObbyConfig(answers ?? {}, title)
                     : getSpelConfig(answers ?? {}, title);
-                  const templateName = isRunner ? 'runner' : 'platform';
+                  const templateName = isRunner ? 'runner' : isObby ? 'obby' : 'platform';
                   const renderResp = await fetch('/api/render-template', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

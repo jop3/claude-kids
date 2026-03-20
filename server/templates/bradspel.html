@@ -129,6 +129,56 @@
     min-height: 1.2em;
   }
 
+  /* Trivia overlay */
+  #trivia-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    z-index: 60;
+    text-align: center;
+    padding: 24px;
+  }
+  #trivia-q {
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+    font-weight: 700;
+    color: #fff;
+    max-width: 340px;
+    line-height: 1.4;
+  }
+  #trivia-label {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .trivia-btn {
+    width: min(90vw, 320px);
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .trivia-btn:hover { background: rgba(255,255,255,0.2); }
+  .trivia-btn.correct { background: #2ecc7188; border-color: #2ecc71; }
+  .trivia-btn.wrong   { background: #e74c3c88; border-color: #e74c3c; }
+  #trivia-result {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    min-height: 1.4em;
+  }
+
   /* Win overlay */
   #win-overlay {
     display: none;
@@ -185,6 +235,13 @@
   <div id="status-text">Tryck för att starta spelet!</div>
 </div>
 
+<div id="trivia-overlay">
+  <div id="trivia-label">❓ Frågastopp!</div>
+  <div id="trivia-q"></div>
+  <div id="trivia-answers"></div>
+  <div id="trivia-result"></div>
+</div>
+
 <div id="win-overlay">
   <div id="win-emoji">🏆</div>
   <div id="win-text"></div>
@@ -197,6 +254,7 @@
   const TEMA = '{{TEMA}}';
   const PLAYERS = parseInt('{{PLAYERS}}') || 2;
   const ACCENT = '{{ACCENT}}';
+  const SPELTYP = '{{SPELTYP}}';
 
   // ── Theme definitions ─────────────────────────────────────────────────────
   const THEMES = {
@@ -224,6 +282,79 @@
 
   const themeKey = Object.keys(THEMES).find(k => TEMA.toLowerCase().includes(k)) || 'banspel';
   const theme = THEMES[themeKey];
+
+  // ── Trivia question bank ──────────────────────────────────────────────────
+  const TRIVIA_QUESTIONS = [
+    { q: 'Vad är huvudstaden i Sverige?', a: ['Stockholm','Göteborg','Malmö','Uppsala'], correct: 0 },
+    { q: 'Hur många sidor har en kub?', a: ['4','6','8','12'], correct: 1 },
+    { q: 'Vilket djur är störst?', a: ['Elefant','Flodhäst','Blåval','Giraff'], correct: 2 },
+    { q: 'Vad är 7 × 8?', a: ['54','56','64','48'], correct: 1 },
+    { q: 'Vilket land har flest invånare?', a: ['USA','Ryssland','Indien','Kina'], correct: 3 },
+    { q: 'Hur många planeter finns i solsystemet?', a: ['7','8','9','10'], correct: 1 },
+    { q: 'Vilket är världens längsta flod?', a: ['Amazonas','Yangtze','Nilen','Mississippi'], correct: 2 },
+    { q: 'Vad heter Sverigestärkast djur?', a: ['Älg','Björn','Lo','Örn'], correct: 1 },
+    { q: 'Vad är 12 × 12?', a: ['132','144','124','148'], correct: 1 },
+    { q: 'Hur många ben har en spindel?', a: ['6','8','10','12'], correct: 1 },
+    { q: 'Vad heter Jordens naturliga satellit?', a: ['Mars','Venus','Månen','Titan'], correct: 2 },
+    { q: 'Vilket grundämne har kemisk beteckning O?', a: ['Ozon','Osmium','Oxygen','Oganesson'], correct: 2 },
+    { q: 'I vilket år började första världskriget?', a: ['1912','1914','1916','1918'], correct: 1 },
+    { q: 'Vad är världens minsta land?', a: ['Monaco','San Marino','Vatikanen','Liechtenstein'], correct: 2 },
+    { q: 'Vilket instrument har 88 tangenter?', a: ['Orgel','Piano','Harpa','Keyboard'], correct: 1 },
+    { q: 'Hur många minuter är det på en dag?', a: ['1200','1440','1500','1380'], correct: 1 },
+    { q: 'Vilket är det hårdaste ämnet?', a: ['Stål','Grafit','Diamant','Kisel'], correct: 2 },
+    { q: 'Vad heter Frankrikes huvudstad?', a: ['Lyon','Marseille','Paris','Nice'], correct: 2 },
+    { q: 'Hur många färger finns i en regnbåge?', a: ['5','6','7','8'], correct: 2 },
+    { q: 'Vilket djur ger oss ull?', a: ['Get','Ko','Får','Lama'], correct: 2 },
+  ];
+
+  let triviaQueue = [];
+  function getTriviaQuestion() {
+    if (triviaQueue.length === 0) triviaQueue = [...TRIVIA_QUESTIONS].sort(() => Math.random() - 0.5);
+    return triviaQueue.pop();
+  }
+
+  // ── Trivia squares (every 4th square: 4,8,12,16,20) ─────────────────────
+  const TRIVIA_SQUARES = new Set([4, 8, 12, 16, 20]);
+
+  function showTriviaOverlay(callback) {
+    const q = getTriviaQuestion();
+    const overlay = document.getElementById('trivia-overlay');
+    document.getElementById('trivia-q').textContent = q.q;
+    document.getElementById('trivia-result').textContent = '';
+
+    const answersEl = document.getElementById('trivia-answers');
+    answersEl.innerHTML = '';
+    answersEl.style.display = 'flex';
+    answersEl.style.flexDirection = 'column';
+    answersEl.style.gap = '8px';
+    answersEl.style.width = 'min(90vw, 320px)';
+
+    let answered = false;
+    q.a.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'trivia-btn';
+      btn.textContent = text;
+      btn.addEventListener('click', () => {
+        if (answered) return;
+        answered = true;
+        const isCorrect = i === q.correct;
+        btn.classList.add(isCorrect ? 'correct' : 'wrong');
+        if (!isCorrect) {
+          answersEl.querySelectorAll('.trivia-btn')[q.correct].classList.add('correct');
+        }
+        document.getElementById('trivia-result').textContent = isCorrect
+          ? '✅ Rätt svar! Flytta fram 2 extra!'
+          : `❌ Tyvärr! Rätt svar var: ${q.a[q.correct]}`;
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          callback(isCorrect);
+        }, 1600);
+      });
+      answersEl.appendChild(btn);
+    });
+
+    overlay.style.display = 'flex';
+  }
 
   // ── Board layout ──────────────────────────────────────────────────────────
   const TOTAL_SQUARES = 24;
@@ -306,8 +437,19 @@
       ctx.textBaseline = 'top';
       ctx.fillText(i + 1, p.x + p.w / 2, p.y + 5);
 
+      // Trivia square highlight
+      if (SPELTYP === 'trivia' && TRIVIA_SQUARES.has(i + 1)) {
+        ctx.fillStyle = '#f39c1244';
+        ctx.beginPath();
+        roundRect(ctx, p.x + 2, p.y + 2, p.w - 4, p.h - 4, 6);
+        ctx.fill();
+        ctx.font = `${Math.round(size * 0.055)}px serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText('❓', p.x + p.w / 2, p.y + p.h / 2 + 4);
+      }
+
       // Special square emoji
-      if (SPECIAL_SQUARES[i + 1]) {
+      if (SPECIAL_SQUARES[i + 1] && !(SPELTYP === 'trivia' && TRIVIA_SQUARES.has(i + 1))) {
         const sp = SPECIAL_SQUARES[i + 1];
         const emoji = theme.special[sp.type];
         ctx.font = `${Math.round(size * 0.055)}px serif`;
@@ -453,6 +595,22 @@
       // Win!
       setTimeout(() => showWin(currentPlayer), 400);
       rolling = false;
+      return;
+    }
+
+    // Trivia square
+    if (SPELTYP === 'trivia' && TRIVIA_SQUARES.has(pos + 1)) {
+      statusEl.textContent = '❓ Frågastopp!';
+      setTimeout(() => {
+        showTriviaOverlay((correct) => {
+          if (correct) {
+            pl.pos = Math.min(pl.pos + 2, TOTAL_SQUARES - 1);
+            render();
+            if (pl.pos === TOTAL_SQUARES - 1) { showWin(currentPlayer); return; }
+          }
+          nextTurn();
+        });
+      }, 300);
       return;
     }
 

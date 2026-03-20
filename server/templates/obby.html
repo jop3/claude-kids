@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>{{TITLE}}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; overflow:hidden; display:flex; flex-direction:column;
+       align-items:center; justify-content:center; height:100vh;
+       font-family:'Arial Rounded MT Bold', Arial, sans-serif; }
+canvas { display:block; touch-action:none; }
+#ui { position:fixed; top:0; left:0; right:0; display:flex;
+      justify-content:space-between; align-items:center;
+      padding:10px 18px; pointer-events:none; z-index:10; }
+.ui-pill { background:rgba(0,0,0,0.55); border-radius:20px;
+           padding:6px 14px; color:#fff; font-size:1.1rem;
+           font-weight:bold; letter-spacing:1px; }
+#overlay { position:fixed; inset:0; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; z-index:20;
+           background:rgba(0,0,0,0.8); gap:12px; }
+#overlay h1 { font-size:2.8rem; color:#fff; text-shadow:0 0 20px {{ACCENT}};
+              margin-bottom:4px; text-align:center; }
+#overlay p  { font-size:1.1rem; color:#ddd; margin-bottom:16px; text-align:center; max-width:340px; line-height:1.5; }
+#overlay button { font-size:1.3rem; font-weight:bold; padding:16px 48px;
+                  border:none; border-radius:20px; cursor:pointer;
+                  background:{{ACCENT}}; color:#fff;
+                  box-shadow:0 4px 20px {{ACCENT}}88;
+                  transition:transform 0.1s; }
+#overlay button:active { transform:scale(0.95); }
+/* touch controls */
+#dpad { position:fixed; bottom:20px; left:16px; display:none; z-index:15; }
+#dpad button { width:60px; height:60px; border-radius:14px; border:none;
+               background:rgba(255,255,255,0.18); color:#fff;
+               font-size:1.5rem; cursor:pointer; user-select:none;
+               -webkit-user-select:none; touch-action:none; }
+#dpad button:active { background:rgba(255,255,255,0.38); }
+#jump-btn { position:fixed; bottom:20px; right:16px; width:76px; height:76px;
+            border-radius:50%; border:none; background:{{ACCENT}}cc;
+            color:#fff; font-size:2rem; cursor:pointer; display:none;
+            z-index:15; touch-action:none; user-select:none; -webkit-user-select:none; }
+#jump-btn:active { background:{{ACCENT}}; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="ui-pill">⏱ <span id="timer">0.0s</span></div>
+  <div class="ui-pill" id="level-pill">{{TITLE}}</div>
+  <div class="ui-pill">🚩 <span id="checkpoint">Start</span></div>
+</div>
+<canvas id="c"></canvas>
+<div id="dpad">
+  <div style="display:grid;grid-template-columns:60px 60px 60px;gap:6px">
+    <div></div><button id="btn-up">⬆️</button><div></div>
+    <button id="btn-left">⬅️</button><div></div><button id="btn-right">➡️</button>
+  </div>
+</div>
+<button id="jump-btn">🆙</button>
+<div id="overlay">
+  <h1>{{TITLE}}</h1>
+  <p>Nå slutflaggan! Undvik hinder, använd checkpoints och klara banan så snabbt du kan!</p>
+  <button id="start-btn">▶ Starta!</button>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CFG = {
+  worldBg:       ["{{BG_TOP}}", "{{BG_BOT}}"],
+  groundColor:   "{{GROUND}}",
+  platformColor: "{{PLATFORM_COLOR}}",
+  accentColor:   "{{ACCENT}}",
+  playerColor:   "{{CHAR_COLOR}}",
+  playerShape:   "{{CHAR_SHAPE}}",
+  difficulty:    parseInt("{{DIFFICULTY}}") || 5,
+};
+
+// ─── CANVAS ───────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (state === 'playing') buildLevel(); });
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function isLeft()  { return keys['ArrowLeft']  || keys['KeyA'] || touch.left; }
+function isRight() { return keys['ArrowRight'] || keys['KeyD'] || touch.right; }
+function isJump()  { return keys['ArrowUp'] || keys['KeyW'] || keys['Space'] || touch.jump; }
+
+const touch = { left: false, right: false, jump: false };
+function isMobile() { return 'ontouchstart' in window; }
+function setupTouch() {
+  if (!isMobile()) return;
+  document.getElementById('dpad').style.display = 'block';
+  document.getElementById('jump-btn').style.display = 'block';
+  function btn(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', e => { e.preventDefault(); touch[key] = true; }, { passive: false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); touch[key] = false; }, { passive: false });
+  }
+  btn('btn-left', 'left'); btn('btn-right', 'right'); btn('btn-up', 'jump');
+  const jb = document.getElementById('jump-btn');
+  jb.addEventListener('touchstart', e => { e.preventDefault(); touch.jump = true; }, { passive: false });
+  jb.addEventListener('touchend',   e => { e.preventDefault(); touch.jump = false; }, { passive: false });
+}
+setupTouch();
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+let AC;
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+}
+function beep(freq, dur, type = 'sine', vol = 0.15) {
+  if (!AC) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = type; o.frequency.value = freq;
+    const n = AC.currentTime;
+    g.gain.setValueAtTime(vol, n); g.gain.exponentialRampToValueAtTime(0.001, n + dur);
+    o.start(n); o.stop(n + dur);
+  } catch (e) {}
+}
+function playJump()       { beep(300, 0.06, 'square', 0.12); beep(450, 0.05, 'square', 0.1); }
+function playFall()       { beep(220, 0.25, 'sawtooth', 0.3); }
+function playCheckpoint() { [523, 659, 784].forEach((f, i) => setTimeout(() => beep(f, 0.12, 'sine', 0.2), i * 80)); }
+function playWin()        { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f, 0.18, 'sine', 0.22), i * 110)); }
+function playDisappear()  { beep(180, 0.15, 'sawtooth', 0.1); }
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+let state = 'title'; // title | playing | win
+let player, platforms, spikes, checkpointX, checkpointY, particles;
+let elapsed = 0, timerRunning = false;
+let jumpBuffer = 0, jumpPressed = false, canJump = false;
+let coyoteTime = 0;
+
+// ─── LEVEL DATA ───────────────────────────────────────────────────────────────
+// Each level is an array of platform descriptors. Generated based on difficulty.
+// Platform types: 'static', 'move-h' (horizontal), 'move-v' (vertical), 'disappear'
+// Spike: {x, y, w, h, angle, spin}
+// Flag: {x, y}  — checkpoint
+// End: {x, y}   — finish
+
+const DIFF = CFG.difficulty; // 1–10
+
+function buildLevel() {
+  const UNIT = Math.min(W, H) / 16; // base tile size
+  const PW = UNIT * 2.5;
+  const PH = UNIT * 0.6;
+  const FLOOR = H - UNIT * 1.5;
+  const CAM_W = W * 8; // total level width
+
+  platforms = [];
+  spikes    = [];
+  let flags  = [];
+  let endX   = 0;
+
+  // Ground floor sections
+  platforms.push({ x: -UNIT*2, y: FLOOR, w: UNIT*12, h: UNIT*2, type: 'static', color: CFG.groundColor });
+
+  // ── Section 1: Moving platforms (horizontal)
+  let x = UNIT * 12;
+  for (let i = 0; i < 4 + DIFF; i++) {
+    const w = PW * (1 + Math.random() * 0.5);
+    const range = UNIT * (2 + DIFF * 0.3);
+    const speed = 0.8 + DIFF * 0.15 + Math.random() * 0.5;
+    platforms.push({ x, y: FLOOR - UNIT*(2+i*0.3), w, h: PH, type: 'move-h', color: CFG.platformColor,
+                     baseX: x, range, speed, phase: Math.random() * Math.PI * 2 });
+    x += w + UNIT * (1.2 + Math.random());
+  }
+
+  // Ground section
+  platforms.push({ x, y: FLOOR, w: UNIT * 8, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+  // Checkpoint 1
+  flags.push({ x: x + UNIT * 3, y: FLOOR - UNIT * 2.5 });
+  x += UNIT * 8;
+
+  // ── Section 2: Disappearing tiles
+  for (let i = 0; i < 3 + Math.floor(DIFF * 0.4); i++) {
+    platforms.push({ x: x + i * UNIT * 2.2, y: FLOOR - UNIT * (1.5 + i * 0.4), w: PW, h: PH,
+                     type: 'disappear', color: CFG.platformColor,
+                     disappearTimer: 0, visible: true, respawnTimer: 0 });
+  }
+  x += UNIT * (8 + DIFF * 0.5);
+
+  // Ground
+  platforms.push({ x, y: FLOOR, w: UNIT * 6, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+  x += UNIT * 6;
+
+  // ── Section 3: Vertical moving platforms over gaps
+  for (let i = 0; i < 3 + Math.floor(DIFF * 0.5); i++) {
+    const range = UNIT * (1.5 + DIFF * 0.2);
+    const speed = 0.7 + DIFF * 0.12 + Math.random() * 0.4;
+    platforms.push({ x: x + i * UNIT * 3.5, y: FLOOR - UNIT * 3, w: PW, h: PH, type: 'move-v', color: CFG.platformColor,
+                     baseY: FLOOR - UNIT * 3, range, speed, phase: Math.random() * Math.PI * 2 });
+  }
+  x += UNIT * (3 + Math.floor(DIFF * 0.5)) * 3.5;
+
+  // Ground + Checkpoint 2
+  platforms.push({ x, y: FLOOR, w: UNIT * 8, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+  flags.push({ x: x + UNIT * 4, y: FLOOR - UNIT * 2.5 });
+  x += UNIT * 8;
+
+  // ── Section 4: Spinning spike gauntlet
+  const numSpikes = 3 + Math.floor(DIFF * 0.6);
+  for (let i = 0; i < numSpikes; i++) {
+    spikes.push({
+      x: x + i * UNIT * 2.8 + UNIT,
+      y: FLOOR - UNIT * 1.5,
+      size: UNIT * 0.8,
+      angle: 0,
+      spin: (0.04 + DIFF * 0.004) * (i % 2 === 0 ? 1 : -1),
+    });
+    if (i < numSpikes - 1) {
+      platforms.push({ x: x + i * UNIT * 2.8, y: FLOOR, w: UNIT * 2.2, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+    }
+  }
+  x += numSpikes * UNIT * 2.8 + UNIT;
+
+  // Ground + Checkpoint 3
+  platforms.push({ x, y: FLOOR, w: UNIT * 8, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+  flags.push({ x: x + UNIT * 4, y: FLOOR - UNIT * 2.5 });
+  x += UNIT * 8;
+
+  // ── Section 5: Mixed chaos — all three types
+  for (let i = 0; i < 2 + Math.floor(DIFF * 0.3); i++) {
+    const types = ['move-h', 'move-v', 'disappear'];
+    const t = types[i % 3];
+    const range = UNIT * (1.5 + DIFF * 0.25);
+    const speed = 1 + DIFF * 0.15;
+    platforms.push({
+      x: x + i * UNIT * 3, y: FLOOR - UNIT * (2 + i * 0.5),
+      w: PW, h: PH, type: t, color: CFG.platformColor,
+      baseX: x + i * UNIT * 3, baseY: FLOOR - UNIT * (2 + i * 0.5),
+      range, speed, phase: i * 1.2,
+      disappearTimer: 0, visible: true, respawnTimer: 0,
+    });
+  }
+  x += (2 + Math.floor(DIFF * 0.3)) * UNIT * 3 + UNIT * 4;
+
+  // End platform + finish flag
+  platforms.push({ x, y: FLOOR, w: UNIT * 10, h: UNIT * 2, type: 'static', color: CFG.groundColor });
+  endX = x + UNIT * 5;
+
+  return { platforms, spikes, flags, endX, FLOOR, UNIT };
+}
+
+let level;
+
+function startGame() {
+  initAudio();
+  document.getElementById('overlay').style.display = 'none';
+  state = 'playing';
+  elapsed = 0; timerRunning = true;
+  particles = [];
+  level = buildLevel();
+  checkpointX = level.UNIT * 2;
+  checkpointY = level.FLOOR - level.UNIT * 3;
+  document.getElementById('checkpoint').textContent = 'Start';
+  spawnPlayer(checkpointX, checkpointY);
+}
+
+function spawnPlayer(x, y) {
+  const UNIT = level.UNIT;
+  player = {
+    x, y,
+    w: UNIT * 1, h: UNIT * 1.4,
+    vx: 0, vy: 0,
+    onGround: false,
+    frameT: 0,
+  };
+  jumpBuffer = 0; jumpPressed = false; coyoteTime = 0;
+}
+
+// ─── DRAWING PLAYER (shape-based) ─────────────────────────────────────────────
+function drawPlayer() {
+  const { x, y, w, h } = player;
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  const shape = CFG.playerShape;
+  ctx.fillStyle = CFG.playerColor;
+
+  if (shape === 'robot') {
+    // Square boxy robot
+    ctx.fillRect(-w*0.4, -h*0.45, w*0.8, h*0.5);
+    ctx.fillStyle = '#90caf9'; ctx.fillRect(-w*0.15, -h*0.42, w*0.13, h*0.15);
+    ctx.fillStyle = CFG.playerColor;
+    ctx.fillRect(-w*0.38, -h*0, w*0.76, h*0.48);
+  } else if (shape === 'dino') {
+    ctx.beginPath(); ctx.ellipse(0, h*0.05, w*0.38, h*0.42, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(w*0.1, -h*0.32, w*0.18, h*0.18, 0.3, 0, Math.PI*2); ctx.fill();
+  } else if (shape === 'unicorn') {
+    ctx.beginPath(); ctx.ellipse(0, h*0.08, w*0.36, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#f8bbd0'; ctx.beginPath(); ctx.ellipse(-w*0.12, -h*0.3, w*0.14, h*0.17, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.moveTo(-w*0.12,-h*0.47); ctx.lineTo(-w*0.06,-h*0.22); ctx.lineTo(-w*0.18,-h*0.22); ctx.closePath(); ctx.fill();
+  } else {
+    // ninja (default): masked figure
+    ctx.beginPath(); ctx.ellipse(0, -h*0.22, w*0.3, h*0.28, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(-w*0.32, -h*0.0, w*0.64, h*0.46);
+    ctx.fillStyle = '#222'; ctx.fillRect(-w*0.3, -h*0.3, w*0.6, h*0.12);
+  }
+
+  ctx.restore();
+}
+
+// ─── DRAWING SPIKES (rotating) ─────────────────────────────────────────────
+function drawSpike(spike) {
+  ctx.save();
+  ctx.translate(spike.x - cam, spike.y);
+  ctx.rotate(spike.angle);
+  const s = spike.size;
+  ctx.fillStyle = '#ff1744';
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.rotate(i * Math.PI / 2);
+    ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s*0.35, 0); ctx.lineTo(-s*0.35, 0); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ─── DRAWING PLATFORM ─────────────────────────────────────────────────────────
+function drawPlatform(p) {
+  if (!p.visible) return;
+  ctx.save();
+  const alpha = (p.type === 'disappear' && p.disappearTimer > 0)
+    ? 0.3 + 0.7 * Math.abs(Math.sin(p.disappearTimer * 0.02))
+    : 1;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = p.color;
+  ctx.beginPath();
+  ctx.roundRect(p.x - cam, p.y, p.w, p.h, 6);
+  ctx.fill();
+  // Top highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(p.x - cam + 4, p.y, p.w - 8, 4);
+  ctx.restore();
+}
+
+// ─── FLAG DRAWING ─────────────────────────────────────────────────────────────
+function drawFlag(fx, fy, reached, isEnd) {
+  ctx.save();
+  ctx.translate(fx - cam, fy);
+  ctx.fillStyle = reached ? '#ffd700' : 'rgba(255,255,255,0.5)';
+  ctx.fillRect(-3, 0, 6, level.UNIT * 2.5);
+  ctx.fillStyle = isEnd ? '#ff5722' : (reached ? '#ffd700' : '#fff');
+  ctx.beginPath();
+  ctx.moveTo(3, 0); ctx.lineTo(3 + level.UNIT * 1.2, level.UNIT * 0.5);
+  ctx.lineTo(3, level.UNIT * 1.0); ctx.closePath(); ctx.fill();
+  if (isEnd) {
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${level.UNIT * 0.7}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('🏁', level.UNIT * 0.6, level.UNIT * 0.7);
+  }
+  ctx.restore();
+}
+
+// ─── PARTICLES ────────────────────────────────────────────────────────────────
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 2 + Math.random() * 4;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 2, color, r: 3+Math.random()*4, life: 1 });
+  }
+}
+
+// ─── CAMERA ───────────────────────────────────────────────────────────────────
+let cam = 0;
+
+// ─── CHECKPOINT FLAGS STATE ───────────────────────────────────────────────────
+let reachedFlags = [];
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+let lastT = 0;
+function update(dt) {
+  if (state !== 'playing') return;
+  const UNIT = level.UNIT;
+  const GRAV = 0.42 + CFG.difficulty * 0.022;
+  const JUMP_V = -(13 - CFG.difficulty * 0.3);
+  const SPEED = 4.5 + CFG.difficulty * 0.25;
+
+  // Timer
+  elapsed += dt;
+
+  // Update moving platforms
+  const t = elapsed;
+  for (const p of level.platforms) {
+    if (p.type === 'move-h') {
+      p.x = p.baseX + Math.sin(t * 0.001 * p.speed + p.phase) * p.range;
+    } else if (p.type === 'move-v') {
+      p.y = p.baseY + Math.sin(t * 0.001 * p.speed + p.phase) * p.range;
+    } else if (p.type === 'disappear') {
+      if (!p.visible) {
+        p.respawnTimer -= dt;
+        if (p.respawnTimer <= 0) { p.visible = true; p.disappearTimer = 0; }
+      } else if (p.disappearTimer > 0) {
+        p.disappearTimer -= dt;
+        if (p.disappearTimer <= 0) {
+          p.visible = false;
+          p.respawnTimer = 3000;
+          playDisappear();
+        }
+      }
+    }
+  }
+
+  // Spikes rotate
+  for (const s of level.spikes) {
+    s.angle += s.spin;
+  }
+
+  // Player movement
+  const moveDir = isRight() ? 1 : isLeft() ? -1 : 0;
+  player.vx = moveDir * SPEED;
+  player.vy += GRAV;
+
+  // Jump input buffering
+  const jumpNow = isJump();
+  if (!jumpPressed && jumpNow) { jumpBuffer = 120; }
+  jumpPressed = jumpNow;
+  jumpBuffer = Math.max(0, jumpBuffer - dt);
+  coyoteTime = Math.max(0, coyoteTime - dt);
+
+  if (jumpBuffer > 0 && (player.onGround || coyoteTime > 0)) {
+    player.vy = JUMP_V;
+    jumpBuffer = 0;
+    coyoteTime = 0;
+    playJump();
+    spawnParticles(player.x + player.w/2, player.y + player.h, CFG.playerColor, 5);
+  }
+
+  // Move & collide
+  player.x += player.vx;
+  resolveX();
+  player.onGround = false;
+  player.y += player.vy;
+  resolveY();
+
+  if (player.onGround) coyoteTime = 80;
+
+  // Camera
+  const targetCam = player.x - W * 0.35;
+  cam += (targetCam - cam) * 0.1;
+  cam = Math.max(0, cam);
+
+  // Fall off screen → respawn at checkpoint
+  if (player.y > H + 100) {
+    playFall();
+    spawnPlayer(checkpointX, checkpointY - level.UNIT * 2);
+    cam = Math.max(0, checkpointX - W * 0.35);
+  }
+
+  // Check checkpoint flags
+  for (let i = 0; i < level.flags.length; i++) {
+    if (reachedFlags[i]) continue;
+    const f = level.flags[i];
+    if (Math.abs(player.x + player.w/2 - f.x) < UNIT * 1.5 && Math.abs(player.y + player.h - f.y - UNIT*2.5) < UNIT * 2) {
+      reachedFlags[i] = true;
+      checkpointX = f.x;
+      checkpointY = f.y;
+      document.getElementById('checkpoint').textContent = `Punkt ${i+1}`;
+      playCheckpoint();
+      spawnParticles(f.x - cam, f.y, '#ffd700', 20);
+    }
+  }
+
+  // Check end flag
+  if (Math.abs(player.x + player.w/2 - level.endX) < UNIT * 2 && player.y + player.h > level.FLOOR - UNIT * 3) {
+    winGame();
+  }
+
+  // Spike collision
+  for (const s of level.spikes) {
+    const sx = s.x - cam, sy = s.y;
+    const px = player.x - cam, py = player.y;
+    if (px + player.w > sx - s.size*0.6 && px < sx + s.size*0.6 &&
+        py + player.h > sy - s.size*0.6 && py < sy + s.size*0.6) {
+      playFall();
+      spawnPlayer(checkpointX, checkpointY - UNIT * 2);
+      cam = Math.max(0, checkpointX - W * 0.35);
+    }
+  }
+
+  // Update particles
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= dt / 600;
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  // Update timer display
+  document.getElementById('timer').textContent = (elapsed / 1000).toFixed(1) + 's';
+}
+
+function resolveX() {
+  for (const p of level.platforms) {
+    if (!p.visible) continue;
+    if (player.x + player.w > p.x && player.x < p.x + p.w &&
+        player.y + player.h > p.y && player.y < p.y + p.h) {
+      if (player.vx > 0) player.x = p.x - player.w;
+      else if (player.vx < 0) player.x = p.x + p.w;
+      player.vx = 0;
+    }
+  }
+}
+
+function resolveY() {
+  for (const p of level.platforms) {
+    if (!p.visible) continue;
+    if (player.x + player.w > p.x + 2 && player.x < p.x + p.w - 2 &&
+        player.y + player.h > p.y && player.y + player.h < p.y + p.h + Math.abs(player.vy) + 4) {
+      if (player.vy >= 0) {
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        // Trigger disappear
+        if (p.type === 'disappear' && p.visible && p.disappearTimer === 0) {
+          p.disappearTimer = 800; // flash for 800ms then vanish
+        }
+        // Carry on moving platform
+        if (p.type === 'move-h') player.x += (p.x - (p.baseX + Math.sin((elapsed - 16) * 0.001 * p.speed + p.phase) * p.range));
+      } else if (player.vy < 0) {
+        player.y = p.y + p.h;
+        player.vy = 0;
+      }
+    }
+  }
+}
+
+// ─── WIN ──────────────────────────────────────────────────────────────────────
+function winGame() {
+  state = 'win';
+  timerRunning = false;
+  playWin();
+  const secs = (elapsed / 1000).toFixed(2);
+  const stars = elapsed < 30000 ? '⭐⭐⭐' : elapsed < 60000 ? '⭐⭐' : '⭐';
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <h1>🏁 Klart!</h1>
+    <p>Du klarade banan på <strong>${secs}s</strong>!<br>${stars}</p>
+    <button id="start-btn">Spela igen!</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('start-btn').onclick = () => {
+    reachedFlags = [];
+    startGame();
+  };
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
+function draw() {
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, CFG.worldBg[0]);
+  grad.addColorStop(1, CFG.worldBg[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  if (state === 'title') return;
+
+  // Parallax stars/dots
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 373 % W) - cam * 0.1) % W;
+    const sy = (i * 197) % H;
+    ctx.fillRect((sx + W) % W, sy, 2, 2);
+  }
+
+  // Platforms
+  for (const p of level.platforms) drawPlatform(p);
+
+  // Spikes
+  for (const s of level.spikes) drawSpike(s);
+
+  // Checkpoint flags
+  for (let i = 0; i < level.flags.length; i++) {
+    drawFlag(level.flags[i].x, level.flags[i].y, reachedFlags[i], false);
+  }
+
+  // End flag
+  drawFlag(level.endX, level.FLOOR - level.UNIT * 2.5, false, true);
+
+  // Player
+  ctx.save();
+  ctx.translate(player.x - cam, 0);
+  ctx.translate(0, 0);
+  ctx.restore();
+  ctx.save();
+  const screenX = player.x - cam;
+  ctx.translate(screenX + player.w/2, player.y + player.h/2);
+  ctx.translate(-player.w/2, -player.h/2);
+  ctx.translate(0, 0);
+  ctx.restore();
+
+  // Actually draw player at screen position
+  const savedX = player.x;
+  player.x = player.x - cam;
+  drawPlayer();
+  player.x = savedX;
+
+  // Particles
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─── LOOP ─────────────────────────────────────────────────────────────────────
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(t - lastT, 50);
+  lastT = t;
+  update(dt);
+  draw();
+}
+
+document.getElementById('start-btn').onclick = () => {
+  reachedFlags = [];
+  startGame();
+};
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

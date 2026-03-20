@@ -88,6 +88,23 @@ export function getSpelConfig(answers, title) {
   };
 }
 
+export function getObbyConfig(answers, title) {
+  const world = fuzzyWorld(answers.varld);
+  const char  = fuzzyChar(answers.karaktar);
+  const diff  = parseInt(answers.svarighet) || 5;
+  return {
+    TITLE:          title || 'Obby!',
+    BG_TOP:         world.bg[0],
+    BG_BOT:         world.bg[1],
+    GROUND:         world.ground,
+    PLATFORM_COLOR: world.platform,
+    ACCENT:         world.accent,
+    CHAR_COLOR:     char.color,
+    CHAR_SHAPE:     char.shape,
+    DIFFICULTY:     diff,
+  };
+}
+
 export function getRunnerConfig(answers, title) {
   const world = fuzzyWorld(answers.varld);
   const char  = fuzzyChar(answers.karaktar);
@@ -325,10 +342,12 @@ export function getBradspelConfig(answers, title) {
   const meta = TEMA_META[temaKey];
   const playersRaw = answers.spelare || '2';
   const players = parseInt(playersRaw) || 2;
+  const speltyp = (answers.speltyp || 'banspel').toLowerCase();
   return {
     TITLE:   title || 'Brädspel',
     TEMA:    temaKey,
     PLAYERS: players,
+    SPELTYP: speltyp,
     ACCENT:  meta.accent,
     BG_TOP:  meta.bg[0],
     BG_BOT:  meta.bg[1],
@@ -465,6 +484,7 @@ export function getMemoryConfig(answers, title) {
   )?.[1] || MEMORY_THEMES['Djur🐾'];
 
   const pairs = diff === 1 ? 6 : diff === 3 ? 12 : 8;
+  const multiplayer = answers.spelare === '2' ? 'ja' : 'nej';
 
   return {
     TITLE:         title || 'Memory',
@@ -476,6 +496,7 @@ export function getMemoryConfig(answers, title) {
     ACCENT:        themeData.accent,
     THEME:         themeData.theme,
     PAIRS:         pairs,
+    MULTIPLAYER:   multiplayer,
   };
 }
 

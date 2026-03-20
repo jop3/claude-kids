@@ -315,6 +315,15 @@ export const WIZARD_CONFIG = {
         ],
       },
       {
+        id: 'spelare',
+        question: 'Hur många spelare?',
+        type: 'choice',
+        choices: [
+          { id: '1', label: '1 spelare', emoji: '🧑' },
+          { id: '2', label: '2 spelare', emoji: '👥' },
+        ],
+      },
+      {
         id: 'svarighet',
         question: 'Hur svårt?',
         type: 'choice',

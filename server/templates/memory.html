@@ -111,9 +111,10 @@ body {
 </head>
 <body>
 <div id="header">
-  <div class="pill">🃏 <span id="pairs-left">0</span> kvar</div>
+  <div class="pill" id="p1-pill">🔵 <span id="p1-score">0</span></div>
   <div class="pill" id="title-pill">{{TITLE}}</div>
-  <div class="pill">🔁 <span id="moves">0</span> drag</div>
+  <div class="pill" id="p2-pill" style="display:none">🔴 <span id="p2-score">0</span></div>
+  <div class="pill" id="moves-pill">🔁 <span id="moves">0</span></div>
 </div>
 <div id="board">
   <div id="grid"></div>
@@ -128,10 +129,11 @@ body {
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const CFG = {
-  title:     '{{TITLE}}',
-  theme:     '{{THEME}}',
-  pairs:      parseInt('{{PAIRS}}')  || 8,
-  accent:    '{{ACCENT}}',
+  title:        '{{TITLE}}',
+  theme:        '{{THEME}}',
+  pairs:         parseInt('{{PAIRS}}')  || 8,
+  accent:       '{{ACCENT}}',
+  multiplayer:  '{{MULTIPLAYER}}' === 'ja',
 };
 
 // ─── EMOJI SETS BY THEME ─────────────────────────────────────────────────────
@@ -182,6 +184,8 @@ function playWin()   {
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
 let cards = [], flipped = [], moves = 0, matchedPairs = 0;
 let locked = false;
+// Multiplayer state
+let currentPlayer = 1, scores = [0, 0];
 
 function getEmojis() {
   const themeKey = Object.keys(THEMES).find(k => CFG.theme.toLowerCase().includes(k)) || 'djur';
@@ -191,17 +195,33 @@ function getEmojis() {
   return shuffled.slice(0, CFG.pairs);
 }
 
+function updateMultiplayerUI() {
+  if (!CFG.multiplayer) return;
+  document.getElementById('p2-pill').style.display = 'flex';
+  document.getElementById('moves-pill').style.display = 'none';
+  document.getElementById('p1-score').textContent = scores[0];
+  document.getElementById('p2-score').textContent = scores[1];
+  document.getElementById('p1-pill').style.opacity = currentPlayer === 1 ? '1' : '0.4';
+  document.getElementById('p2-pill').style.opacity = currentPlayer === 2 ? '1' : '0.4';
+  document.getElementById('title-pill').textContent =
+    currentPlayer === 1 ? '🔵 Spelare 1:s tur' : '🔴 Spelare 2:s tur';
+}
+
 function newGame() {
   document.getElementById('win').style.display = 'none';
   flipped = []; moves = 0; matchedPairs = 0; locked = false;
+  currentPlayer = 1; scores = [0, 0];
   document.getElementById('moves').textContent = '0';
-  document.getElementById('pairs-left').textContent = CFG.pairs;
+  if (!CFG.multiplayer) {
+    document.getElementById('title-pill').textContent = CFG.title;
+  }
 
   const emojis = getEmojis();
   const deck = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
   cards = deck.map((emoji, i) => ({ id: i, emoji, matched: false }));
 
   renderGrid(deck.length);
+  updateMultiplayerUI();
 }
 
 function renderGrid(count) {
@@ -280,6 +300,10 @@ function onCardClick(id, el) {
         matchedPairs++;
         document.getElementById('pairs-left').textContent = CFG.pairs - matchedPairs;
         playMatch();
+        if (CFG.multiplayer) {
+          scores[currentPlayer - 1]++;
+          updateMultiplayerUI(); // same player keeps turn on match
+        }
         flipped = [];
         locked = false;
         if (matchedPairs === CFG.pairs) setTimeout(showWin, 600);
@@ -294,6 +318,10 @@ function onCardClick(id, el) {
           setTimeout(() => el2.classList.remove('shake'), 400);
         });
         playMiss();
+        if (CFG.multiplayer) {
+          currentPlayer = currentPlayer === 1 ? 2 : 1; // switch on miss
+          updateMultiplayerUI();
+        }
         flipped = [];
         locked = false;
       }, 900);
@@ -304,15 +332,33 @@ function onCardClick(id, el) {
 function showWin() {
   playWin();
   try { window.parent.postMessage({ type: 'highscore', score: moves }, '*'); } catch(e) {}
-  // Star rating: 3 stars ≤ pairs+2 moves, 2 stars ≤ pairs*2, else 1
-  const stars = moves <= CFG.pairs + 2 ? '⭐⭐⭐' : moves <= CFG.pairs * 2 ? '⭐⭐' : '⭐';
-  const msgs = {
-    '⭐⭐⭐': 'Perfekt minne! Du är ett geni! 🧠',
-    '⭐⭐':   'Jättebra jobbat! Nästan perfekt! 😄',
-    '⭐':     'Du klarade det! Prova igen för fler stjärnor! 💪',
-  };
-  document.getElementById('win-stars').textContent = stars;
-  document.getElementById('win-msg').textContent = msgs[stars];
+
+  if (CFG.multiplayer) {
+    let title, msg;
+    if (scores[0] > scores[1]) {
+      title = '🔵 Spelare 1 vann!';
+      msg = `${scores[0]} par mot ${scores[1]} par — Grattis Spelare 1! 🎉`;
+    } else if (scores[1] > scores[0]) {
+      title = '🔴 Spelare 2 vann!';
+      msg = `${scores[1]} par mot ${scores[0]} par — Grattis Spelare 2! 🎉`;
+    } else {
+      title = '🤝 Oavgjort!';
+      msg = `Båda fick ${scores[0]} par — jättebra spelat!`;
+    }
+    document.getElementById('win').querySelector('h1').textContent = title;
+    document.getElementById('win-stars').textContent = '🏆';
+    document.getElementById('win-msg').textContent = msg;
+  } else {
+    // Star rating: 3 stars ≤ pairs+2 moves, 2 stars ≤ pairs*2, else 1
+    const stars = moves <= CFG.pairs + 2 ? '⭐⭐⭐' : moves <= CFG.pairs * 2 ? '⭐⭐' : '⭐';
+    const msgs = {
+      '⭐⭐⭐': 'Perfekt minne! Du är ett geni! 🧠',
+      '⭐⭐':   'Jättebra jobbat! Nästan perfekt! 😄',
+      '⭐':     'Du klarade det! Prova igen för fler stjärnor! 💪',
+    };
+    document.getElementById('win-stars').textContent = stars;
+    document.getElementById('win-msg').textContent = msgs[stars];
+  }
   document.getElementById('win').style.display = 'flex';
   spawnConfetti();
 }
