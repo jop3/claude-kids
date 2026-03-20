@@ -756,7 +756,10 @@
         streak++;
         btn.classList.add('correct');
         feedbackEl.textContent = '✅ Rätt!';
-        if (streak >= 3) showStreak(streak);
+        if (streak >= 3) {
+          showStreak(streak);
+          try { window.parent.postMessage({ type: 'streak', count: streak }, '*'); } catch(e) {}
+        }
       } else {
         streak = 0;
         btn.classList.add('wrong');

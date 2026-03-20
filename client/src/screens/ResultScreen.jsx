@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
+import { checkAchievements } from '../lib/achievements.js';
+import { getProjects } from '../lib/projectStore.js';
 
 const popIn = `
 @keyframes popIn {
@@ -12,7 +14,23 @@ const popIn = `
 export default function ResultScreen({ category, answers, file, thumb, error, navigate }) {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
-  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
+  const [newAchievements, setNewAchievements] = useState([]);
+  const [achIdx, setAchIdx] = useState(0);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+    if (!error && category) {
+      const projects = getProjects();
+      const cats = [...new Set([...projects.map(p => p.category), category])];
+      const unlocked = checkAchievements({
+        type: 'creation',
+        category,
+        totalSaved: projects.length + 1,
+        savedCategories: cats,
+      });
+      if (unlocked.length > 0) setNewAchievements(unlocked);
+    }
+  }, []);
 
   function handleShare() {
     const url = window.location.origin + '/preview/' + file;
@@ -64,9 +82,47 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
     );
   }
 
+  const curAch = newAchievements[achIdx];
+
   return (
     <>
       <style>{popIn}</style>
+      {curAch && (
+        <div
+          onClick={() => {
+            if (achIdx + 1 < newAchievements.length) setAchIdx(achIdx + 1);
+            else setNewAchievements([]);
+          }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.7)', cursor: 'pointer',
+          }}
+        >
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+            border: '3px solid #ffd700',
+            borderRadius: 24, padding: '32px 40px',
+            textAlign: 'center', maxWidth: 320,
+            animation: 'popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both',
+            boxShadow: '0 0 60px rgba(255,215,0,0.3)',
+          }}>
+            <div style={{ fontSize: 72, marginBottom: 8 }}>{curAch.emoji}</div>
+            <div style={{ fontSize: '1rem', color: '#ffd700', fontWeight: 800, marginBottom: 6, letterSpacing: '0.05em' }}>
+              PRESTATION UPPLÅST!
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginBottom: 8 }}>
+              {curAch.title}
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.65)' }}>
+              {curAch.desc}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginTop: 16 }}>
+              Tryck för att fortsätta
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',

@@ -184,6 +184,7 @@ function playWin()   {
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
 let cards = [], flipped = [], moves = 0, matchedPairs = 0;
 let locked = false;
+let gameStartTime = Date.now();
 // Multiplayer state
 let currentPlayer = 1, scores = [0, 0];
 
@@ -210,6 +211,7 @@ function updateMultiplayerUI() {
 function newGame() {
   document.getElementById('win').style.display = 'none';
   flipped = []; moves = 0; matchedPairs = 0; locked = false;
+  gameStartTime = Date.now();
   currentPlayer = 1; scores = [0, 0];
   document.getElementById('moves').textContent = '0';
   if (!CFG.multiplayer) {
@@ -332,6 +334,8 @@ function onCardClick(id, el) {
 function showWin() {
   playWin();
   try { window.parent.postMessage({ type: 'highscore', score: moves }, '*'); } catch(e) {}
+  const elapsed = Math.round((Date.now() - gameStartTime) / 1000);
+  try { window.parent.postMessage({ type: 'memory_finish', seconds: elapsed }, '*'); } catch(e) {}
 
   if (CFG.multiplayer) {
     let title, msg;

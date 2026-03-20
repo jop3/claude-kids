@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProjects, deleteProject } from '../lib/projectStore.js';
+import { getProfile } from '../lib/creatorProfile.js';
 
 const CAT_COLORS = {
   musik: '#6c3bbd',
@@ -12,6 +13,9 @@ const CAT_COLORS = {
   bradspel: '#8d6748',
   larospel: '#00897b',
   rostlab: '#e53935',
+  berattelse: '#c0392b',
+  pixelart: '#8e44ad',
+  quiz: '#e67e22',
 };
 
 const CAT_EMOJIS = {
@@ -25,6 +29,9 @@ const CAT_EMOJIS = {
   bradspel: '🎲',
   larospel: '📚',
   rostlab: '🎤',
+  berattelse: '📖',
+  pixelart: '🎨',
+  quiz: '🧠',
 };
 
 function formatSwedishDate(isoString) {
@@ -300,9 +307,11 @@ function ProjectCard({ project, navigate, onDeleted, highlight }) {
 
 export default function MyStuffScreen({ navigate, justSaved }) {
   const [projects, setProjects] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     setProjects(getProjects());
+    setProfile(getProfile());
   }, []);
 
   function refresh() {
@@ -340,7 +349,7 @@ export default function MyStuffScreen({ navigate, justSaved }) {
           ← Hem
         </button>
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
-          Mina Saker 📁
+          {profile ? `${profile.avatar} ${profile.name}s Saker` : 'Mina Saker 📁'}
         </h1>
         {/* Spacer to center title */}
         <div style={{ width: 100 }} />

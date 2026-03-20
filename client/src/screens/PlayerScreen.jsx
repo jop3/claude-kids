@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { checkAchievements } from '../lib/achievements.js';
 
 export default function PlayerScreen({ file, projectId, navigate }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!projectId) return;
     function handleMessage(e) {
-      if (e.data?.type === 'highscore' && typeof e.data.score === 'number') {
+      if (e.data?.type === 'highscore' && typeof e.data.score === 'number' && projectId) {
         try {
           const projects = JSON.parse(localStorage.getItem('claude-kids-projects') || '[]');
           const idx = projects.findIndex(p => p.id === projectId);
           if (idx >= 0) {
             const prev = projects[idx].highscore;
-            // For memory, lower is better; for everything else, higher is better
             const isMemory = projects[idx].answers?.speltyp === 'memory';
             const isBetter = prev == null
               || (isMemory ? e.data.score < prev : e.data.score > prev);
@@ -22,6 +21,12 @@ export default function PlayerScreen({ file, projectId, navigate }) {
             }
           }
         } catch {}
+      }
+      if (e.data?.type === 'streak' && typeof e.data.count === 'number') {
+        checkAchievements({ type: 'streak', count: e.data.count });
+      }
+      if (e.data?.type === 'memory_finish' && typeof e.data.seconds === 'number') {
+        checkAchievements({ type: 'memory_finish', seconds: e.data.seconds });
       }
     }
     window.addEventListener('message', handleMessage);
