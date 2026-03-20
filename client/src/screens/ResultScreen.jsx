@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { WIZARD_CONFIG } from '../lib/wizardConfig.js';
 import { checkAchievements } from '../lib/achievements.js';
 import { getProjects } from '../lib/projectStore.js';
+import { isClassroomMode } from '../lib/classroomMode.js';
 
 const popIn = `
 @keyframes popIn {
@@ -19,7 +20,7 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
-    if (!error && category) {
+    if (!error && category && !isClassroomMode()) {
       const projects = getProjects();
       const cats = [...new Set([...projects.map(p => p.category), category])];
       const unlocked = checkAchievements({
@@ -43,6 +44,7 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
   const config = WIZARD_CONFIG[category] ?? {};
   const catLabel = config.label ?? category ?? 'skapelse';
   const catEmoji = config.emoji ?? '🎉';
+  const classroomMode = isClassroomMode();
 
   if (error) {
     return (
@@ -180,20 +182,22 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
             ✏️ Ändra något
           </button>
 
-          <button
-            onClick={() => navigate('namePicker', { returnTo: 'saveResult', category, answers, file, thumb })}
-            style={{
-              padding: '14px 0', borderRadius: 16,
-              background: 'linear-gradient(90deg, #6a1b9a, #ab47bc)',
-              border: 'none', color: '#fff',
-              fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(106,27,154,0.35)',
-            }}
-          >
-            💾 Spara
-          </button>
+          {!classroomMode && (
+            <button
+              onClick={() => navigate('namePicker', { returnTo: 'saveResult', category, answers, file, thumb })}
+              style={{
+                padding: '14px 0', borderRadius: 16,
+                background: 'linear-gradient(90deg, #6a1b9a, #ab47bc)',
+                border: 'none', color: '#fff',
+                fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(106,27,154,0.35)',
+              }}
+            >
+              💾 Spara
+            </button>
+          )}
 
-          <button
+          {!classroomMode && <button
             onClick={handleShare}
             style={{
               padding: '14px 0', borderRadius: 16,
@@ -209,7 +213,7 @@ export default function ResultScreen({ category, answers, file, thumb, error, na
             }}
           >
             {copied ? '✓ Kopierat!' : '🔗 Dela'}
-          </button>
+          </button>}
         </div>
 
         <button

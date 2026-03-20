@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { tap } from '../lib/haptics.js';
 import { playTap } from '../lib/sfx.js';
 import { getProjects } from '../lib/projectStore.js';
 import { getUnlocked, ACHIEVEMENTS } from '../lib/achievements.js';
 import { getProfile } from '../lib/creatorProfile.js';
 import { isMuted, toggleMuted } from '../lib/soundSettings.js';
+import { isClassroomMode, toggleClassroomMode } from '../lib/classroomMode.js';
 
 function CategoryCanvas({ catId, bg }) {
   const canvasRef = useRef(null);
@@ -209,6 +210,9 @@ export default function HomeScreen({ navigate }) {
   const [showAchModal, setShowAchModal] = useState(false);
   const [profile, setProfile] = useState(null);
   const [muted, setMutedState] = useState(isMuted());
+  const [classroomMode, setClassroomModeState] = useState(isClassroomMode());
+  const [classroomToast, setClassroomToast] = useState('');
+  const longPressRef = useRef(null);
 
   useEffect(() => {
     setProjectCount(getProjects().length);
@@ -291,9 +295,36 @@ export default function HomeScreen({ navigate }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 32 }}>
-        <h1 style={{ fontSize: '2rem', margin: 0, textAlign: 'center', color: '#fff' }}>
-          ClaudeKids ✨
+        <h1
+          onMouseDown={() => { longPressRef.current = setTimeout(() => {
+            const next = toggleClassroomMode();
+            setClassroomModeState(next);
+            setClassroomToast(next ? 'Klassrumsläge: PÅ 🏫' : 'Klassrumsläge: AV');
+            setTimeout(() => setClassroomToast(''), 2500);
+          }, 3000); }}
+          onMouseUp={() => clearTimeout(longPressRef.current)}
+          onMouseLeave={() => clearTimeout(longPressRef.current)}
+          onTouchStart={() => { longPressRef.current = setTimeout(() => {
+            const next = toggleClassroomMode();
+            setClassroomModeState(next);
+            setClassroomToast(next ? 'Klassrumsläge: PÅ 🏫' : 'Klassrumsläge: AV');
+            setTimeout(() => setClassroomToast(''), 2500);
+          }, 3000); }}
+          onTouchEnd={() => clearTimeout(longPressRef.current)}
+          style={{ fontSize: '2rem', margin: 0, textAlign: 'center', color: '#fff', userSelect: 'none', cursor: 'default' }}
+        >
+          ClaudeKids ✨{classroomMode && <span style={{ fontSize: '1rem', marginLeft: 8, opacity: 0.7 }}>🏫</span>}
         </h1>
+        {classroomToast && (
+          <div style={{
+            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.85)', color: '#fff', padding: '12px 24px',
+            borderRadius: 12, fontWeight: 700, fontSize: '1rem', zIndex: 999,
+            border: '1px solid rgba(255,255,255,0.2)',
+          }}>
+            {classroomToast}
+          </div>
+        )}
         <div style={{ position: 'absolute', left: 0, display: 'flex', gap: 8 }}>
           {profile && (
             <button
@@ -365,23 +396,25 @@ export default function HomeScreen({ navigate }) {
           >
             👁
           </button>
-          <button
-            onClick={() => navigate('myStuff')}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderRadius: 12,
-              color: '#fff',
-              fontSize: '0.95rem',
-              fontWeight: 'bold',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              minHeight: 44,
-            }}
-          >
-            Mina Saker 📁{projectCount > 0 && <span style={{ marginLeft: 6, fontSize: '0.8rem', opacity: 0.85 }}>({projectCount} sparade)</span>}
-          </button>
+          {!classroomMode && (
+            <button
+              onClick={() => navigate('myStuff')}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderRadius: 12,
+                color: '#fff',
+                fontSize: '0.95rem',
+                fontWeight: 'bold',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                minHeight: 44,
+              }}
+            >
+              Mina Saker 📁{projectCount > 0 && <span style={{ marginLeft: 6, fontSize: '0.8rem', opacity: 0.85 }}>({projectCount} sparade)</span>}
+            </button>
+          )}
         </div>
       </div>
 

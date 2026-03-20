@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProjects, deleteProject } from '../lib/projectStore.js';
 import { getProfile } from '../lib/creatorProfile.js';
+import JSZip from 'jszip';
 
 const CAT_COLORS = {
   musik: '#6c3bbd',
@@ -308,11 +309,40 @@ function ProjectCard({ project, navigate, onDeleted, highlight }) {
 export default function MyStuffScreen({ navigate, justSaved }) {
   const [projects, setProjects] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setProjects(getProjects());
     setProfile(getProfile());
   }, []);
+
+  async function handleExportAll() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const zip = new JSZip();
+      const indexLines = ['<html><head><meta charset="utf-8"><title>Mina Skapelser</title></head><body>',
+        '<h1>Mina Skapelser</h1><ul>'];
+      for (const proj of projects) {
+        if (!proj.file) continue;
+        try {
+          const resp = await fetch(`/preview/${proj.file}`);
+          const text = await resp.text();
+          zip.file(proj.file, text);
+          indexLines.push(`<li><a href="${proj.file}">${proj.name} (${proj.category})</a></li>`);
+        } catch {}
+      }
+      indexLines.push('</ul></body></html>');
+      zip.file('index.html', indexLines.join('\n'));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mina-skapelser.zip';
+      a.click();
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function refresh() {
     setProjects(getProjects());
@@ -351,8 +381,21 @@ export default function MyStuffScreen({ navigate, justSaved }) {
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
           {profile ? `${profile.avatar} ${profile.name}s Saker` : 'Mina Saker 📁'}
         </h1>
-        {/* Spacer to center title */}
-        <div style={{ width: 100 }} />
+        {projects.length > 0 ? (
+          <button
+            onClick={handleExportAll}
+            disabled={exporting}
+            style={{
+              padding: '8px 14px', borderRadius: 12,
+              background: exporting ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#fff', fontSize: '0.85rem', cursor: exporting ? 'default' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {exporting ? '...' : '📦 Exportera'}
+          </button>
+        ) : <div style={{ width: 100 }} />}
       </div>
 
       {/* Content */}

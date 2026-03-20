@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { checkAchievements } from '../lib/achievements.js';
 import { isMuted } from '../lib/soundSettings.js';
+import { isClassroomMode } from '../lib/classroomMode.js';
 
 export default function PlayerScreen({ file, projectId, navigate }) {
   const [copied, setCopied] = useState(false);
@@ -89,21 +90,23 @@ export default function PlayerScreen({ file, projectId, navigate }) {
       >
         {backLabel}
       </button>
-      <button
-        onClick={handleShare}
-        style={{
-          position: 'fixed', top: 12, right: 12,
-          background: copied ? 'rgba(0,121,107,0.85)' : 'rgba(0,0,0,0.6)',
-          color: '#fff',
-          border: '2px solid rgba(255,255,255,0.3)',
-          borderRadius: 12, padding: '8px 16px',
-          fontSize: '0.9rem', cursor: 'pointer',
-          backdropFilter: 'blur(4px)',
-          transition: 'background 0.3s',
-        }}
-      >
-        {copied ? '✓ Kopierat!' : '🔗 Dela'}
-      </button>
+      {!isClassroomMode() && (
+        <button
+          onClick={handleShare}
+          style={{
+            position: 'fixed', top: 12, right: 12,
+            background: copied ? 'rgba(0,121,107,0.85)' : 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderRadius: 12, padding: '8px 16px',
+            fontSize: '0.9rem', cursor: 'pointer',
+            backdropFilter: 'blur(4px)',
+            transition: 'background 0.3s',
+          }}
+        >
+          {copied ? '✓ Kopierat!' : '🔗 Dela'}
+        </button>
+      )}
     </div>
   );
 }
