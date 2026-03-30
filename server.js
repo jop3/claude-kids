@@ -85,8 +85,8 @@ app.post("/api/chat", (req, res) => {
       env: {
         ...process.env,
         CLAUDE_NONINTERACTIVE: "1",
-        CLAUDE_CONFIG_DIR: "/tmp/claude-rw",
-        HOME: "/tmp",
+        ...(process.env.CLAUDE_CONFIG_DIR ? { CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR } : {}),
+        ...(process.env.CLAUDE_HOME ? { HOME: process.env.CLAUDE_HOME } : {}),
       },
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
@@ -134,10 +134,13 @@ app.post("/api/chat", (req, res) => {
             if (block.type === "tool_result") {
               // Check tool_use_result for file path
               const fp = obj.tool_use_result?.filePath || "";
-              if (fp.endsWith(".html")) detectedFile = fp.split("/").pop();
-              // Also scan content text for /workspace/*.html
+              if (fp.endsWith(".html")) {
+                // Handle both Windows and Unix paths
+                detectedFile = fp.split(/[/\\]/).pop();
+              }
+              // Also scan content text for workspace/*.html (Unix and Windows paths)
               const raw = JSON.stringify(block.content || "");
-              const m = raw.match(/\/workspace\/([\w\-]+\.html)/);
+              const m = raw.match(/[/\\]workspace[/\\]([\w\-]+\.html)/);
               if (m) detectedFile = m[1];
             }
           }
